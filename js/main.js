@@ -288,8 +288,12 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('productos', JSON.stringify(productosEjemplo));
     }
 
-    // Crear gastos de ejemplo si no existen
-    if (!localStorage.getItem('gastos') || JSON.parse(localStorage.getItem('gastos')).length === 0) {
+    // Crear gastos de ejemplo SOLO en la primera instalación (igual que las salas)
+    const gastos = JSON.parse(localStorage.getItem('gastos') || '[]');
+    
+    if (esPrimeraVez && gastos.length === 0) {
+        console.log('🚀 Primera instalación - Creando gastos de ejemplo...');
+        
         const gastosEjemplo = [
             {
                 id: generarId(),
@@ -309,6 +313,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         ];
         localStorage.setItem('gastos', JSON.stringify(gastosEjemplo));
+        
+        console.log('✅ Gastos de ejemplo creados (solo en primera instalación)');
+    } else if (!esPrimeraVez) {
+        console.log('ℹ️ Sistema ya configurado - No se recrearán gastos automáticamente');
     }
 
     // Crear configuración de ejemplo si no existe

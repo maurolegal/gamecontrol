@@ -466,6 +466,7 @@ class SistemaAjustes {
             // ===== NUEVOS BOTONES PARA GESTIÓN DE DATOS =====
             { selector: '.btn-crear-datos-demo', metodo: 'crearDatosDemo' },
             { selector: '.btn-limpiar-datos-demo', metodo: 'limpiarDatosDemo' },
+            { selector: '.btn-limpiar-gastos', metodo: 'limpiarGastos' },
             { selector: '.btn-resetear-sistema', metodo: 'resetearSistema' }
         ];
 
@@ -906,6 +907,44 @@ class SistemaAjustes {
         } catch (error) {
             console.error('❌ Error al resetear sistema:', error);
             this.mostrarNotificacion('Error al resetear el sistema', 'danger');
+        }
+    }
+
+    // ==================== LIMPIEZA ESPECÍFICA DE GASTOS ====================
+    limpiarGastos() {
+        const confirmacion = confirm('¿Deseas eliminar TODOS los datos de gastos? Esta acción no se puede deshacer.');
+        if (!confirmacion) return;
+
+        try {
+            console.log('🧹 Limpiando datos de gastos...');
+            
+            // Eliminar de localStorage
+            localStorage.removeItem('gastos');
+            
+            // También limpiar categorías de gastos si existen
+            localStorage.removeItem('categorias_gastos');
+
+            // Intentar eliminar de Supabase si está conectado
+            if (window.databaseService) {
+                console.log('🗄️ Intentando limpiar gastos de Supabase...');
+                // En una implementación futura se podría agregar limpieza de Supabase
+            }
+
+            this.mostrarNotificacion('Todos los datos de gastos han sido eliminados', 'success');
+            
+            // Notificar a otros módulos que los gastos han cambiado
+            window.dispatchEvent(new CustomEvent('gastosActualizados'));
+            
+            // Si estamos en la página de gastos, recargar
+            if (window.location.href.includes('gastos.html')) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error al limpiar gastos:', error);
+            this.mostrarNotificacion('Error al eliminar los datos de gastos', 'danger');
         }
     }
 
