@@ -457,5 +457,4 @@ window.mostrarNotificacion = function(message, type = 'info', title = 'Sistema')
     if (notificationSystem) {
         notificationSystem.addNotification(type, title, message);
     }
-}; 
-}); 
+};
