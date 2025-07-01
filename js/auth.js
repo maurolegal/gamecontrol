@@ -210,15 +210,17 @@ function configurarCerrarSesion() {
     });
 }
 
-// Función para cerrar sesión
+// Función para cerrar sesión (delegada a navigationUtils)
 function cerrarSesion() {
-    console.log('🚪 Cerrando sesión desde auth.js...');
-    localStorage.removeItem('sesionActual');
+    console.log('🚪 Delegando logout a navigationUtils...');
     
-    if (window.navigationUtils) {
+    if (window.navigationUtils && typeof window.navigationUtils.logout === 'function') {
         window.navigationUtils.logout();
     } else {
-        // Fallback en caso de que no esté disponible
+        console.warn('⚠️ NavigationUtils no disponible, usando fallback');
+        // Fallback simple sin confirmación múltiple
+        localStorage.removeItem('sesionActual');
+        sessionStorage.removeItem('bienvenidaMostrada');
         window.location.href = 'login.html';
     }
 }

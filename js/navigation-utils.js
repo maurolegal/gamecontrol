@@ -12,7 +12,9 @@ class NavigationUtils {
         this.currentPath = window.location.pathname;
         this.isInPagesFolder = this.currentPath.includes('/pages/');
         this.isLoginPage = this.currentPath.includes('login.html');
-        console.log('NavigationUtils inicializado:', {
+        this.logoutInProgress = false; // Prevenir múltiples logouts
+        
+        console.log('🔍 NavigationUtils inicializado:', {
             currentPath: this.currentPath,
             isInPagesFolder: this.isInPagesFolder,
             isLoginPage: this.isLoginPage
@@ -46,29 +48,63 @@ class NavigationUtils {
         }
     }
 
-    // Función de logout inteligente
+    // Función de logout inteligente con prevención de múltiples ejecuciones
     logout() {
-        const confirmacion = confirm('¿Estás seguro de que deseas cerrar sesión?');
-        if (!confirmacion) return;
-
+        // Prevenir múltiples ejecuciones
+        if (this.logoutInProgress) {
+            console.log('⚠️ Logout ya en progreso, ignorando...');
+            return;
+        }
+        
+        this.logoutInProgress = true;
+        
         try {
+            // Confirmación única - optimizada para móvil
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            let confirmacion;
+            
+            if (isMobile) {
+                // En móvil usar confirmación nativa más simple
+                confirmacion = window.confirm('¿Cerrar sesión?');
+            } else {
+                confirmacion = window.confirm('¿Estás seguro de que deseas cerrar sesión?');
+            }
+            
+            if (!confirmacion) {
+                this.logoutInProgress = false;
+                return;
+            }
+
             console.log('🚪 Cerrando sesión desde:', this.currentPath);
             
-            // Limpiar todas las sesiones
-            localStorage.removeItem('sesionActual');
-            localStorage.removeItem('salas_current_session');
+            // Limpiar todas las sesiones de forma más exhaustiva
+            const keysToRemove = [
+                'sesionActual',
+                'salas_current_session',
+                'bienvenidaMostrada',
+                'gamecontrol_session',
+                'auth_token'
+            ];
+            
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
             
             // Obtener la ruta correcta para login
             const loginPath = this.getLoginPath();
             console.log('🔄 Redirigiendo a:', loginPath);
             
-            // Redirigir con pequeño delay para asegurar limpieza
+            // Redirigir inmediatamente en móvil, con delay en desktop
+            const delay = isMobile ? 50 : 100;
             setTimeout(() => {
+                this.logoutInProgress = false;
                 window.location.href = loginPath;
-            }, 100);
+            }, delay);
             
         } catch (error) {
             console.error('❌ Error durante logout:', error);
+            this.logoutInProgress = false;
             // Fallback: forzar ir a la raíz
             window.location.href = '/gamecontrol/login.html';
         }
@@ -176,13 +212,25 @@ window.navigationUtils = new NavigationUtils();
 // SOBRESCRIBIR FUNCIONES PROBLEMÁTICAS
 // ===================================================================
 
-// Sobrescribir la función de logout del AuthSystem
-if (typeof window.authSystem !== 'undefined') {
-    console.log('🔧 Sobrescribiendo authSystem.logout con navegación inteligente');
-    window.authSystem.logout = function() {
-        window.navigationUtils.logout();
-    };
-}
+// Sobrescribir la función de logout del AuthSystem cuando esté disponible
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if (typeof window.authSystem !== 'undefined' && window.authSystem.logout) {
+            console.log('🔧 Sobrescribiendo authSystem.logout con navegación inteligente');
+            window.authSystem.logout = function() {
+                window.navigationUtils.logout();
+            };
+        }
+        
+        // Sobrescribir función global de cerrarSesion si existe
+        if (typeof window.cerrarSesion === 'function') {
+            console.log('🔧 Sobrescribiendo cerrarSesion global');
+            window.cerrarSesion = function() {
+                window.navigationUtils.logout();
+            };
+        }
+    }, 1000);
+});
 
 // Función global de logout para compatibilidad
 window.cerrarSesionInteligente = function() {

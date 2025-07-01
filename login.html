@@ -359,6 +359,9 @@
     <!-- Configuración de Email -->
     <script src="js/email-config.js"></script>
     
+    <!-- Compatibilidad Móvil -->
+    <script src="js/mobile-compatibility.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Utilidades de Navegación -->
@@ -635,14 +638,21 @@
                 console.error('❌ FALLO: Admin no encontrado después de inicialización');
             }
             
-            // Pre-llenar credenciales para facilitar el login
+            // Pre-llenar credenciales solo en desarrollo (no en móvil)
             const usernameField = document.getElementById('username');
             const passwordField = document.getElementById('password');
             
-            if (usernameField && passwordField) {
+            // Solo pre-llenar en desarrollo o si se solicita específicamente
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const debugMode = localStorage.getItem('debug_prefill') === 'true';
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if ((isLocal || debugMode) && !isMobile && usernameField && passwordField) {
                 usernameField.value = 'maurochica23@gmail.com';
                 passwordField.value = 'kennia23';
-                console.log('✅ Credenciales pre-llenadas');
+                console.log('✅ Credenciales pre-llenadas (modo desarrollo)');
+            } else {
+                console.log('ℹ️ Pre-llenado deshabilitado (producción/móvil)');
             }
             
             console.log('✅ Sistema de login listo - Presiona Iniciar Sesión');
