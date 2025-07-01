@@ -140,45 +140,43 @@ const TABLAS = {
 };
 
 // ===================================================================
-// MODO DE OPERACIÓN
+// MODO DE OPERACIÓN - SOLO REMOTE (SUPABASE)
 // ===================================================================
 
-let modoOperacion = 'hybrid'; // 'local', 'remote', 'hybrid'
+let modoOperacion = 'remote'; // SOLO MODO REMOTE - NO localStorage
 
-// Configurar modo de operación
+// Configurar modo de operación - SOLO REMOTE PERMITIDO
 function configurarModo(modo) {
-    if (['local', 'remote', 'hybrid'].includes(modo)) {
-        modoOperacion = modo;
-        console.log(`🔧 Modo de operación cambiado a: ${modo}`);
-        
-        // Guardar preferencia
-        localStorage.setItem('gamecontrol_modo', modo);
-    } else {
-        console.error('❌ Modo no válido. Usa: local, remote, hybrid');
+    if (modo !== 'remote') {
+        console.warn('⚠️ Solo se permite modo "remote". Configurando automáticamente a remote.');
+        modo = 'remote';
     }
-}
-
-// Obtener modo de operación
-function obtenerModo() {
-    const modoGuardado = localStorage.getItem('gamecontrol_modo');
-    if (modoGuardado && ['local', 'remote', 'hybrid'].includes(modoGuardado)) {
-        modoOperacion = modoGuardado;
-    }
+    
+    modoOperacion = 'remote';
+    console.log('🔧 Sistema configurado en modo REMOTE (solo Supabase)');
+    
+    // No guardar en localStorage - solo memoria
     return modoOperacion;
 }
 
+// Obtener modo de operación - SIEMPRE remote
+function obtenerModo() {
+    return 'remote';
+}
+
 // ===================================================================
-// ESTADO DE CONEXIÓN
+// ESTADO DE CONEXIÓN - MODO ESTRICTO
 // ===================================================================
 
 let estadoConexion = {
     conectado: false,
     ultimaVerificacion: null,
     intentosReconexion: 0,
-    maxIntentos: 3
+    maxIntentos: 5, // Más intentos para conexión crítica
+    requiereConexion: true // OBLIGATORIO estar conectado
 };
 
-// Verificar estado de la conexión
+// Verificar estado de la conexión - ESTRICTO
 async function verificarEstadoConexion() {
     const resultado = await verificarConexion();
     
@@ -188,22 +186,86 @@ async function verificarEstadoConexion() {
     if (!resultado.success) {
         estadoConexion.intentosReconexion++;
         
+        console.error(`❌ Error de conexión (Intento ${estadoConexion.intentosReconexion}/${estadoConexion.maxIntentos})`);
+        
         if (estadoConexion.intentosReconexion < estadoConexion.maxIntentos) {
-            console.log(`🔄 Intento de reconexión ${estadoConexion.intentosReconexion}/${estadoConexion.maxIntentos}`);
-            setTimeout(verificarEstadoConexion, 5000);
+            console.log(`🔄 Reintentando conexión en 3 segundos...`);
+            setTimeout(verificarEstadoConexion, 3000);
         } else {
-            console.log('⚠️ Máximo de intentos de reconexión alcanzado. Cambiando a modo local.');
-            configurarModo('local');
+            console.error('🚨 ERROR CRÍTICO: No se puede conectar a Supabase');
+            mostrarErrorConexion();
         }
     } else {
         estadoConexion.intentosReconexion = 0;
-        if (modoOperacion === 'local') {
-            console.log('✅ Conexión restaurada. Cambiando a modo híbrido.');
-            configurarModo('hybrid');
-        }
+        console.log('✅ Conexión a Supabase establecida correctamente');
     }
     
     return estadoConexion;
+}
+
+// Mostrar error crítico de conexión
+function mostrarErrorConexion() {
+    const mensaje = `
+🚨 ERROR DE CONEXIÓN CRÍTICO
+
+El sistema requiere conexión a internet para funcionar.
+
+• Verifica tu conexión a internet
+• Comprueba que Supabase esté disponible
+• Refresca la página para reintentar
+
+El sistema no puede funcionar sin conexión a la base de datos.
+    `;
+    
+    alert(mensaje);
+    
+    // Mostrar overlay de error
+    mostrarOverlayError();
+}
+
+// Mostrar overlay de error en la página
+function mostrarOverlayError() {
+    // Remover overlay existente si existe
+    const overlayExistente = document.getElementById('supabase-error-overlay');
+    if (overlayExistente) {
+        overlayExistente.remove();
+    }
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'supabase-error-overlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-family: Arial, sans-serif;
+    `;
+    
+    overlay.innerHTML = `
+        <div style="text-align: center; max-width: 500px; padding: 40px;">
+            <div style="font-size: 60px; margin-bottom: 20px;">🚨</div>
+            <h2 style="color: #ff4444; margin-bottom: 20px;">Error de Conexión</h2>
+            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 30px;">
+                El sistema requiere conexión a internet para funcionar.<br>
+                Verifica tu conexión y refresca la página.
+            </p>
+            <button onclick="window.location.reload()" 
+                    style="background: #007bff; color: white; border: none; 
+                           padding: 12px 24px; border-radius: 5px; 
+                           font-size: 16px; cursor: pointer;">
+                🔄 Reintentar Conexión
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
 }
 
 // ===================================================================

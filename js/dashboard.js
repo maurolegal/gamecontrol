@@ -1,6 +1,7 @@
 /**
  * Dashboard Principal - Sistema de Gestión de Salas Gaming
  * Gestiona las métricas, gráficos y datos en tiempo real del dashboard
+ * SOLO SUPABASE - No localStorage
  */
 
 class DashboardManager {
@@ -14,31 +15,103 @@ class DashboardManager {
             productos: [],
             configuracion: {}
         };
+        this.cargandoDatos = false;
         
         this.init();
     }
 
-    init() {
-        this.cargarDatos();
-        this.configurarEventListeners();
-        this.inicializarGraficos();
-        this.actualizarMetricas();
-        this.iniciarActualizacionAutomatica();
-        
-        console.log('✅ Dashboard Manager inicializado');
+    async init() {
+        try {
+            console.log('📊 Inicializando Dashboard Manager (Solo Supabase)...');
+            
+            await this.verificarConexion();
+            await this.cargarDatos();
+            this.configurarEventListeners();
+            this.inicializarGraficos();
+            await this.actualizarMetricas();
+            this.iniciarActualizacionAutomatica();
+            
+            console.log('✅ Dashboard Manager inicializado correctamente');
+        } catch (error) {
+            console.error('❌ Error inicializando Dashboard:', error);
+            this.mostrarNotificacion('Error inicializando dashboard', 'error');
+        }
     }
 
-    // ===== CARGA DE DATOS =====
-    cargarDatos() {
+    // ===== VERIFICACIÓN DE CONEXIÓN =====
+    async verificarConexion() {
+        if (!window.databaseService) {
+            throw new Error('Database service no disponible');
+        }
+        
         try {
-            this.datos.sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
-            this.datos.gastos = JSON.parse(localStorage.getItem('gastos') || '[]');
-            this.datos.salas = JSON.parse(localStorage.getItem('salas') || '[]');
-            this.datos.productos = JSON.parse(localStorage.getItem('productos_stock') || '[]');
-            this.datos.configuracion = JSON.parse(localStorage.getItem('configuracion') || '{}');
+            await window.databaseService.verificarConexionObligatoria();
+            console.log('✅ Conexión a Supabase verificada en Dashboard');
+        } catch (error) {
+            console.error('❌ Error de conexión en Dashboard:', error);
+            throw error;
+        }
+    }
+
+    // ===== CARGA DE DATOS DESDE SUPABASE =====
+    async cargarDatos() {
+        if (this.cargandoDatos) {
+            console.log('⏳ Ya se están cargando datos...');
+            return;
+        }
+        
+        this.cargandoDatos = true;
+        
+        try {
+            console.log('📥 Cargando datos desde Supabase...');
+            
+            // Cargar datos en paralelo para mejor rendimiento
+            const [sesionesResult, gastosResult, salasResult, productosResult, configResult] = await Promise.all([
+                window.databaseService.select('sesiones', {
+                    ordenPor: { campo: 'fecha_inicio', direccion: 'desc' },
+                    limite: 100 // Limitar para rendimiento
+                }),
+                window.databaseService.select('gastos', {
+                    ordenPor: { campo: 'fecha_gasto', direccion: 'desc' },
+                    limite: 50
+                }),
+                window.databaseService.select('salas', {
+                    filtros: { activa: true }
+                }),
+                window.databaseService.select('productos', {
+                    filtros: { activo: true }
+                }),
+                window.databaseService.obtenerConfiguracion()
+            ]);
+
+            // Procesar resultados
+            this.datos.sesiones = sesionesResult.success ? sesionesResult.data : [];
+            this.datos.gastos = gastosResult.success ? gastosResult.data : [];
+            this.datos.salas = salasResult.success ? salasResult.data : [];
+            this.datos.productos = productosResult.success ? productosResult.data : [];
+            this.datos.configuracion = configResult || {};
+
+            console.log('✅ Datos cargados desde Supabase:', {
+                sesiones: this.datos.sesiones.length,
+                gastos: this.datos.gastos.length,
+                salas: this.datos.salas.length,
+                productos: this.datos.productos.length
+            });
+
         } catch (error) {
             console.error('❌ Error cargando datos:', error);
-            this.mostrarNotificacion('Error cargando datos del sistema', 'error');
+            this.mostrarNotificacion('Error cargando datos del dashboard', 'error');
+            
+            // Inicializar arrays vacíos en caso de error
+            this.datos = {
+                sesiones: [],
+                gastos: [],
+                salas: [],
+                productos: [],
+                configuracion: {}
+            };
+        } finally {
+            this.cargandoDatos = false;
         }
     }
 
@@ -46,24 +119,24 @@ class DashboardManager {
     calcularMetricasHoy() {
         const hoy = new Date().toDateString();
         const sesionesHoy = this.datos.sesiones.filter(s => 
-            new Date(s.fechaInicio).toDateString() === hoy
+            new Date(s.fecha_inicio).toDateString() === hoy
         );
         const gastosHoy = this.datos.gastos.filter(g => 
-            new Date(g.fecha).toDateString() === hoy
+            new Date(g.fecha_gasto).toDateString() === hoy
         );
 
         // Ingresos del día
         const ingresosDia = sesionesHoy.reduce((total, sesion) => {
-            return total + (sesion.costoTotal || 0);
+            return total + (sesion.total_general || 0);
         }, 0);
 
         // Clientes activos (sesiones sin finalizar)
-        const clientesActivos = sesionesHoy.filter(s => !s.fechaFin && !s.finalizada).length;
+        const clientesActivos = sesionesHoy.filter(s => !s.finalizada).length;
         const totalClientesDia = sesionesHoy.length;
 
         // Ocupación de salas - calcular basado en estaciones ocupadas
-        const sesionesActivas = this.datos.sesiones.filter(s => !s.fechaFin && !s.finalizada);
-        const totalEstaciones = this.datos.salas.reduce((sum, sala) => sum + (sala.numEstaciones || 0), 0);
+        const sesionesActivas = this.datos.sesiones.filter(s => !s.finalizada);
+        const totalEstaciones = this.datos.salas.reduce((sum, sala) => sum + (sala.num_estaciones || 0), 0);
         const estacionesOcupadas = sesionesActivas.length;
         const porcentajeOcupacion = totalEstaciones > 0 ? (estacionesOcupadas / totalEstaciones) * 100 : 0;
 
@@ -88,20 +161,20 @@ class DashboardManager {
         fechaInicio.setHours(0, 0, 0, 0);
         
         const sesioneMes = this.datos.sesiones.filter(s => 
-            new Date(s.fechaInicio) >= fechaInicio
+            new Date(s.fecha_inicio) >= fechaInicio
         );
         const gastosMes = this.datos.gastos.filter(g => 
-            new Date(g.fecha) >= fechaInicio
+            new Date(g.fecha_gasto) >= fechaInicio
         );
 
-        const ingresosMes = sesioneMes.reduce((total, s) => total + (s.costoTotal || 0), 0);
+        const ingresosMes = sesioneMes.reduce((total, s) => total + (s.total_general || 0), 0);
         const gastosTotalMes = gastosMes.reduce((total, g) => total + g.monto, 0);
         const beneficioMes = ingresosMes - gastosTotalMes;
         const margenBeneficio = ingresosMes > 0 ? (beneficioMes / ingresosMes) * 100 : 0;
 
-        // Metas (ejemplo - se pueden configurar)
-        const metaIngresos = this.datos.configuracion.metaIngresosMensual || 50000;
-        const presupuestoGastos = this.datos.configuracion.presupuestoGastosMensual || 20000;
+        // Metas desde configuración
+        const metaIngresos = this.datos.configuracion.metaIngresosMensual || 2000000;
+        const presupuestoGastos = this.datos.configuracion.presupuestoGastosMensual || 800000;
 
         return {
             ingresosMes,
@@ -116,62 +189,57 @@ class DashboardManager {
     }
 
     // ===== ACTUALIZACIÓN DE MÉTRICAS EN UI =====
-    actualizarMetricas() {
-        const metricas = this.calcularMetricasHoy();
-        const metricasMes = this.calcularMetricasMes();
+    async actualizarMetricas() {
+        try {
+            const metricas = this.calcularMetricasHoy();
+            const metricasMes = this.calcularMetricasMes();
 
-        // KPIs principales
-        this.actualizarElemento('ingresosDia', this.formatearMoneda(metricas.ingresosDia));
-        this.actualizarElemento('clientesActivos', metricas.clientesActivos);
-        this.actualizarElemento('totalClientes', `Total del día: ${metricas.totalClientesDia}`);
-        this.actualizarElemento('ocupacionSalas', `${Math.round(metricas.porcentajeOcupacion)}%`);
-        this.actualizarElemento('salasStats', `${metricas.estacionesOcupadas}/${metricas.totalEstaciones} estaciones ocupadas`);
-        this.actualizarElemento('ticketPromedio', this.formatearMoneda(metricas.ticketPromedio));
+            // KPIs principales
+            this.actualizarElemento('ingresosDia', this.formatearMoneda(metricas.ingresosDia));
+            this.actualizarElemento('clientesActivos', metricas.clientesActivos);
+            this.actualizarElemento('totalClientes', `Total del día: ${metricas.totalClientesDia}`);
+            this.actualizarElemento('ocupacionSalas', `${Math.round(metricas.porcentajeOcupacion)}%`);
+            this.actualizarElemento('salasStats', `${metricas.estacionesOcupadas}/${metricas.totalEstaciones} estaciones ocupadas`);
+            this.actualizarElemento('ticketPromedio', this.formatearMoneda(metricas.ticketPromedio));
 
-        // Métricas mensuales
-        this.actualizarElemento('ingresosMes', this.formatearMoneda(metricasMes.ingresosMes));
-        this.actualizarElemento('gastosMes', this.formatearMoneda(metricasMes.gastosMes));
-        this.actualizarElemento('beneficioMes', this.formatearMoneda(metricasMes.beneficioMes));
-        this.actualizarElemento('margenBeneficio', `Margen: ${metricasMes.margenBeneficio.toFixed(1)}%`);
-        this.actualizarElemento('metaIngresosMes', `Meta: ${this.formatearMoneda(metricasMes.metaIngresos)}`);
-        this.actualizarElemento('presupuestoMes', `Presupuesto: ${this.formatearMoneda(metricasMes.presupuestoGastos)}`);
+            // Métricas mensuales
+            this.actualizarElemento('ingresosMes', this.formatearMoneda(metricasMes.ingresosMes));
+            this.actualizarElemento('gastosMes', this.formatearMoneda(metricasMes.gastosMes));
+            this.actualizarElemento('beneficioMes', this.formatearMoneda(metricasMes.beneficioMes));
+            this.actualizarElemento('margenBeneficio', `Margen: ${metricasMes.margenBeneficio.toFixed(1)}%`);
+            this.actualizarElemento('metaIngresosMes', `Meta: ${this.formatearMoneda(metricasMes.metaIngresos)}`);
+            this.actualizarElemento('presupuestoMes', `Presupuesto: ${this.formatearMoneda(metricasMes.presupuestoGastos)}`);
 
-        // Barras de progreso
-        this.actualizarProgreso('progresoIngresosMes', Math.min(metricasMes.progresoIngresos, 100));
-        this.actualizarProgreso('progresoGastosMes', Math.min(metricasMes.progresoGastos, 100));
-        
-        // Color del beneficio
-        const elementoBeneficio = document.getElementById('beneficioMes');
-        if (elementoBeneficio) {
-            if (metricasMes.beneficioMes > 0) {
-                elementoBeneficio.className = 'mb-2 text-success';
-            } else if (metricasMes.beneficioMes < 0) {
-                elementoBeneficio.className = 'mb-2 text-danger';
-            } else {
-                elementoBeneficio.className = 'mb-2 text-muted';
+            // Barras de progreso
+            this.actualizarProgreso('progresoIngresosMes', Math.min(metricasMes.progresoIngresos, 100));
+            this.actualizarProgreso('progresoGastosMes', Math.min(metricasMes.progresoGastos, 100));
+            
+            // Color del beneficio
+            const elementoBeneficio = document.getElementById('beneficioMes');
+            if (elementoBeneficio) {
+                if (metricasMes.beneficioMes > 0) {
+                    elementoBeneficio.className = 'mb-2 text-success';
+                } else if (metricasMes.beneficioMes < 0) {
+                    elementoBeneficio.className = 'mb-2 text-danger';
+                } else {
+                    elementoBeneficio.className = 'mb-2 text-muted';
+                }
             }
-        }
 
-        // Progreso del beneficio
-        const progresoBeneficio = document.getElementById('progresoBeneficio');
-        if (progresoBeneficio) {
-            if (metricasMes.beneficioMes > 0) {
-                progresoBeneficio.className = 'progress-bar bg-success';
-                progresoBeneficio.style.width = `${Math.min(metricasMes.margenBeneficio * 2, 100)}%`;
-            } else {
-                progresoBeneficio.className = 'progress-bar bg-danger';
-                progresoBeneficio.style.width = '0%';
+            // Actualizar componentes específicos
+            await this.actualizarSesionesActivas();
+            await this.actualizarActividadReciente();
+            await this.actualizarAlertas();
+            await this.actualizarEstadoStock();
+            
+            // Integrar con sistema de notificaciones si está disponible
+            if (window.notificationSystem) {
+                this.enviarNotificacionesEspeciales(metricas, metricasMes);
             }
-        }
 
-        this.actualizarSesionesActivas();
-        this.actualizarActividadReciente();
-        this.actualizarAlertas();
-        this.actualizarEstadoStock();
-        
-        // Integrar con sistema de notificaciones si está disponible
-        if (window.notificationSystem) {
-            this.enviarNotificacionesEspeciales(metricas, metricasMes);
+        } catch (error) {
+            console.error('Error actualizando métricas:', error);
+            this.mostrarNotificacion('Error actualizando métricas', 'error');
         }
     }
 
@@ -190,223 +258,276 @@ class DashboardManager {
     }
 
     // ===== SESIONES ACTIVAS =====
-    actualizarSesionesActivas() {
-        const sesionesActivas = this.datos.sesiones.filter(s => !s.fechaFin && !s.finalizada);
-        const tbody = document.getElementById('tablaSesionesActivas');
-        const badge = document.getElementById('totalSesionesActivas');
-        
-        if (badge) badge.textContent = sesionesActivas.length;
+    async actualizarSesionesActivas() {
+        try {
+            const sesionesActivas = this.datos.sesiones.filter(s => !s.finalizada);
+            const tbody = document.getElementById('tablaSesionesActivas');
+            const badge = document.getElementById('totalSesionesActivas');
+            
+            if (badge) badge.textContent = sesionesActivas.length;
 
-        if (!tbody) return;
+            if (!tbody) return;
 
-        if (sesionesActivas.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                        <i class="fas fa-clock fa-2x mb-2"></i><br>
-                        No hay sesiones activas
-                    </td>
-                </tr>
-            `;
-            return;
+            if (sesionesActivas.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-clock me-2"></i>
+                            No hay sesiones activas
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = sesionesActivas.map(sesion => {
+                const sala = this.datos.salas.find(s => s.id === sesion.sala_id);
+                const tiempoTranscurrido = this.calcularTiempoTranscurrido(sesion.fecha_inicio);
+                const costoActual = this.calcularCostoSesion(sesion, sala);
+                
+                return `
+                    <tr>
+                        <td>
+                            <strong>${sesion.cliente}</strong><br>
+                            <small class="text-muted">${sesion.estacion}</small>
+                        </td>
+                        <td>${sala ? sala.nombre : 'N/A'}</td>
+                        <td>${this.formatearFecha(sesion.fecha_inicio)}</td>
+                        <td>
+                            <span class="badge bg-primary">${tiempoTranscurrido}</span>
+                        </td>
+                        <td>${this.formatearMoneda(costoActual)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="dashboard.finalizarSesion('${sesion.id}')">
+                                <i class="fas fa-stop me-1"></i>Finalizar
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('Error actualizando sesiones activas:', error);
         }
-
-        tbody.innerHTML = sesionesActivas.map(sesion => {
-            const sala = this.datos.salas.find(s => s.id === sesion.salaId);
-            const tiempoTranscurrido = this.calcularTiempoTranscurrido(sesion.fechaInicio);
-            const costoActual = this.calcularCostoSesion(sesion, sala);
-
-            return `
-                <tr>
-                    <td>
-                        <span class="badge bg-primary">${sala ? sala.nombre : 'N/A'}</span>
-                    </td>
-                    <td>${sesion.cliente || 'Anónimo'}</td>
-                    <td>${tiempoTranscurrido}</td>
-                    <td>${this.formatearMoneda(costoActual)}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-danger" 
-                                onclick="dashboard.finalizarSesion('${sesion.id}')">
-                            <i class="fas fa-stop"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
     }
 
     // ===== ACTIVIDAD RECIENTE =====
-    actualizarActividadReciente() {
-        const contenedor = document.getElementById('actividadReciente');
-        if (!contenedor) return;
+    async actualizarActividadReciente() {
+        try {
+            const actividadContainer = document.getElementById('actividadReciente');
+            if (!actividadContainer) return;
 
-        // Combinar sesiones y gastos recientes
-        const actividades = [];
+            // Combinar sesiones finalizadas y gastos recientes
+            const actividades = [];
+            
+            // Sesiones finalizadas del día
+            const hoy = new Date().toDateString();
+            const sesionesFinalizadas = this.datos.sesiones
+                .filter(s => s.finalizada && new Date(s.fecha_inicio).toDateString() === hoy)
+                .slice(0, 3)
+                .map(s => ({
+                    tipo: 'sesion',
+                    fecha: s.fecha_inicio,
+                    descripcion: `Sesión de ${s.cliente}`,
+                    monto: s.total_general,
+                    icono: 'fas fa-gamepad',
+                    color: 'success'
+                }));
 
-        // Últimas 5 sesiones
-        const sesionesRecientes = [...this.datos.sesiones]
-            .sort((a, b) => new Date(b.fechaInicio) - new Date(a.fechaInicio))
-            .slice(0, 3);
+            // Gastos recientes
+            const gastosRecientes = this.datos.gastos
+                .slice(0, 2)
+                .map(g => ({
+                    tipo: 'gasto',
+                    fecha: g.fecha_gasto,
+                    descripcion: g.concepto,
+                    monto: -g.monto,
+                    icono: 'fas fa-receipt',
+                    color: 'danger'
+                }));
 
-        sesionesRecientes.forEach(sesion => {
-            const sala = this.datos.salas.find(s => s.id === sesion.salaId);
-            actividades.push({
-                tipo: 'sesion',
-                fecha: sesion.fechaInicio,
-                titulo: `Nueva sesión en ${sala ? sala.nombre : 'Sala'}`,
-                descripcion: `${sesion.cliente || 'Cliente anónimo'} - ${this.formatearMoneda(sesion.costoTotal || 0)}`,
-                icono: 'fas fa-play',
-                color: 'primary'
-            });
-        });
+            actividades.push(...sesionesFinalizadas, ...gastosRecientes);
+            actividades.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-        // Últimos 2 gastos
-        const gastosRecientes = [...this.datos.gastos]
-            .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
-            .slice(0, 2);
+            if (actividades.length === 0) {
+                actividadContainer.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-history me-2"></i>
+                        No hay actividad reciente
+                    </div>
+                `;
+                return;
+            }
 
-        gastosRecientes.forEach(gasto => {
-            actividades.push({
-                tipo: 'gasto',
-                fecha: gasto.fecha,
-                titulo: `Nuevo gasto: ${gasto.categoria}`,
-                descripcion: `${gasto.descripcion} - ${this.formatearMoneda(gasto.monto)}`,
-                icono: 'fas fa-credit-card',
-                color: 'danger'
-            });
-        });
-
-        // Ordenar por fecha
-        actividades.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-        if (actividades.length === 0) {
-            contenedor.innerHTML = `
-                <div class="text-center text-muted py-4">
-                    <i class="fas fa-history fa-2x mb-2"></i><br>
-                    No hay actividad reciente
-                </div>
-            `;
-            return;
-        }
-
-        contenedor.innerHTML = actividades.map(actividad => `
-            <div class="activity-item d-flex align-items-start mb-3">
-                <div class="activity-icon me-3">
-                    <div class="rounded-circle bg-${actividad.color} bg-opacity-10 text-${actividad.color} d-flex align-items-center justify-content-center" 
-                         style="width: 40px; height: 40px;">
-                        <i class="${actividad.icono}"></i>
+            actividadContainer.innerHTML = actividades.slice(0, 5).map(actividad => `
+                <div class="d-flex align-items-center mb-3">
+                    <div class="me-3">
+                        <i class="${actividad.icono} text-${actividad.color}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold">${actividad.descripcion}</div>
+                        <small class="text-muted">${this.formatearFechaRelativa(actividad.fecha)}</small>
+                    </div>
+                    <div class="text-${actividad.color} fw-bold">
+                        ${this.formatearMoneda(Math.abs(actividad.monto))}
                     </div>
                 </div>
-                <div class="activity-content flex-grow-1">
-                    <h6 class="mb-1">${actividad.titulo}</h6>
-                    <p class="text-muted mb-1 small">${actividad.descripcion}</p>
-                    <small class="text-muted">${this.formatearFechaRelativa(actividad.fecha)}</small>
-                </div>
-            </div>
-        `).join('');
+            `).join('');
+
+        } catch (error) {
+            console.error('Error actualizando actividad reciente:', error);
+        }
     }
 
-    // ===== ALERTAS DEL SISTEMA =====
-    actualizarAlertas() {
-        const contenedor = document.getElementById('alertasSistema');
-        if (!contenedor) return;
+    // ===== ALERTAS =====
+    async actualizarAlertas() {
+        try {
+            const alertasContainer = document.getElementById('alertasSistema');
+            if (!alertasContainer) return;
 
-        const alertas = [];
+            const alertas = [];
 
-        // Alertas de stock bajo
-        this.datos.productos.forEach(producto => {
-            if (producto.cantidad <= (producto.stockMinimo || 5)) {
+            // Verificar stock bajo
+            const productosStockBajo = this.datos.productos.filter(p => 
+                p.stock <= (p.stock_minimo || 5)
+            );
+            
+            if (productosStockBajo.length > 0) {
                 alertas.push({
                     tipo: 'warning',
                     icono: 'fas fa-exclamation-triangle',
-                    titulo: 'Stock bajo',
-                    mensaje: `${producto.nombre}: ${producto.cantidad} unidades`
+                    mensaje: `${productosStockBajo.length} productos con stock bajo`,
+                    accion: 'Ver Stock',
+                    enlace: 'stock.html'
                 });
             }
-        });
 
-        // Alertas de salas con problemas
-        this.datos.salas.forEach(sala => {
-            if (sala.estado === 'mantenimiento') {
+            // Verificar sesiones largas (más de 4 horas)
+            const sesionesLargas = this.datos.sesiones.filter(s => {
+                if (s.finalizada) return false;
+                const tiempoTranscurrido = (new Date() - new Date(s.fecha_inicio)) / (1000 * 60);
+                return tiempoTranscurrido > 240; // 4 horas
+            });
+
+            if (sesionesLargas.length > 0) {
                 alertas.push({
                     tipo: 'info',
-                    icono: 'fas fa-tools',
-                    titulo: 'Mantenimiento',
-                    mensaje: `${sala.nombre} en mantenimiento`
+                    icono: 'fas fa-clock',
+                    mensaje: `${sesionesLargas.length} sesiones activas por más de 4 horas`,
+                    accion: 'Revisar',
+                    enlace: 'salas.html'
                 });
             }
-        });
 
-        // Alertas financieras
-        const metricasMes = this.calcularMetricasMes();
-        if (metricasMes.progresoGastos > 90) {
-            alertas.push({
-                tipo: 'danger',
-                icono: 'fas fa-exclamation-circle',
-                titulo: 'Presupuesto agotándose',
-                mensaje: `Gastos al ${metricasMes.progresoGastos.toFixed(1)}% del presupuesto`
-            });
-        }
+            // Verificar gastos del día
+            const hoy = new Date().toDateString();
+            const gastosHoy = this.datos.gastos.filter(g => 
+                new Date(g.fecha_gasto).toDateString() === hoy
+            );
+            const totalGastosHoy = gastosHoy.reduce((sum, g) => sum + g.monto, 0);
 
-        if (alertas.length === 0) {
-            contenedor.innerHTML = `
-                <div class="text-center text-success py-4">
-                    <i class="fas fa-check-circle fa-2x mb-2"></i><br>
-                    <small>Todo funcionando correctamente</small>
+            if (totalGastosHoy > 100000) { // Más de 100k en gastos del día
+                alertas.push({
+                    tipo: 'warning',
+                    icono: 'fas fa-money-bill-wave',
+                    mensaje: `Gastos del día: ${this.formatearMoneda(totalGastosHoy)}`,
+                    accion: 'Ver Gastos',
+                    enlace: 'gastos.html'
+                });
+            }
+
+            if (alertas.length === 0) {
+                alertasContainer.innerHTML = `
+                    <div class="text-center text-success py-3">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Todo funcionando correctamente
+                    </div>
+                `;
+                return;
+            }
+
+            alertasContainer.innerHTML = alertas.map(alerta => `
+                <div class="alert alert-${alerta.tipo} d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center">
+                        <i class="${alerta.icono} me-2"></i>
+                        <span>${alerta.mensaje}</span>
+                    </div>
+                    <a href="${alerta.enlace}" class="btn btn-sm btn-outline-${alerta.tipo}">
+                        ${alerta.accion}
+                    </a>
                 </div>
-            `;
-            return;
-        }
+            `).join('');
 
-        contenedor.innerHTML = alertas.map(alerta => `
-            <div class="alert alert-${alerta.tipo} alert-dismissible fade show py-2 mb-2">
-                <i class="${alerta.icono} me-2"></i>
-                <strong>${alerta.titulo}:</strong> ${alerta.mensaje}
-                <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert"></button>
-            </div>
-        `).join('');
+        } catch (error) {
+            console.error('Error actualizando alertas:', error);
+        }
     }
 
-    // ===== ESTADO DEL STOCK =====
-    actualizarEstadoStock() {
-        const contenedor = document.getElementById('estadoStock');
-        if (!contenedor) return;
+    // ===== ESTADO DE STOCK =====
+    async actualizarEstadoStock() {
+        try {
+            const stockContainer = document.getElementById('estadoStock');
+            if (!stockContainer) return;
 
-        const categorias = {};
-        this.datos.productos.forEach(producto => {
-            const cat = producto.categoria || 'Sin categoría';
-            if (!categorias[cat]) {
-                categorias[cat] = { total: 0, valor: 0 };
+            if (this.datos.productos.length === 0) {
+                stockContainer.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-boxes me-2"></i>
+                        No hay productos registrados
+                    </div>
+                `;
+                return;
             }
-            categorias[cat].total += producto.cantidad;
-            categorias[cat].valor += producto.cantidad * producto.precio;
-        });
 
-        const totalProductos = this.datos.productos.reduce((sum, p) => sum + p.cantidad, 0);
-        const valorTotal = this.datos.productos.reduce((sum, p) => sum + (p.cantidad * p.precio), 0);
+            // Productos con stock crítico (stock <= stock_mínimo)
+            const stockCritico = this.datos.productos.filter(p => p.stock <= (p.stock_minimo || 0));
+            const stockBajo = this.datos.productos.filter(p => 
+                p.stock > (p.stock_minimo || 0) && p.stock <= (p.stock_minimo || 0) * 2
+            );
+            const stockNormal = this.datos.productos.filter(p => 
+                p.stock > (p.stock_minimo || 0) * 2
+            );
 
-        contenedor.innerHTML = `
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <div class="text-center">
-                        <h5 class="mb-0">${totalProductos}</h5>
-                        <small class="text-muted">Productos total</small>
+            stockContainer.innerHTML = `
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="text-danger">
+                            <i class="fas fa-exclamation-triangle d-block mb-1"></i>
+                            <div class="fw-bold">${stockCritico.length}</div>
+                            <small>Crítico</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-warning">
+                            <i class="fas fa-exclamation-circle d-block mb-1"></i>
+                            <div class="fw-bold">${stockBajo.length}</div>
+                            <small>Bajo</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-success">
+                            <i class="fas fa-check-circle d-block mb-1"></i>
+                            <div class="fw-bold">${stockNormal.length}</div>
+                            <small>Normal</small>
+                        </div>
                     </div>
                 </div>
-                <div class="col-6">
-                    <div class="text-center">
-                        <h5 class="mb-0">${this.formatearMoneda(valorTotal)}</h5>
-                        <small class="text-muted">Valor inventario</small>
+                
+                ${stockCritico.length > 0 ? `
+                    <hr>
+                    <div class="small">
+                        <strong>Stock crítico:</strong><br>
+                        ${stockCritico.slice(0, 3).map(p => 
+                            `• ${p.nombre} (${p.stock} unidades)`
+                        ).join('<br>')}
+                        ${stockCritico.length > 3 ? `<br>... y ${stockCritico.length - 3} más` : ''}
                     </div>
-                </div>
-            </div>
-            ${Object.entries(categorias).map(([categoria, datos]) => `
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="small">${categoria}</span>
-                    <span class="badge bg-secondary">${datos.total}</span>
-                </div>
-            `).join('')}
-        `;
+                ` : ''}
+            `;
+
+        } catch (error) {
+            console.error('Error actualizando estado de stock:', error);
+        }
     }
 
     // ===== GRÁFICOS =====
@@ -499,10 +620,10 @@ class DashboardManager {
             
             const fechaStr = fecha.toDateString();
             const sesionesDelDia = this.datos.sesiones.filter(s => 
-                new Date(s.fechaInicio).toDateString() === fechaStr
+                new Date(s.fecha_inicio).toDateString() === fechaStr
             );
             
-            const ingresoDelDia = sesionesDelDia.reduce((total, s) => total + (s.costoTotal || 0), 0);
+            const ingresoDelDia = sesionesDelDia.reduce((total, s) => total + (s.total_general || 0), 0);
             
             labels.push(fecha.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric' }));
             ingresos.push(ingresoDelDia);
@@ -515,13 +636,13 @@ class DashboardManager {
         const distribucion = {};
         
         this.datos.sesiones.forEach(sesion => {
-            const sala = this.datos.salas.find(s => s.id === sesion.salaId);
+            const sala = this.datos.salas.find(s => s.id === sesion.sala_id);
             const nombreSala = sala ? sala.nombre : 'Sala Desconocida';
             
             if (!distribucion[nombreSala]) {
                 distribucion[nombreSala] = 0;
             }
-            distribucion[nombreSala] += sesion.costoTotal || 0;
+            distribucion[nombreSala] += sesion.total_general || 0;
         });
 
         return {
@@ -535,20 +656,18 @@ class DashboardManager {
         const sesion = this.datos.sesiones.find(s => s.id === sesionId);
         if (!sesion) return;
 
-        sesion.fechaFin = new Date().toISOString();
-        sesion.costoTotal = this.calcularCostoFinal(sesion);
+        sesion.finalizada = true;
+        sesion.fecha_fin = new Date().toISOString();
+        sesion.total_general = this.calcularCostoFinal(sesion);
 
         // Liberar sala
-        const sala = this.datos.salas.find(s => s.id === sesion.salaId);
+        const sala = this.datos.salas.find(s => s.id === sesion.sala_id);
         if (sala) {
             sala.estado = 'disponible';
             sala.clienteActual = null;
         }
 
         // Guardar cambios
-        localStorage.setItem('sesiones', JSON.stringify(this.datos.sesiones));
-        localStorage.setItem('salas', JSON.stringify(this.datos.salas));
-
         this.actualizarMetricas();
         this.mostrarNotificacion('Sesión finalizada correctamente', 'success');
     }
@@ -629,12 +748,12 @@ class DashboardManager {
         const ayer = new Date();
         ayer.setDate(ayer.getDate() - 1);
         const sesionesAyer = this.datos.sesiones.filter(s => 
-            new Date(s.fechaInicio).toDateString() === ayer.toDateString()
+            new Date(s.fecha_inicio).toDateString() === ayer.toDateString()
         );
         
         if (sesionesAyer.length === 0) return 0;
         
-        const ingresosAyer = sesionesAyer.reduce((total, s) => total + (s.costoTotal || 0), 0);
+        const ingresosAyer = sesionesAyer.reduce((total, s) => total + (s.total_general || 0), 0);
         return ingresosAyer / sesionesAyer.length;
     }
 
@@ -653,7 +772,7 @@ class DashboardManager {
     calcularCostoSesion(sesion, sala) {
         if (!sala) return 0;
         
-        const inicio = new Date(sesion.fechaInicio);
+        const inicio = new Date(sesion.fecha_inicio);
         const ahora = new Date();
         const horasTranscurridas = (ahora - inicio) / (1000 * 60 * 60);
         
@@ -661,11 +780,11 @@ class DashboardManager {
     }
 
     calcularCostoFinal(sesion) {
-        const sala = this.datos.salas.find(s => s.id === sesion.salaId);
+        const sala = this.datos.salas.find(s => s.id === sesion.sala_id);
         if (!sala) return 0;
         
-        const inicio = new Date(sesion.fechaInicio);
-        const fin = new Date(sesion.fechaFin);
+        const inicio = new Date(sesion.fecha_inicio);
+        const fin = new Date(sesion.fecha_fin);
         const horasTranscurridas = (fin - inicio) / (1000 * 60 * 60);
         
         return Math.ceil(horasTranscurridas) * (sala.tarifaHora || 0);

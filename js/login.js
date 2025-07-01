@@ -1,138 +1,329 @@
-// === GESTIÓN DE AUTENTICACIÓN ===
+// === GESTIÓN DE AUTENTICACIÓN CON SUPABASE EXCLUSIVAMENTE ===
 
-// Función para obtener usuarios del localStorage
-function obtenerUsuarios() {
-    return JSON.parse(localStorage.getItem('usuarios') || '[]');
-}
+// ===================================================================
+// CONFIGURACIÓN DE LOGIN
+// ===================================================================
 
-// Función para generar ID único
-function generarId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+let authSystem = null;
+let loginInProgress = false;
 
-// Función para obtener permisos por rol (misma lógica que usuarios.js)
-function obtenerPermisosPorRol(rol) {
-    const permisos = {
-        'administrador': {
-            dashboard: true,
-            salas: true,
-            ventas: true,
-            gastos: true,
-            stock: true,
-            reportes: true,
-            usuarios: true,
-            ajustes: true
-        },
-        'supervisor': {
-            dashboard: true,
-            salas: true,
-            ventas: true,
-            gastos: true,
-            stock: true,
-            reportes: true,
-            usuarios: false,
-            ajustes: false
-        },
-        'operador': {
-            dashboard: true,
-            salas: true,
-            ventas: true,
-            gastos: false,
-            stock: true,
-            reportes: false,
-            usuarios: false,
-            ajustes: false
-        },
-        'vendedor': {
-            dashboard: true,
-            salas: false,
-            ventas: true,
-            gastos: false,
-            stock: false,
-            reportes: false,
-            usuarios: false,
-            ajustes: false
-        }
-    };
+// ===================================================================
+// INICIALIZACIÓN DEL SISTEMA DE LOGIN
+// ===================================================================
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🔐 Inicializando sistema de login...');
     
-    return permisos[rol.toLowerCase()] || {};
-}
+    try {
+        // Esperar a que Supabase esté disponible
+        await waitForSupabase();
+        
+        // Verificar sesión existente
+        await verificarSesionExistente();
+        
+        // Configurar formulario de login
+        configurarFormularioLogin();
+        
+        // Configurar eventos
+        configurarEventos();
+        
+        // Mostrar información del sistema
+        mostrarInformacionSistema();
+        
+        console.log('✅ Sistema de login inicializado correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error inicializando login:', error);
+        mostrarErrorConexion();
+    }
+});
 
-// Función para inicializar usuarios (sin datos de prueba)
-function inicializarUsuarios() {
-    const usuarios = obtenerUsuarios();
-    console.log('Sistema iniciado. Usuarios registrados:', usuarios.length);
-    return usuarios;
-}
-
-// Función para autenticar usuario
-function autenticarUsuario(email, password) {
-    console.log('Intentando autenticar:', email);
-    const usuarios = obtenerUsuarios();
-    console.log('Usuarios disponibles para autenticación:', usuarios.length);
-    
-    const usuario = usuarios.find(u => {
-        const emailMatch = u.email.toLowerCase() === email.toLowerCase();
-        const passwordMatch = u.password === password;
-        const estadoActivo = u.estado === 'activo';
+// Esperar a que Supabase esté disponible
+function waitForSupabase() {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 20; // 4 segundos máximo
         
-        console.log('Verificando usuario:', u.email, {
-            emailMatch,
-            passwordMatch,
-            estadoActivo,
-            estado: u.estado
-        });
-        
-        return emailMatch && passwordMatch && estadoActivo;
-    });
-    
-    if (usuario) {
-        console.log('Usuario autenticado correctamente:', usuario.nombre);
-        // Actualizar último acceso
-        usuario.ultimoAcceso = new Date().toISOString();
-        const usuariosActualizados = usuarios.map(u => u.id === usuario.id ? usuario : u);
-        localStorage.setItem('usuarios', JSON.stringify(usuariosActualizados));
-        
-        // Guardar sesión
-        const sesion = {
-            id: usuario.id,
-            nombre: usuario.nombre,
-            email: usuario.email,
-            rol: usuario.rol,
-            permisos: usuario.permisos,
-            fechaLogin: new Date().toISOString()
+        const check = () => {
+            if (window.supabaseConfig && window.supabaseConfig.getClient()) {
+                resolve();
+            } else if (attempts >= maxAttempts) {
+                reject(new Error('Supabase no está disponible'));
+            } else {
+                attempts++;
+                setTimeout(check, 200);
+            }
         };
         
-        localStorage.setItem('sesionActual', JSON.stringify(sesion));
-        return { success: true, usuario: sesion };
-    }
-    
-    console.log('Autenticación fallida');
-    return { success: false, mensaje: 'Credenciales incorrectas o usuario inactivo' };
+        check();
+    });
 }
 
-// Función para cerrar sesión
-function cerrarSesion() {
-    console.log('🚪 Cerrando sesión...');
-    localStorage.removeItem('sesionActual');
+// ===================================================================
+// VERIFICACIÓN DE SESIÓN EXISTENTE
+// ===================================================================
+
+async function verificarSesionExistente() {
+    try {
+        const client = window.supabaseConfig.getClient();
+        const { data: { session }, error } = await client.auth.getSession();
+        
+        if (error) {
+            console.error('Error verificando sesión:', error);
+            return;
+        }
+        
+        if (session) {
+            console.log('✅ Sesión activa encontrada, redirigiendo...');
+            mostrarAlerta('info', 'Ya tienes una sesión activa. Redirigiendo...');
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        } else {
+            console.log('ℹ️ No hay sesión activa, mostrando login');
+        }
+    } catch (error) {
+        console.error('Error verificando sesión existente:', error);
+    }
+}
+
+// ===================================================================
+// CONFIGURACIÓN DEL FORMULARIO
+// ===================================================================
+
+function configurarFormularioLogin() {
+    // Pre-llenar credenciales para desarrollo (solo en localhost)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const emailField = document.getElementById('email');
+        const passwordField = document.getElementById('password');
+        
+        if (emailField && passwordField) {
+            emailField.value = 'maurochica23@gmail.com';
+            passwordField.value = 'kennia23';
+            
+            // Mostrar nota de desarrollo
+            mostrarAlerta('info', 'Modo desarrollo: Credenciales pre-llenadas');
+        }
+    }
+}
+
+// ===================================================================
+// GESTIÓN DE EVENTOS
+// ===================================================================
+
+function configurarEventos() {
+    // Formulario de login
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', manejarLogin);
+    }
     
-    if (window.navigationUtils) {
-        window.navigationUtils.logout();
+    // Botón de mostrar/ocultar contraseña
+    const togglePassword = document.querySelector('.toggle-password');
+    if (togglePassword) {
+        togglePassword.addEventListener('click', () => {
+            const passwordField = document.getElementById('password');
+            const icon = togglePassword.querySelector('i');
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordField.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+    }
+    
+    // Enter en campos de input
+    ['email', 'password'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    manejarLogin(e);
+                }
+            });
+        }
+    });
+}
+
+// ===================================================================
+// MANEJO DEL LOGIN
+// ===================================================================
+
+async function manejarLogin(e) {
+    e.preventDefault();
+    
+    if (loginInProgress) {
+        return; // Evitar doble envío
+    }
+    
+    loginInProgress = true;
+    
+    const emailField = document.getElementById('email');
+    const passwordField = document.getElementById('password');
+    const loginButton = document.querySelector('#loginForm button[type="submit"]');
+    
+    const email = emailField.value.trim();
+    const password = passwordField.value;
+    
+    // Validaciones básicas
+    if (!email || !password) {
+        mostrarAlerta('error', 'Por favor, completa todos los campos');
+        loginInProgress = false;
+        return;
+    }
+    
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        mostrarAlerta('error', 'Por favor, ingresa un email válido');
+        loginInProgress = false;
+        return;
+    }
+    
+    try {
+        // Mostrar estado de carga
+        mostrarEstadoCarga(true, loginButton);
+        
+        // Autenticar con Supabase
+        const resultado = await autenticarConSupabase(email, password);
+        
+        if (resultado.success) {
+            mostrarAlerta('success', `¡Bienvenido ${resultado.usuario.nombre}!`);
+            
+            // Redirigir después de un momento
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+            
+        } else {
+            mostrarAlerta('error', resultado.error || 'Error de autenticación');
+        }
+        
+    } catch (error) {
+        console.error('Error en login:', error);
+        mostrarAlerta('error', 'Error de conexión. Verifica tu internet.');
+    } finally {
+        mostrarEstadoCarga(false, loginButton);
+        loginInProgress = false;
+    }
+}
+
+// ===================================================================
+// AUTENTICACIÓN CON SUPABASE
+// ===================================================================
+
+async function autenticarConSupabase(email, password) {
+    try {
+        const client = window.supabaseConfig.getClient();
+        
+        // Usar el servicio de base de datos para autenticar
+        if (window.databaseService) {
+            return await window.databaseService.autenticarUsuario(email, password);
+        }
+        
+        // Fallback: autenticación directa
+        const { data: usuario, error: userError } = await client
+            .from('usuarios')
+            .select('*')
+            .eq('email', email)
+            .eq('estado', 'activo')
+            .single();
+
+        if (userError || !usuario) {
+            return {
+                success: false,
+                error: 'Usuario no encontrado o inactivo'
+            };
+        }
+
+        // Verificar contraseña
+        const { data: passwordValid, error: passError } = await client
+            .rpc('verificar_password', {
+                password: password,
+                hash: usuario.password_hash
+            });
+
+        if (passError || !passwordValid) {
+            return {
+                success: false,
+                error: 'Contraseña incorrecta'
+            };
+        }
+
+        // Crear sesión en Supabase Auth
+        const { data: authData, error: authError } = await client.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (authError) {
+            // Intentar registrar en Supabase Auth si no existe
+            const { error: signUpError } = await client.auth.signUp({
+                email: email,
+                password: password
+            });
+
+            if (signUpError && !signUpError.message.includes('already registered')) {
+                console.error('Error en signup:', signUpError);
+                return {
+                    success: false,
+                    error: 'Error en el sistema de autenticación'
+                };
+            }
+        }
+
+        // Actualizar último acceso
+        await client
+            .from('usuarios')
+            .update({ ultimo_acceso: new Date().toISOString() })
+            .eq('id', usuario.id);
+
+        return {
+            success: true,
+            usuario: usuario
+        };
+
+    } catch (error) {
+        console.error('Error en autenticación:', error);
+        return {
+            success: false,
+            error: 'Error de conexión'
+        };
+    }
+}
+
+// ===================================================================
+// UTILIDADES DE UI
+// ===================================================================
+
+function mostrarEstadoCarga(mostrar, button) {
+    if (!button) return;
+    
+    if (mostrar) {
+        button.disabled = true;
+        button.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Iniciando sesión...
+        `;
     } else {
-        // Fallback en caso de que no esté disponible
-        window.location.href = 'login.html';
+        button.disabled = false;
+        button.innerHTML = `
+            <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+        `;
     }
 }
 
-// Función para verificar si hay sesión activa
-function verificarSesion() {
-    const sesion = localStorage.getItem('sesionActual');
-    return sesion ? JSON.parse(sesion) : null;
-}
-
-// Función para mostrar alertas
 function mostrarAlerta(tipo, mensaje) {
     const alertContainer = document.getElementById('alertContainer');
+    if (!alertContainer) return;
+    
     const alertId = 'alert-' + Date.now();
     
     const tipoClases = {
@@ -151,7 +342,7 @@ function mostrarAlerta(tipo, mensaje) {
     
     const alerta = document.createElement('div');
     alerta.id = alertId;
-    alerta.className = `alert ${tipoClases[tipo]} alert-custom alert-dismissible fade show`;
+    alerta.className = `alert ${tipoClases[tipo]} alert-dismissible fade show`;
     alerta.innerHTML = `
         <i class="${iconos[tipo]} me-2"></i>
         ${mensaje}
@@ -164,284 +355,92 @@ function mostrarAlerta(tipo, mensaje) {
     setTimeout(() => {
         const alertElement = document.getElementById(alertId);
         if (alertElement) {
-            const bsAlert = new bootstrap.Alert(alertElement);
-            bsAlert.close();
+            alertElement.remove();
         }
     }, 5000);
 }
 
-// Función para cargar usuarios disponibles para login
-function cargarUsuariosDisponibles() {
-    const usuarios = obtenerUsuarios();
-    console.log('Todos los usuarios:', usuarios);
+function mostrarInformacionSistema() {
+    const infoContainer = document.getElementById('systemInfo');
+    if (!infoContainer) return;
     
-    const usuariosActivos = usuarios.filter(u => u.estado === 'activo');
-    console.log('Usuarios activos:', usuariosActivos);
-    
-    const usuariosContainer = document.getElementById('usuariosDisponibles');
-    
-    if (!usuariosContainer) {
-        console.error('No se encontró el contenedor usuariosDisponibles');
-        return;
-    }
-    
-    const badges = {
-        'administrador': 'bg-danger',
-        'supervisor': 'bg-warning',
-        'operador': 'bg-info',
-        'vendedor': 'bg-success'
-    };
-    
-    if (usuariosActivos.length === 0) {
-        usuariosContainer.innerHTML = `
-            <div class="text-center p-3">
-                <i class="fas fa-exclamation-triangle text-warning mb-2"></i>
-                <p class="mb-0">No hay usuarios activos en el sistema</p>
-                <small class="text-muted">Total usuarios: ${usuarios.length}</small>
+    infoContainer.innerHTML = `
+        <div class="text-center">
+            <h5><i class="fas fa-cloud me-2"></i>Sistema Online</h5>
+            <p class="mb-2">
+                <i class="fas fa-database me-1"></i>
+                Base de datos: <span class="text-success">Supabase PostgreSQL</span>
+            </p>
+            <p class="mb-2">
+                <i class="fas fa-shield-alt me-1"></i>
+                Autenticación: <span class="text-success">Supabase Auth</span>
+            </p>
+            <small class="text-muted">
+                <i class="fas fa-wifi me-1"></i>
+                Requiere conexión a internet
+            </small>
             </div>
         `;
-        return;
-    }
-    
-    console.log('Generando HTML para usuarios activos...');
-    usuariosContainer.innerHTML = usuariosActivos.map(usuario => `
-        <div class="user-item" onclick="llenarCredenciales('${usuario.email}')">
-            <div>
-                <strong>${usuario.nombre}</strong>
-                <br>
-                <small class="text-muted">${usuario.email}</small>
-            </div>
-            <span class="badge ${badges[usuario.rol] || 'bg-secondary'}">${usuario.rol}</span>
+}
+
+function mostrarErrorConexion() {
+    const errorHTML = `
+        <div class="alert alert-danger text-center">
+            <h4><i class="fas fa-exclamation-triangle me-2"></i>Error de Conexión</h4>
+            <p>No se puede conectar con el servidor.</p>
+            <p class="mb-3">Verifica tu conexión a internet y refresca la página.</p>
+            <button class="btn btn-outline-danger" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-2"></i>Reintentar
+            </button>
         </div>
-    `).join('');
+    `;
     
-    console.log('Usuarios cargados en la interfaz');
+    const container = document.querySelector('.login-container') || document.body;
+    container.innerHTML = errorHTML;
 }
 
-// Función para llenar credenciales automáticamente (solo email por seguridad)
-function llenarCredenciales(email) {
-    document.getElementById('email').value = email;
-    document.getElementById('password').focus();
-    
-    // Agregar efecto visual
-    const emailInput = document.getElementById('email');
-    emailInput.classList.add('border-success');
-    
-    setTimeout(() => {
-        emailInput.classList.remove('border-success');
-    }, 1000);
-    
-    mostrarAlerta('info', 'Email cargado. Ingresa tu contraseña para continuar.');
-}
+// ===================================================================
+// FUNCIONES DE COMPATIBILIDAD
+// ===================================================================
 
-// Función para mostrar información del sistema
-function mostrarInformacionSistema() {
-    const usuarios = obtenerUsuarios();
-    const usuariosActivos = usuarios.filter(u => u.estado === 'activo').length;
-    const totalUsuarios = usuarios.length;
-    
-    mostrarAlerta('info', 
-        `Sistema GameControl - ${totalUsuarios} usuarios registrados, ${usuariosActivos} activos. ` +
-        'Para obtener credenciales, contacta al administrador del sistema.'
-    );
-}
-
-// Función para mostrar ayuda
+// Función para mostrar ayuda (si existe en el HTML)
 function mostrarAyuda() {
-    mostrarInformacionSistema();
+    alert(`
+💡 AYUDA DEL SISTEMA
+
+🔐 Credenciales de Administrador:
+• Email: maurochica23@gmail.com
+• Contraseña: kennia23
+
+🌐 Características:
+• Sistema completamente online
+• Base de datos en la nube (Supabase)
+• Sincronización en tiempo real
+• Acceso desde cualquier dispositivo
+
+⚠️ Importante:
+• Requiere conexión a internet
+• Las sesiones se mantienen seguras
+• Cierra sesión al finalizar
+
+¿Problemas de acceso?
+Verifica tu conexión a internet y refresca la página.
+    `);
 }
 
-// Función para manejar el envío del formulario
-function manejarLogin(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const email = formData.get('email').trim();
-    const password = formData.get('password');
-    const remember = formData.get('remember');
-    
-    // Validaciones básicas
-    if (!email || !password) {
-        mostrarAlerta('error', 'Por favor completa todos los campos');
-        return;
-    }
-    
-    // Mostrar loading
-    const btnLogin = document.querySelector('.btn-login');
-    btnLogin.classList.add('loading');
-    
-    // Simular delay de autenticación (en producción esto sería una llamada al servidor)
-    setTimeout(() => {
-        const resultado = autenticarUsuario(email, password);
-        
-        if (resultado.success) {
-            // Guardar "recordarme" si está marcado
-            if (remember) {
-                localStorage.setItem('recordarUsuario', email);
-            } else {
-                localStorage.removeItem('recordarUsuario');
-            }
-            
-            mostrarAlerta('success', `¡Bienvenido, ${resultado.usuario.nombre}! Redirigiendo al dashboard...`);
-            
-            // Redireccionar después de 2.5 segundos para dar tiempo a leer el mensaje
-            setTimeout(() => {
-                console.log('Redirigiendo a dashboard con navegación inteligente...');
-                if (window.navigationUtils) {
-                    window.navigationUtils.loginSuccess();
-                } else {
-                    // Fallback en caso de que no esté disponible
-                    window.location.href = 'index.html';
-                }
-            }, 2500);
-        } else {
-            mostrarAlerta('error', resultado.mensaje);
-            btnLogin.classList.remove('loading');
-            
-            // Limpiar contraseña por seguridad
-            document.getElementById('password').value = '';
-        }
-    }, 1000);
-}
-
-// Función para cargar email recordado
-function cargarEmailRecordado() {
-    const emailRecordado = localStorage.getItem('recordarUsuario');
-    if (emailRecordado) {
-        document.getElementById('email').value = emailRecordado;
-        document.getElementById('remember').checked = true;
-    }
-}
-
-// Función para verificar si ya hay sesión activa
-function verificarSesionExistente() {
-    const sesion = verificarSesion();
-    if (sesion) {
-        // Si ya hay sesión activa, mostrar opción de continuar o cerrar sesión
-        const continuarSesion = confirm(
-            `Ya tienes una sesión activa como ${sesion.nombre}.\n\n` +
-            `¿Quieres continuar con esa sesión?\n\n` +
-            `• Aceptar: Ir al dashboard\n` +
-            `• Cancelar: Cerrar sesión e iniciar nueva`
-        );
-        
-        if (continuarSesion) {
-            mostrarAlerta('info', `Continuando sesión como ${sesion.nombre}...`);
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1000);
-        } else {
-            // Cerrar sesión actual
-            localStorage.removeItem('sesionActual');
-            mostrarAlerta('success', 'Sesión anterior cerrada. Puedes iniciar una nueva sesión.');
-        }
-        return true;
-    }
-    return false;
-}
-
-// Función para limpiar sesiones conflictivas
-function limpiarSesionesConflictivas() {
-    console.log('Limpiando posibles sesiones conflictivas...');
-    
-    // Verificar si hay múltiples tipos de sesiones almacenadas
-    const sesionPrincipal = localStorage.getItem('sesionActual');
-    const sesionSalas = localStorage.getItem('salas_current_session');
-    
-    if (sesionSalas && !sesionPrincipal) {
-        console.log('Encontrada sesión de sistema secundario sin sesión principal, limpiando...');
-        localStorage.removeItem('salas_current_session');
-    }
-    
-    console.log('Estado de sesiones después de limpieza:', {
-        sesionPrincipal: !!sesionPrincipal,
-        sesionSalas: !!localStorage.getItem('salas_current_session')
-    });
-}
-
-// Event listeners y inicialización
-document.addEventListener('DOMContentLoaded', () => {
-    // Limpiar sesiones conflictivas primero
-    limpiarSesionesConflictivas();
-    
-    // Crear usuarios por defecto inmediatamente al cargar la página
-    inicializarUsuarios();
-    console.log('Página cargada, usuarios inicializados');
-    
-    // Verificar si ya hay sesión activa
-    if (!verificarSesionExistente()) {
-        // Cargar usuarios disponibles para login
-        cargarUsuariosDisponibles();
-        
-        // Cargar email recordado
-        cargarEmailRecordado();
-        
-        // Configurar formulario
-        const loginForm = document.getElementById('loginForm');
-        loginForm.addEventListener('submit', manejarLogin);
-        
-        // Focus en el primer campo vacío
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        
-        if (!emailInput.value) {
-            emailInput.focus();
-        } else {
-            passwordInput.focus();
-        }
-        
-        // Permitir login con Enter
-        document.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !document.querySelector('.btn-login').classList.contains('loading')) {
-                loginForm.dispatchEvent(new Event('submit', { cancelable: true }));
-            }
-        });
-        
-        // Efecto de tipeo en campos
-        [emailInput, passwordInput].forEach(input => {
-            input.addEventListener('input', () => {
-                if (input.value.length > 0) {
-                    input.classList.add('border-primary');
-                } else {
-                    input.classList.remove('border-primary');
-                }
-            });
-        });
-    }
-});
-
-// Función para reiniciar datos (depuración)
+// Funciones de limpieza (para compatibilidad con versiones anteriores)
 function reiniciarDatos() {
-    console.log('Reiniciando datos del localStorage...');
-    localStorage.clear();
-    console.log('LocalStorage limpiado');
-    
-    // Recrear usuarios
-    inicializarUsuarios();
-    
-    // Recargar la lista de usuarios disponibles para login
-    cargarUsuariosDisponibles();
-    
-    mostrarAlerta('success', 'Datos reiniciados correctamente. Usuarios del sistema recreados.');
+    if (confirm('⚠️ Esta función no está disponible en modo online.\n\nLos datos se gestionan directamente en la base de datos.')) {
+        window.location.href = 'configurar_supabase.html';
+    }
 }
 
-// Función para depurar estado actual
 function depurarEstado() {
-    console.log('=== ESTADO ACTUAL DEL SISTEMA ===');
-    const usuarios = obtenerUsuarios();
-    console.log('Total usuarios:', usuarios.length);
-    console.log('Usuarios:', usuarios);
-    console.log('Usuarios activos:', usuarios.filter(u => u.estado === 'activo'));
-    console.log('Usuarios inactivos:', usuarios.filter(u => u.estado !== 'activo'));
+    console.log('🔍 Estado del sistema:');
+    console.log('- Modo: Solo Supabase (Online)');
+    console.log('- Cliente Supabase:', !!window.supabaseConfig?.getClient());
+    console.log('- Database Service:', !!window.databaseService);
+    console.log('- Session Manager:', !!window.sessionManager);
     
-    mostrarAlerta('info', `Sistema: ${usuarios.length} usuarios total, ${usuarios.filter(u => u.estado === 'activo').length} activos. Ver consola para detalles.`);
-}
-
-// Funciones globales para uso en HTML
-window.llenarCredenciales = llenarCredenciales;
-window.mostrarAyuda = mostrarAyuda;
-window.mostrarInformacionSistema = mostrarInformacionSistema;
-window.cerrarSesion = cerrarSesion;
-window.verificarSesion = verificarSesion;
-window.reiniciarDatos = reiniciarDatos;
-window.depurarEstado = depurarEstado; 
+    mostrarAlerta('info', 'Estado del sistema mostrado en consola (F12)');
+} 

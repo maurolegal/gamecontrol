@@ -39,11 +39,11 @@ class NotificationSystem {
                         id="notificationBell" 
                         data-bs-toggle="dropdown" 
                         aria-expanded="false">
-                    <i class="fas fa-bell" id="bellIcon"></i>
+                <i class="fas fa-bell" id="bellIcon"></i>
                     <span class="notification-badge position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" 
-                          id="notificationCount" style="display: none;">0</span>
-                </button>
-                
+                      id="notificationCount" style="display: none;">0</span>
+            </button>
+            
                 <div class="dropdown-menu dropdown-menu-end notification-dropdown shadow-lg" 
                      style="width: 350px; max-height: 500px;">
                     
@@ -62,13 +62,13 @@ class NotificationSystem {
                     </div>
                     
                     <!-- Lista de notificaciones -->
-                    <div class="notification-list" id="notificationList" style="max-height: 400px; overflow-y: auto;">
-                        <div class="text-center p-4 text-muted">
+                <div class="notification-list" id="notificationList" style="max-height: 400px; overflow-y: auto;">
+                    <div class="text-center p-4 text-muted">
                             <i class="fas fa-bell-slash fa-2x mb-2 opacity-50"></i><br>
                             <small>No hay notificaciones</small>
                         </div>
-                    </div>
-                    
+                </div>
+                
                     <!-- Footer minimalista -->
                     <div class="px-3 py-2 border-top bg-light text-center">
                         <small class="text-muted">
@@ -115,7 +115,7 @@ class NotificationSystem {
 
         this.updateUI();
         this.saveNotifications();
-        
+
         return notification.id;
     }
 
@@ -131,7 +131,7 @@ class NotificationSystem {
     startPeriodicChecks() {
         // Verificación inicial
         this.runAllChecks();
-        
+
         // Verificaciones periódicas
         setInterval(() => {
             this.runAllChecks();
@@ -186,7 +186,7 @@ class NotificationSystem {
         try {
             const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
             const sesionesActivas = sesiones.filter(s => !s.finalizada);
-            
+
             sesionesActivas.forEach(sesion => {
                 const inicio = new Date(sesion.inicio);
                 const tiempoTranscurrido = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60));
@@ -300,7 +300,7 @@ class NotificationSystem {
         const timeAgo = this.getTimeAgo(notification.timestamp);
         const iconClass = this.getNotificationIcon(notification.type);
         const colorClass = this.getNotificationColor(notification.type);
-        
+
         return `
             <div class="notification-item px-3 py-2 border-bottom ${notification.read ? 'opacity-75' : ''}" 
                  data-notification-id="${notification.id}">
@@ -404,7 +404,7 @@ class NotificationSystem {
 
     clearAllNotifications() {
         this.notifications = [];
-        this.updateUI();
+                this.updateUI();
         this.saveNotifications();
     }
 
@@ -448,7 +448,7 @@ class NotificationSystem {
 let notificationSystem;
 
 document.addEventListener('DOMContentLoaded', () => {
-    notificationSystem = new NotificationSystem();
+        notificationSystem = new NotificationSystem();
     notificationSystem.loadStoredNotifications();
 });
 

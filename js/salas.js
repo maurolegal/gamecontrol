@@ -1755,20 +1755,20 @@ class GestorSalas {
                 }
 
                 // Eliminar la sala localmente
-                this.salas = this.salas.filter(s => s.id !== salaId);
-                guardarSalas(this.salas);
+            this.salas = this.salas.filter(s => s.id !== salaId);
+            guardarSalas(this.salas);
 
-                // Eliminar las tarifas asociadas
-                const config = obtenerConfiguracion();
-                delete config.tarifasPorSala[salaId];
-                guardarConfiguracion(config);
-                this.config = config;
+            // Eliminar las tarifas asociadas
+            const config = obtenerConfiguracion();
+            delete config.tarifasPorSala[salaId];
+            guardarConfiguracion(config);
+            this.config = config;
 
-                this.actualizarVista();
-                mostrarNotificacion('Sala eliminada correctamente', 'success');
-                
-                // Notificar a ajustes.js
-                window.dispatchEvent(new CustomEvent('salasActualizadas'));
+            this.actualizarVista();
+            mostrarNotificacion('Sala eliminada correctamente', 'success');
+            
+            // Notificar a ajustes.js
+            window.dispatchEvent(new CustomEvent('salasActualizadas'));
                 
             } catch (error) {
                 console.error('Error al eliminar sala:', error);

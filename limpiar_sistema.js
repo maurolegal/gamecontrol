@@ -9,12 +9,12 @@ function limpiarSistemaCompleto() {
     const datosAEliminar = [
         'sesiones',
         'productos_stock', 
-        'salas',
-        'gastos',
-        'ventas',
-        'configuracion',
+    'salas',
+    'gastos',
+    'ventas',
+    'configuracion',
         'notifications',
-        'reportes',
+    'reportes',
         'movimientos_stock',
         'historial_ventas',
         'configuracion_tarifas',
@@ -22,7 +22,7 @@ function limpiarSistemaCompleto() {
         'estadisticas',
         'logs_sistema'
     ];
-    
+
     // Eliminar todos los datos
     datosAEliminar.forEach(clave => {
         localStorage.removeItem(clave);

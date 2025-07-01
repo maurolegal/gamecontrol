@@ -1,10 +1,11 @@
 /**
  * Servicio de Base de Datos - GameControl
- * Maneja todas las operaciones CRUD con Supabase
+ * Maneja todas las operaciones CRUD EXCLUSIVAMENTE con Supabase
+ * NO USA localStorage - Solo base de datos online
  */
 
 // ===================================================================
-// SERVICIO PRINCIPAL DE BASE DE DATOS
+// SERVICIO PRINCIPAL DE BASE DE DATOS - SOLO SUPABASE
 // ===================================================================
 
 class DatabaseService {
@@ -13,6 +14,7 @@ class DatabaseService {
         this.cacheEnabled = true;
         this.cache = new Map();
         this.cacheTTL = 5 * 60 * 1000; // 5 minutos
+        this.requiereConexion = true; // SIEMPRE requiere Supabase
         
         this.inicializar();
     }
@@ -24,26 +26,48 @@ class DatabaseService {
         }
     }
 
-    // Obtener cliente de Supabase
+    // Obtener cliente de Supabase - OBLIGATORIO
     getClient() {
         if (!this.client && typeof window !== 'undefined') {
             this.client = window.supabaseConfig.getClient();
         }
+        
+        if (!this.client) {
+            throw new Error('🚨 Cliente Supabase no disponible. Sistema requiere conexión a internet.');
+        }
+        
         return this.client;
     }
 
+    // Verificar conexión obligatoria
+    async verificarConexionObligatoria() {
+        try {
+            const client = this.getClient();
+            const { data, error } = await client
+                .from('configuracion')
+                .select('clave')
+                .limit(1);
+
+            if (error) {
+                throw new Error(`Error de conexión: ${error.message}`);
+            }
+
+            return true;
+        } catch (error) {
+            console.error('🚨 Error verificando conexión:', error);
+            throw error;
+        }
+    }
+
     // ===================================================================
-    // OPERACIONES CRUD GENÉRICAS
+    // OPERACIONES CRUD - SOLO SUPABASE
     // ===================================================================
 
     // Seleccionar registros
     async select(tabla, opciones = {}) {
         try {
             const client = this.getClient();
-            if (!client) {
-                return this.fallbackToLocal('select', tabla, opciones);
-            }
-
+            
             let query = client.from(tabla).select(opciones.select || '*');
 
             // Aplicar filtros
@@ -89,7 +113,7 @@ class DatabaseService {
 
             if (error) {
                 console.error(`Error en select de ${tabla}:`, error);
-                return this.fallbackToLocal('select', tabla, opciones);
+                throw new Error(`Error consultando ${tabla}: ${error.message}`);
             }
 
             // Guardar en caché
@@ -100,8 +124,8 @@ class DatabaseService {
 
             return { success: true, data };
         } catch (error) {
-            console.error(`Error en select de ${tabla}:`, error);
-            return this.fallbackToLocal('select', tabla, opciones);
+            console.error(`Error crítico en select de ${tabla}:`, error);
+            throw error;
         }
     }
 
@@ -109,9 +133,6 @@ class DatabaseService {
     async insert(tabla, datos, opciones = {}) {
         try {
             const client = this.getClient();
-            if (!client) {
-                return this.fallbackToLocal('insert', tabla, datos, opciones);
-            }
 
             const { data, error } = await client
                 .from(tabla)
@@ -120,7 +141,7 @@ class DatabaseService {
 
             if (error) {
                 console.error(`Error en insert de ${tabla}:`, error);
-                return this.fallbackToLocal('insert', tabla, datos, opciones);
+                throw new Error(`Error insertando en ${tabla}: ${error.message}`);
             }
 
             // Limpiar caché relacionado
@@ -128,8 +149,8 @@ class DatabaseService {
 
             return { success: true, data: data[0] };
         } catch (error) {
-            console.error(`Error en insert de ${tabla}:`, error);
-            return this.fallbackToLocal('insert', tabla, datos, opciones);
+            console.error(`Error crítico en insert de ${tabla}:`, error);
+            throw error;
         }
     }
 
@@ -137,9 +158,6 @@ class DatabaseService {
     async update(tabla, id, datos, opciones = {}) {
         try {
             const client = this.getClient();
-            if (!client) {
-                return this.fallbackToLocal('update', tabla, id, datos, opciones);
-            }
 
             const { data, error } = await client
                 .from(tabla)
@@ -149,7 +167,7 @@ class DatabaseService {
 
             if (error) {
                 console.error(`Error en update de ${tabla}:`, error);
-                return this.fallbackToLocal('update', tabla, id, datos, opciones);
+                throw new Error(`Error actualizando ${tabla}: ${error.message}`);
             }
 
             // Limpiar caché relacionado
@@ -157,8 +175,8 @@ class DatabaseService {
 
             return { success: true, data: data[0] };
         } catch (error) {
-            console.error(`Error en update de ${tabla}:`, error);
-            return this.fallbackToLocal('update', tabla, id, datos, opciones);
+            console.error(`Error crítico en update de ${tabla}:`, error);
+            throw error;
         }
     }
 
@@ -166,9 +184,6 @@ class DatabaseService {
     async delete(tabla, id, opciones = {}) {
         try {
             const client = this.getClient();
-            if (!client) {
-                return this.fallbackToLocal('delete', tabla, id, opciones);
-            }
 
             const { data, error } = await client
                 .from(tabla)
@@ -178,7 +193,7 @@ class DatabaseService {
 
             if (error) {
                 console.error(`Error en delete de ${tabla}:`, error);
-                return this.fallbackToLocal('delete', tabla, id, opciones);
+                throw new Error(`Error eliminando de ${tabla}: ${error.message}`);
             }
 
             // Limpiar caché relacionado
@@ -186,122 +201,147 @@ class DatabaseService {
 
             return { success: true, data: data[0] };
         } catch (error) {
-            console.error(`Error en delete de ${tabla}:`, error);
-            return this.fallbackToLocal('delete', tabla, id, opciones);
+            console.error(`Error crítico en delete de ${tabla}:`, error);
+            throw error;
         }
     }
 
     // ===================================================================
-    // OPERACIONES ESPECÍFICAS
+    // OPERACIONES ESPECÍFICAS - SOLO SUPABASE
     // ===================================================================
 
     // Autenticación de usuario
     async autenticarUsuario(email, password) {
         try {
-            const resultado = await this.select('usuarios', {
-                filtros: { 
-                    email: email,
-                    estado: 'activo'
-                }
-            });
+            const client = this.getClient();
+            
+            // Buscar usuario por email
+            const { data: usuarios, error } = await client
+                .from('usuarios')
+                .select('*')
+                .eq('email', email)
+                .eq('estado', 'activo')
+                .limit(1);
 
-            if (!resultado.success || !resultado.data || resultado.data.length === 0) {
+            if (error) {
+                throw new Error(`Error consultando usuario: ${error.message}`);
+            }
+
+            if (!usuarios || usuarios.length === 0) {
                 return { success: false, error: 'Usuario no encontrado' };
             }
 
-            const usuario = resultado.data[0];
-            
-            // En un entorno real, aquí verificarías la contraseña hasheada
-            // Por ahora, comparación simple para mantener compatibilidad
-            if (usuario.email === 'maurochica23@gmail.com' && password === 'kennia23') {
-                return { 
-                    success: true, 
-                    data: {
-                        id: usuario.id,
-                        nombre: usuario.nombre,
-                        email: usuario.email,
-                        rol: usuario.rol,
-                        permisos: usuario.permisos
-                    }
-                };
+            const usuario = usuarios[0];
+
+            // Verificar contraseña usando función de PostgreSQL
+            const { data: verificacion, error: errorVerify } = await client
+                .rpc('verificar_password', {
+                    password: password,
+                    hash: usuario.password_hash
+                });
+
+            if (errorVerify) {
+                throw new Error(`Error verificando contraseña: ${errorVerify.message}`);
             }
 
-            return { success: false, error: 'Contraseña incorrecta' };
+            if (!verificacion) {
+                return { success: false, error: 'Contraseña incorrecta' };
+            }
+
+            // Actualizar último acceso
+            await client
+                .from('usuarios')
+                .update({ ultimo_acceso: new Date().toISOString() })
+                .eq('id', usuario.id);
+
+            return {
+                success: true,
+                usuario: {
+                    id: usuario.id,
+                    nombre: usuario.nombre,
+                    email: usuario.email,
+                    rol: usuario.rol,
+                    permisos: usuario.permisos || {}
+                }
+            };
         } catch (error) {
             console.error('Error en autenticación:', error);
-            return { success: false, error: 'Error de autenticación' };
+            throw error;
         }
     }
 
-    // Obtener configuración del sistema
+    // Obtener configuración
     async obtenerConfiguracion(clave = null) {
         try {
             const opciones = {};
             if (clave) {
                 opciones.filtros = { clave };
             }
-
+            
             const resultado = await this.select('configuracion', opciones);
             
-            if (!resultado.success) {
-                return resultado;
+            if (clave) {
+                return resultado.data[0] ? resultado.data[0].valor : null;
             }
-
-            // Convertir a objeto clave-valor
-            const config = {};
-            resultado.data.forEach(item => {
-                try {
-                    config[item.clave] = JSON.parse(item.valor);
-                } catch {
-                    config[item.clave] = item.valor;
-                }
-            });
-
-            return { success: true, data: clave ? config[clave] : config };
+            
+            return resultado.data;
         } catch (error) {
             console.error('Error obteniendo configuración:', error);
-            return { success: false, error: 'Error obteniendo configuración' };
+            throw error;
         }
     }
 
     // Obtener sesiones activas
     async obtenerSesionesActivas() {
-        return this.select('sesiones', {
-            filtros: { 
-                estado: 'activa',
-                finalizada: false 
-            },
-            ordenPor: { campo: 'fecha_inicio', direccion: 'desc' }
-        });
+        try {
+            return await this.select('sesiones', {
+                filtros: { finalizada: false },
+                ordenPor: { campo: 'fecha_inicio', direccion: 'desc' }
+            });
+        } catch (error) {
+            console.error('Error obteniendo sesiones activas:', error);
+            throw error;
+        }
     }
 
     // Obtener productos con stock bajo
     async obtenerProductosStockBajo() {
-        return this.select('productos', {
-            filtros: { activo: true },
-            ordenPor: { campo: 'stock', direccion: 'asc' }
-        });
-    }
+        try {
+            const client = this.getClient();
+            
+            const { data, error } = await client
+                .from('productos')
+                .select('*')
+                .lt('stock', 'stock_minimo')
+                .eq('activo', true);
 
-    // ===================================================================
-    // SISTEMA DE CACHÉ
-    // ===================================================================
+            if (error) {
+                throw new Error(`Error consultando productos: ${error.message}`);
+            }
 
-    setCache(key, data) {
-        if (this.cacheEnabled) {
-            this.cache.set(key, {
-                data,
-                timestamp: Date.now()
-            });
+            return { success: true, data };
+        } catch (error) {
+            console.error('Error obteniendo productos con stock bajo:', error);
+            throw error;
         }
     }
 
+    // ===================================================================
+    // GESTIÓN DE CACHÉ
+    // ===================================================================
+
+    setCache(key, data) {
+        this.cache.set(key, {
+            data,
+            timestamp: Date.now()
+        });
+    }
+
     getCache(key) {
-        if (!this.cacheEnabled) return null;
-        
         const cached = this.cache.get(key);
         if (!cached) return null;
         
+        // Verificar TTL
         if (Date.now() - cached.timestamp > this.cacheTTL) {
             this.cache.delete(key);
             return null;
@@ -315,212 +355,40 @@ class DatabaseService {
     }
 
     clearTableCache(tabla) {
-        for (const key of this.cache.keys()) {
-            if (key.startsWith(tabla)) {
+        // Eliminar entradas de caché que contengan el nombre de la tabla
+        for (const [key] of this.cache) {
+            if (key.includes(tabla)) {
                 this.cache.delete(key);
             }
         }
     }
 
     // ===================================================================
-    // FALLBACK AL SISTEMA LOCAL
+    // UTILIDADES
     // ===================================================================
 
-    fallbackToLocal(operacion, ...args) {
-        console.log(`⚠️ Usando fallback local para ${operacion}`);
-        
-        // Aquí implementarías la lógica para usar localStorage
-        // como respaldo cuando Supabase no esté disponible
-        
-        switch (operacion) {
-            case 'select':
-                return this.selectLocal(...args);
-            case 'insert':
-                return this.insertLocal(...args);
-            case 'update':
-                return this.updateLocal(...args);
-            case 'delete':
-                return this.deleteLocal(...args);
-            default:
-                return { success: false, error: 'Operación no soportada en modo local' };
-        }
-    }
-
-    // Operaciones locales (fallback)
-    selectLocal(tabla, opciones = {}) {
-        try {
-            const datos = JSON.parse(localStorage.getItem(tabla) || '[]');
-            let resultado = datos;
-
-            // Aplicar filtros básicos
-            if (opciones.filtros) {
-                resultado = datos.filter(item => {
-                    return Object.entries(opciones.filtros).every(([campo, valor]) => {
-                        return item[campo] === valor;
-                    });
-                });
-            }
-
-            return { success: true, data: resultado };
-        } catch (error) {
-            console.error(`Error en selectLocal de ${tabla}:`, error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    insertLocal(tabla, datos) {
-        try {
-            const datosExistentes = JSON.parse(localStorage.getItem(tabla) || '[]');
-            const nuevoRegistro = {
-                id: this.generarId(),
-                ...datos,
-                fecha_creacion: new Date().toISOString(),
-                fecha_actualizacion: new Date().toISOString()
-            };
-            
-            datosExistentes.push(nuevoRegistro);
-            localStorage.setItem(tabla, JSON.stringify(datosExistentes));
-            
-            return { success: true, data: nuevoRegistro };
-        } catch (error) {
-            console.error(`Error en insertLocal de ${tabla}:`, error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    updateLocal(tabla, id, datos) {
-        try {
-            const datosExistentes = JSON.parse(localStorage.getItem(tabla) || '[]');
-            const indice = datosExistentes.findIndex(item => item.id === id);
-            
-            if (indice === -1) {
-                return { success: false, error: 'Registro no encontrado' };
-            }
-            
-            datosExistentes[indice] = {
-                ...datosExistentes[indice],
-                ...datos,
-                fecha_actualizacion: new Date().toISOString()
-            };
-            
-            localStorage.setItem(tabla, JSON.stringify(datosExistentes));
-            
-            return { success: true, data: datosExistentes[indice] };
-        } catch (error) {
-            console.error(`Error en updateLocal de ${tabla}:`, error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    deleteLocal(tabla, id) {
-        try {
-            const datosExistentes = JSON.parse(localStorage.getItem(tabla) || '[]');
-            const indice = datosExistentes.findIndex(item => item.id === id);
-            
-            if (indice === -1) {
-                return { success: false, error: 'Registro no encontrado' };
-            }
-            
-            const registroEliminado = datosExistentes.splice(indice, 1)[0];
-            localStorage.setItem(tabla, JSON.stringify(datosExistentes));
-            
-            return { success: true, data: registroEliminado };
-        } catch (error) {
-            console.error(`Error en deleteLocal de ${tabla}:`, error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    // Generar ID único para operaciones locales
     generarId() {
-        return 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        return crypto.randomUUID();
     }
 
-    // ===================================================================
-    // SINCRONIZACIÓN
-    // ===================================================================
-
-    async sincronizarDatos() {
-        // Implementar lógica de sincronización entre local y remoto
-        console.log('🔄 Iniciando sincronización de datos...');
-        
-        try {
-            const client = this.getClient();
-            if (!client) {
-                console.log('❌ No se puede sincronizar sin conexión a Supabase');
-                return { success: false, error: 'Sin conexión' };
-            }
-
-            // Aquí implementarías la lógica específica de sincronización
-            // basada en timestamps, marcas de cambio, etc.
-            
-            console.log('✅ Sincronización completada');
-            return { success: true };
-        } catch (error) {
-            console.error('Error en sincronización:', error);
-            return { success: false, error: error.message };
-        }
+    // Estado del servicio
+    getStatus() {
+        return {
+            connected: !!this.client,
+            cacheSize: this.cache.size,
+            mode: 'remote-only',
+            requiresConnection: true
+        };
     }
 }
 
 // ===================================================================
-// INSTANCIA GLOBAL
+// INSTANCIA GLOBAL DEL SERVICIO
 // ===================================================================
 
-// Crear instancia global del servicio
-const db = new DatabaseService();
+const databaseService = new DatabaseService();
 
-// Hacer disponible globalmente
-window.db = db;
-
-// ===================================================================
-// FUNCIONES DE UTILIDAD
-// ===================================================================
-
-// Función para migration de datos locales a Supabase
-async function migrarDatosASupabase() {
-    console.log('🚀 Iniciando migración de datos locales a Supabase...');
-    
-    const tablas = ['usuarios', 'salas', 'sesiones', 'productos', 'gastos'];
-    const resultados = {};
-    
-    for (const tabla of tablas) {
-        try {
-            const datosLocales = JSON.parse(localStorage.getItem(tabla) || '[]');
-            
-            if (datosLocales.length === 0) {
-                console.log(`📋 No hay datos para migrar en ${tabla}`);
-                continue;
-            }
-            
-            console.log(`📤 Migrando ${datosLocales.length} registros de ${tabla}...`);
-            
-            for (const registro of datosLocales) {
-                // Remover ID local si existe
-                const { id, ...datos } = registro;
-                await db.insert(tabla, datos);
-            }
-            
-            resultados[tabla] = datosLocales.length;
-            console.log(`✅ ${tabla}: ${datosLocales.length} registros migrados`);
-            
-        } catch (error) {
-            console.error(`❌ Error migrando ${tabla}:`, error);
-            resultados[tabla] = { error: error.message };
-        }
-    }
-    
-    console.log('🎉 Migración completada:', resultados);
-    return resultados;
-}
-
-// Hacer disponible la función de migración
-window.migrarDatosASupabase = migrarDatosASupabase;
-
-// ===================================================================
-// EXPORTAR
-// ===================================================================
-
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = DatabaseService;
+// Exportar para uso global
+if (typeof window !== 'undefined') {
+    window.databaseService = databaseService;
 } 

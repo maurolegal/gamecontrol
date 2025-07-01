@@ -1,4 +1,9 @@
-// Configuración inicial del sistema
+// === CONFIGURACIÓN DEL SISTEMA GAMECONTROL - SOLO SUPABASE ===
+
+// ===================================================================
+// CONFIGURACIÓN GLOBAL
+// ===================================================================
+
 const CONFIG = {
     moneda: 'COP',
     formatoMoneda: {
@@ -28,10 +33,14 @@ const CONFIG = {
             icon: 'fas fa-desktop',
             prefijo: 'PC'
         }
-    }
+    },
+    modoOperacion: 'remote' // Solo Supabase
 };
 
-// Funciones de utilidad
+// ===================================================================
+// FUNCIONES DE UTILIDAD
+// ===================================================================
+
 function formatearMoneda(valor) {
     return new Intl.NumberFormat('es-CO', CONFIG.formatoMoneda).format(valor);
 }
@@ -53,11 +62,22 @@ function formatearTiempo(minutos) {
 }
 
 function generarId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    return crypto.randomUUID();
 }
 
-// Funciones de almacenamiento
-function obtenerConfiguracion() {
+// ===================================================================
+// GESTIÓN DE CONFIGURACIÓN CON SUPABASE
+// ===================================================================
+
+async function obtenerConfiguracion() {
+    try {
+        if (!window.databaseService) {
+            throw new Error('Database service no disponible');
+        }
+
+        const configuracion = await window.databaseService.obtenerConfiguracion();
+        
+        // Configuración por defecto
     const configDefault = {
         tarifasPorSala: {},
         tiempoMinimo: 30,
@@ -70,35 +90,112 @@ function obtenerConfiguracion() {
         direccion: '',
         telefono: '',
         email: '',
-        logo: ''
-    };
+            logo: '',
+            sistemaConfigurado: true
+        };
 
-    const configGuardada = JSON.parse(localStorage.getItem('configSistema')) || {};
-    return { ...configDefault, ...configGuardada };
+        // Si no hay configuración, crear una por defecto
+        if (!configuracion || configuracion.length === 0) {
+            await inicializarConfiguracionDefault(configDefault);
+            return configDefault;
+        }
+
+        // Convertir array de configuración a objeto
+        const configObj = {};
+        configuracion.forEach(item => {
+            configObj[item.clave] = item.valor;
+        });
+
+        return { ...configDefault, ...configObj };
+
+    } catch (error) {
+        console.error('Error obteniendo configuración:', error);
+        // Retornar configuración mínima en caso de error
+        return {
+            tiempoMinimo: 30,
+            tiempoGracia: 10,
+            moneda: CONFIG.moneda,
+            nombreNegocio: 'GameControl'
+        };
+    }
 }
 
-function guardarConfiguracion(config) {
-    localStorage.setItem('configSistema', JSON.stringify(config));
+async function guardarConfiguracion(config) {
+    try {
+        if (!window.databaseService) {
+            throw new Error('Database service no disponible');
+        }
+
+        // Guardar cada configuración como un registro separado
+        for (const [clave, valor] of Object.entries(config)) {
+            await window.databaseService.update('configuracion', clave, {
+                valor: valor,
+                fecha_actualizacion: new Date().toISOString()
+            });
+        }
+
+        console.log('✅ Configuración guardada en Supabase');
+        return true;
+
+    } catch (error) {
+        console.error('Error guardando configuración:', error);
+        mostrarNotificacion('Error guardando configuración', 'error');
+        return false;
+    }
 }
 
-// Función para mostrar notificaciones
+async function inicializarConfiguracionDefault(configDefault) {
+    try {
+        for (const [clave, valor] of Object.entries(configDefault)) {
+            await window.databaseService.insert('configuracion', {
+                clave: clave,
+                valor: valor,
+                descripcion: `Configuración de ${clave}`,
+                categoria: 'sistema',
+                tipo: typeof valor,
+                editable: true,
+                publico: false
+            });
+        }
+        console.log('✅ Configuración inicial creada en Supabase');
+    } catch (error) {
+        console.error('Error inicializando configuración:', error);
+    }
+}
+
+// ===================================================================
+// SISTEMA DE NOTIFICACIONES
+// ===================================================================
+
 function mostrarNotificacion(mensaje, tipo = 'success') {
     const contenedor = document.createElement('div');
     contenedor.className = `alert alert-${tipo} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
     contenedor.style.zIndex = '9999';
     contenedor.innerHTML = `
+        <i class="fas ${tipo === 'success' ? 'fa-check-circle' : tipo === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'} me-2"></i>
         ${mensaje}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     document.body.appendChild(contenedor);
     
     setTimeout(() => {
+        if (contenedor.parentNode) {
         contenedor.remove();
-    }, 3000);
+        }
+    }, 5000);
 }
 
-// Función para inicializar los gráficos
+// ===================================================================
+// INICIALIZACIÓN DE GRÁFICOS
+// ===================================================================
+
 function initializeCharts() {
+    // Solo inicializar si Chart.js está disponible
+    if (typeof Chart === 'undefined') {
+        console.warn('Chart.js no está disponible');
+        return;
+    }
+
     // Gráfico de ocupación
     if (document.getElementById('ocupacionChart')) {
         const ocupacionCtx = document.getElementById('ocupacionChart').getContext('2d');
@@ -121,6 +218,7 @@ function initializeCharts() {
                 }
             }
         });
+        window.ocupacionChart = ocupacionChart;
     }
     
     // Gráfico de ventas por sala
@@ -141,11 +239,17 @@ function initializeCharts() {
                 responsive: true,
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return formatearMoneda(value);
+                            }
+                        }
                     }
                 }
             }
         });
+        window.ventasSalaChart = ventasSalaChart;
     }
     
     // Gráfico de métodos de pago
@@ -170,223 +274,157 @@ function initializeCharts() {
                 }
             }
         });
+        window.metodosPagoChart = metodosPagoChart;
     }
 }
 
-// Inicialización del sistema
-document.addEventListener('DOMContentLoaded', () => {
-    // Cargar configuración inicial si no existe
-    if (!localStorage.getItem('configSistema')) {
-        guardarConfiguracion(obtenerConfiguracion());
-    }
-    
-    // Crear salas de ejemplo SOLO en la primera instalación
-    const configuracionSistema = JSON.parse(localStorage.getItem('configSistema') || '{}');
-    const esPrimeraVez = !configuracionSistema.sistemaConfigurado;
-    const salas = JSON.parse(localStorage.getItem('salas') || '[]');
-    
-    if (esPrimeraVez && salas.length === 0) {
-        console.log('🚀 Primera instalación detectada - Creando salas de ejemplo...');
+// ===================================================================
+// GESTIÓN DE SALAS CON SUPABASE
+// ===================================================================
+
+async function inicializarSalasDefault() {
+    try {
+        if (!window.databaseService) {
+            console.log('Database service no disponible, saltando inicialización de salas');
+            return;
+        }
+
+        // Verificar si ya existen salas
+        const salasExistentes = await window.databaseService.select('salas');
+        
+        if (salasExistentes.success && salasExistentes.data.length > 0) {
+            console.log('✅ Salas ya existentes en Supabase:', salasExistentes.data.length);
+            return;
+        }
+
+        console.log('🚀 Creando salas por defecto en Supabase...');
         
         const salasEjemplo = [
             {
-                id: generarId(),
                 nombre: 'Sala PlayStation 1',
-                tipo: 'playstation',
-                numEstaciones: 4,
-                prefijo: 'PS',
-                tarifa: 5000,
-                estado: 'disponible'
+                tipo: 'Premium',
+                num_estaciones: 4,
+                estado: 'disponible',
+                descripcion: 'Sala equipada con PlayStation 5',
+                tarifas: { base: 5000, premium: 6000 },
+                equipamiento: ['PlayStation 5', 'Controles DualSense', 'TV 4K'],
+                activa: true
             },
             {
-                id: generarId(),
                 nombre: 'Sala Xbox 1',
-                tipo: 'xbox',
-                numEstaciones: 3,
-                prefijo: 'XB',
-                tarifa: 4500,
-                estado: 'disponible'
+                tipo: 'Premium',
+                num_estaciones: 3,
+                estado: 'disponible',
+                descripcion: 'Sala equipada con Xbox Series X',
+                tarifas: { base: 4500, premium: 5500 },
+                equipamiento: ['Xbox Series X', 'Controles Wireless', 'TV 4K'],
+                activa: true
             },
             {
-                id: generarId(),
-                nombre: 'Sala PC Gaming 1',
-                tipo: 'pc',
-                numEstaciones: 6,
-                prefijo: 'PC',
-                tarifa: 6000,
-                estado: 'disponible'
+                nombre: 'Sala PC Gaming',
+                tipo: 'VIP',
+                num_estaciones: 6,
+                estado: 'disponible',
+                descripcion: 'PCs de alta gama para gaming',
+                tarifas: { base: 6000, premium: 7000 },
+                equipamiento: ['PC Gaming RTX 4070', 'Monitor 144Hz', 'Teclado mecánico'],
+                activa: true
             },
             {
-                id: generarId(),
-                nombre: 'Sala Nintendo 1',
-                tipo: 'nintendo',
-                numEstaciones: 2,
-                prefijo: 'NS',
-                tarifa: 4000,
-                estado: 'disponible'
+                nombre: 'Sala Nintendo',
+                tipo: 'Estándar',
+                num_estaciones: 2,
+                estado: 'disponible',
+                descripcion: 'Nintendo Switch y juegos familiares',
+                tarifas: { base: 3500, premium: 4000 },
+                equipamiento: ['Nintendo Switch', 'Joy-Con adicionales', 'TV HD'],
+                activa: true
             }
         ];
-        
-        localStorage.setItem('salas', JSON.stringify(salasEjemplo));
-        
-        // Crear configuración inicial de tarifas
-        const configInicial = obtenerConfiguracion();
-        configInicial.tarifasPorSala = {};
-        configInicial.sistemaConfigurado = true; // ✅ Marcar como configurado
-        configInicial.fechaInstalacion = new Date().toISOString();
-        
-        salasEjemplo.forEach(sala => {
-            configInicial.tarifasPorSala[sala.id] = sala.tarifa;
-        });
-        guardarConfiguracion(configInicial);
-        
-        console.log('✅ Salas de ejemplo creadas (solo en primera instalación)');
-    } else if (esPrimeraVez) {
-        // Marcar como configurado sin crear salas
-        const configInicial = obtenerConfiguracion();
-        configInicial.sistemaConfigurado = true;
-        configInicial.fechaInstalacion = new Date().toISOString();
-        guardarConfiguracion(configInicial);
-        console.log('✅ Sistema marcado como configurado');
-    } else {
-        console.log('ℹ️ Sistema ya configurado - No se recrearán salas automáticamente');
-    }
 
-    // Crear productos de ejemplo si no existen
-    if (!localStorage.getItem('productos') || JSON.parse(localStorage.getItem('productos')).length === 0) {
-        const productosEjemplo = [
-            {
-                id: generarId(),
-                nombre: 'Coca Cola',
-                precio: 2500,
-                categoria: 'Bebidas',
-                stock: 50
-            },
-            {
-                id: generarId(),
-                nombre: 'Doritos',
-                precio: 3000,
-                categoria: 'Snacks',
-                stock: 30
-            },
-            {
-                id: generarId(),
-                nombre: 'Red Bull',
-                precio: 4000,
-                categoria: 'Bebidas',
-                stock: 20
-            },
-            {
-                id: generarId(),
-                nombre: 'Papas Margarita',
-                precio: 2000,
-                categoria: 'Snacks',
-                stock: 25
-            }
-        ];
-        
-        localStorage.setItem('productos', JSON.stringify(productosEjemplo));
-    }
+        for (const sala of salasEjemplo) {
+            await window.databaseService.insert('salas', sala);
+        }
 
-    // Crear gastos de ejemplo SOLO en la primera instalación (igual que las salas)
-    const gastos = JSON.parse(localStorage.getItem('gastos') || '[]');
+        console.log('✅ Salas de ejemplo creadas en Supabase');
+        mostrarNotificacion('Salas de ejemplo creadas correctamente', 'success');
+
+    } catch (error) {
+        console.error('❌ Error inicializando salas:', error);
+        mostrarNotificacion('Error inicializando salas', 'error');
+    }
+}
+
+// ===================================================================
+// VERIFICACIÓN DE CONEXIÓN
+// ===================================================================
+
+async function verificarConexionSupabase() {
+    try {
+        if (!window.supabaseConfig) {
+            throw new Error('Supabase config no disponible');
+        }
+
+        const estado = await window.supabaseConfig.verificarEstadoConexion();
+        
+        if (estado.conectado) {
+            console.log('✅ Conexión a Supabase verificada');
+            return true;
+        } else {
+            throw new Error('No hay conexión a Supabase');
+        }
+
+    } catch (error) {
+        console.error('❌ Error verificando conexión:', error);
+        mostrarErrorConexion();
+        return false;
+    }
+}
+
+function mostrarErrorConexion() {
+    const errorHTML = `
+        <div class="alert alert-danger text-center m-3">
+            <h4><i class="fas fa-exclamation-triangle me-2"></i>Error de Conexión</h4>
+            <p>No se puede conectar con la base de datos.</p>
+            <p class="mb-3">El sistema requiere conexión a internet para funcionar.</p>
+            <button class="btn btn-outline-danger" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-2"></i>Reintentar
+            </button>
+        </div>
+    `;
     
-    if (esPrimeraVez && gastos.length === 0) {
-        console.log('🚀 Primera instalación - Creando gastos de ejemplo...');
-        
-        const gastosEjemplo = [
-            {
-                id: generarId(),
-                descripcion: 'Electricidad del mes',
-                categoria: 'Servicios',
-                monto: 180000,
-                fecha: new Date().toISOString(),
-                metodoPago: 'transferencia'
-            },
-            {
-                id: generarId(),
-                descripcion: 'Mantenimiento consolas',
-                categoria: 'Mantenimiento',
-                monto: 85000,
-                fecha: new Date(Date.now() - 86400000).toISOString(),
-                metodoPago: 'efectivo'
-            }
-        ];
-        localStorage.setItem('gastos', JSON.stringify(gastosEjemplo));
-        
-        console.log('✅ Gastos de ejemplo creados (solo en primera instalación)');
-    } else if (!esPrimeraVez) {
-        console.log('ℹ️ Sistema ya configurado - No se recrearán gastos automáticamente');
-    }
+    const container = document.querySelector('.main-content') || document.body;
+    container.innerHTML = errorHTML;
+}
 
-    // Crear configuración de ejemplo si no existe
-    if (!localStorage.getItem('configuracion')) {
-        const configuracionEjemplo = {
-            metaIngresosMensual: 2000000,
-            presupuestoGastosMensual: 800000,
-            nombreNegocio: 'GameControl Pro',
-            moneda: 'COP'
-        };
-        localStorage.setItem('configuracion', JSON.stringify(configuracionEjemplo));
-    }
+// ===================================================================
+// FUNCIONES DE COMPATIBILIDAD MÓVIL
+// ===================================================================
 
-    // Inicializar tooltips de Bootstrap
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    initializeCharts();
-    
-    // Inicializar funciones responsivas
-    inicializarResponsivo();
-});
-
-// Funciones responsivas mejoradas
 function inicializarMenuMovil() {
-    const menuToggle = document.getElementById('menuToggle');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const mainContent = document.querySelector('.main-content');
+    const toggleButton = document.querySelector('.navbar-toggler');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay d-lg-none';
     
-    if (menuToggle && sidebar && sidebarOverlay) {
-        // Función para abrir el menú
+    if (!toggleButton || !sidebar) return;
+    
+    document.body.appendChild(overlay);
+    
         function abrirMenu() {
             sidebar.classList.add('show');
-            sidebarOverlay.classList.add('show');
-            menuToggle.classList.add('active');
-            document.body.classList.add('menu-open'); // Prevenir scroll del body
-            
-            // Cambiar icono con animación
-            const icon = menuToggle.querySelector('i');
-            icon.classList.remove('fa-bars');
-            icon.classList.add('fa-times');
-            
-            // Añadir ARIA para accesibilidad
-            sidebar.setAttribute('aria-hidden', 'false');
-            menuToggle.setAttribute('aria-expanded', 'true');
-        }
-        
-        // Función para cerrar el menú
+        overlay.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+    
         function cerrarMenu() {
             sidebar.classList.remove('show');
-            sidebarOverlay.classList.remove('show');
-            menuToggle.classList.remove('active');
-            document.body.classList.remove('menu-open'); // Restaurar scroll del body
-            
-            // Cambiar icono con animación
-            const icon = menuToggle.querySelector('i');
-            icon.classList.remove('fa-times');
-            icon.classList.add('fa-bars');
-            
-            // Restaurar ARIA para accesibilidad
-            sidebar.setAttribute('aria-hidden', 'true');
-            menuToggle.setAttribute('aria-expanded', 'false');
-        }
-        
-        // Toggle del menú
-        menuToggle.addEventListener('click', function(e) {
-            e.stopPropagation();
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+    
+    toggleButton.addEventListener('click', (e) => {
+        e.preventDefault();
             if (sidebar.classList.contains('show')) {
                 cerrarMenu();
             } else {
@@ -394,232 +432,114 @@ function inicializarMenuMovil() {
             }
         });
         
-        // Cerrar al hacer clic en el overlay
-        sidebarOverlay.addEventListener('click', function() {
-            cerrarMenu();
-        });
-        
-        // Cerrar al hacer clic fuera del menú
-        document.addEventListener('click', function(e) {
-            if (!sidebar.contains(e.target) && !menuToggle.contains(e.target)) {
-                if (sidebar.classList.contains('show')) {
-                    cerrarMenu();
-                }
-            }
-        });
-        
-        // Cerrar al hacer clic en un enlace del menú
-        const menuLinks = sidebar.querySelectorAll('.nav-link');
-        menuLinks.forEach(link => {
-            link.addEventListener('click', function() {
-                // Pequeño delay para permitir la navegación
-                setTimeout(() => {
-                    cerrarMenu();
-                }, 100);
-            });
-        });
-        
-        // Cerrar con la tecla Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && sidebar.classList.contains('show')) {
+    overlay.addEventListener('click', cerrarMenu);
+    
+    // Cerrar menú al hacer clic en un enlace (móvil)
+    sidebar.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth < 992) {
                 cerrarMenu();
             }
         });
-        
-        // Gestión de gestos táctiles para cerrar deslizando
-        let startX = 0;
-        let currentX = 0;
-        let isDragging = false;
-        
-        sidebar.addEventListener('touchstart', function(e) {
-            startX = e.touches[0].clientX;
-            isDragging = true;
-        });
-        
-        sidebar.addEventListener('touchmove', function(e) {
-            if (!isDragging) return;
-            currentX = e.touches[0].clientX;
-            const diffX = startX - currentX;
-            
-            // Si se desliza hacia la izquierda más de 50px, cerrar menú
-            if (diffX > 50) {
-                cerrarMenu();
-                isDragging = false;
-            }
-        });
-        
-        sidebar.addEventListener('touchend', function() {
-            isDragging = false;
-        });
-    }
-}
-
-// Optimizar tablas para móvil
-function optimizarTablas() {
-    const tablas = document.querySelectorAll('.table-responsive');
-    tablas.forEach(tabla => {
-        // Agregar scroll suave en móvil
-        tabla.style.webkitOverflowScrolling = 'touch';
-        
-        // Añadir indicador de scroll
-        const table = tabla.querySelector('table');
-        if (table) {
-            tabla.addEventListener('scroll', function() {
-                const scrollLeft = tabla.scrollLeft;
-                const scrollWidth = tabla.scrollWidth;
-                const clientWidth = tabla.clientWidth;
-                
-                if (scrollLeft > 0) {
-                    tabla.classList.add('scrolled-left');
-                } else {
-                    tabla.classList.remove('scrolled-left');
-                }
-                
-                if (scrollLeft < scrollWidth - clientWidth - 5) {
-                    tabla.classList.add('scrolled-right');
-                } else {
-                    tabla.classList.remove('scrolled-right');
-                }
-            });
-        }
     });
 }
+
+function optimizarResponsivo() {
+// Optimizar tablas para móvil
+    const tablas = document.querySelectorAll('table');
+    tablas.forEach(tabla => {
+        if (!tabla.closest('.table-responsive')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-responsive';
+            tabla.parentNode.insertBefore(wrapper, tabla);
+            wrapper.appendChild(tabla);
+        }
+    });
 
 // Optimizar modales para móvil
-function optimizarModales() {
     const modales = document.querySelectorAll('.modal');
     modales.forEach(modal => {
-        modal.addEventListener('shown.bs.modal', function() {
-            // Ajustar altura del modal en móvil
-            if (window.innerWidth <= 768) {
-                const modalBody = modal.querySelector('.modal-body');
-                if (modalBody) {
-                    const maxHeight = window.innerHeight * 0.7;
-                    modalBody.style.maxHeight = maxHeight + 'px';
-                    modalBody.style.overflowY = 'auto';
-                }
-            }
-        });
+        const dialog = modal.querySelector('.modal-dialog');
+        if (dialog && !dialog.classList.contains('modal-dialog-scrollable')) {
+            dialog.classList.add('modal-dialog-scrollable');
+        }
+    });
+}
+
+// ===================================================================
+// INICIALIZACIÓN PRINCIPAL
+// ===================================================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Inicializando sistema GameControl (Solo Supabase)...');
+    
+    try {
+        // Esperar a que Supabase esté disponible
+        let attempts = 0;
+        while (!window.supabaseConfig && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            attempts++;
+        }
         
-        modal.addEventListener('hidden.bs.modal', function() {
-            // Limpiar estilos al cerrar
-            const modalBody = modal.querySelector('.modal-body');
-            if (modalBody) {
-                modalBody.style.maxHeight = '';
-                modalBody.style.overflowY = '';
-            }
-        });
-    });
-}
-
-// Mejorar formularios en móvil
-function mejorarFormulariosMovil() {
-    // Enfocar mejor los inputs en móvil
-    const inputs = document.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            if (window.innerWidth <= 768) {
-                // Scroll suave al input enfocado
-                setTimeout(() => {
-                    this.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-                }, 300);
-            }
-        });
-    });
-    
-    // Mejorar select en móvil
-    const selects = document.querySelectorAll('select');
-    selects.forEach(select => {
-        if (window.innerWidth <= 768) {
-            select.setAttribute('size', '1');
+        if (!window.supabaseConfig) {
+            throw new Error('Supabase no está disponible');
         }
-    });
-}
-
-// Detección de orientación
-function manejarCambioOrientacion() {
-    window.addEventListener('orientationchange', function() {
-        setTimeout(() => {
-            // Reajustar elementos después del cambio de orientación
-            optimizarTablas();
-            optimizarModales();
-            
-            // Cerrar sidebar si está abierto
-            const sidebar = document.getElementById('sidebar');
-            const menuToggle = document.getElementById('menuToggle');
-            if (sidebar && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                if (menuToggle) {
-                    const icon = menuToggle.querySelector('i');
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            }
-        }, 500);
-    });
-}
-
-// Inicializar todas las funciones responsivas
-function inicializarResponsivo() {
-    inicializarMenuMovil();
-    optimizarTablas();
-    optimizarModales();
-    mejorarFormulariosMovil();
-    manejarCambioOrientacion();
-    
-    // Verificar si estamos en móvil
-    if (window.innerWidth <= 768) {
-        document.body.classList.add('mobile-device');
+        
+        // Verificar conexión
+        const conexionOk = await verificarConexionSupabase();
+        if (!conexionOk) {
+            return; // Salir si no hay conexión
+        }
+        
+        // Inicializar componentes del sistema
+        console.log('📊 Inicializando componentes...');
+        
+        // Cargar configuración
+        await obtenerConfiguracion();
+        
+        // Inicializar salas por defecto si es necesario
+        await inicializarSalasDefault();
+        
+        // Inicializar componentes de UI
+        inicializarMenuMovil();
+        optimizarResponsivo();
+        
+        // Inicializar gráficos si estamos en el dashboard
+        if (document.getElementById('ocupacionChart')) {
+            initializeCharts();
+        }
+        
+        // Configurar actualizaciones automáticas
+        if (window.DashboardManager) {
+            window.dashboardManager = new DashboardManager();
+        }
+        
+        console.log('✅ Sistema GameControl inicializado correctamente');
+        mostrarNotificacion('Sistema cargado correctamente', 'success');
+        
+    } catch (error) {
+        console.error('❌ Error inicializando sistema:', error);
+        mostrarNotificacion('Error inicializando el sistema', 'error');
+        mostrarErrorConexion();
     }
-    
-    // Escuchar cambios de tamaño de ventana
-    window.addEventListener('resize', function() {
-        if (window.innerWidth <= 768) {
-            document.body.classList.add('mobile-device');
-        } else {
-            document.body.classList.remove('mobile-device');
-            
-            // Cerrar sidebar en desktop
-            const sidebar = document.getElementById('sidebar');
-            const menuToggle = document.getElementById('menuToggle');
-            if (sidebar) {
-                sidebar.classList.remove('show');
-                if (menuToggle) {
-                    const icon = menuToggle.querySelector('i');
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            }
-        }
-    });
-}
+});
 
-// Inicializar sesión automática para demostración
-function inicializarSesionDemo() {
-    // Solo para demo: inicializar sesión automática del admin si no hay sesión activa
-    const sesionActual = localStorage.getItem('salas_current_session');
-    
-    if (!sesionActual) {
-        // Simular login automático del administrador
-        if (window.authSystem) {
-            window.authSystem.login('admin', 'kennia23');
-            console.log('🔐 Sesión automática iniciada como Administrador (demo)');
-        }
-    }
-}
+// ===================================================================
+// EXPORTAR FUNCIONES GLOBALES
+// ===================================================================
 
-// Ejecutar después de que el sistema de auth esté cargado
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar sistema responsivo PRIMERO
-    inicializarResponsivo();
-    
-    // Esperar a que el sistema de auth esté disponible
-    setTimeout(() => {
-        if (window.authSystem) {
-            inicializarSesionDemo();
-        }
-    }, 100);
-}); 
+// Hacer funciones disponibles globalmente
+window.GameControl = {
+    formatearMoneda,
+    formatearFecha,
+    formatearTiempo,
+    mostrarNotificacion,
+    obtenerConfiguracion,
+    guardarConfiguracion,
+    CONFIG
+};
+
+// Compatibilidad con versiones anteriores
+window.formatearMoneda = formatearMoneda;
+window.formatearFecha = formatearFecha;
+window.mostrarNotificacion = mostrarNotificacion; 
