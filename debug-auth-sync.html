@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Sincronización Auth - GameControl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #1a1a1a; color: white; }
+        .debug-output { 
+            background: #000; 
+            color: #00ff00; 
+            font-family: 'Courier New', monospace; 
+            font-size: 0.9rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .card { background: #2d2d2d; border: 1px solid #444; }
+        .btn-debug { margin: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-bug me-2"></i>
+                            Debug Sincronización Autenticación
+                        </h4>
+                        <small>Herramienta para diagnosticar diferencias entre móvil y PC</small>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- Información del Dispositivo -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-mobile-alt me-2"></i>Información del Dispositivo</h5>
+                                <div id="deviceInfo" class="debug-output p-3 rounded">
+                                    Cargando información del dispositivo...
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-database me-2"></i>Estado localStorage</h5>
+                                <div id="storageInfo" class="debug-output p-3 rounded">
+                                    Cargando información de almacenamiento...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Controles de Debug -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h5><i class="fas fa-tools me-2"></i>Controles de Debug</h5>
+                                <div class="btn-group flex-wrap">
+                                    <button class="btn btn-primary btn-debug" onclick="analizarUsuarios()">
+                                        <i class="fas fa-users me-1"></i>Analizar Usuarios
+                                    </button>
+                                    <button class="btn btn-warning btn-debug" onclick="testearAutenticacion()">
+                                        <i class="fas fa-key me-1"></i>Test Autenticación
+                                    </button>
+                                    <button class="btn btn-info btn-debug" onclick="sincronizarUsuarios()">
+                                        <i class="fas fa-sync me-1"></i>Sincronizar Usuarios
+                                    </button>
+                                    <button class="btn btn-success btn-debug" onclick="repararAutenticacion()">
+                                        <i class="fas fa-wrench me-1"></i>Reparar Auth
+                                    </button>
+                                    <button class="btn btn-secondary btn-debug" onclick="exportarDatos()">
+                                        <i class="fas fa-download me-1"></i>Exportar
+                                    </button>
+                                    <button class="btn btn-danger btn-debug" onclick="limpiarTodo()">
+                                        <i class="fas fa-trash me-1"></i>Limpiar Todo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Área de Logs -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h5><i class="fas fa-terminal me-2"></i>Logs de Debug</h5>
+                                <div id="debugLogs" class="debug-output p-3 rounded" style="min-height: 300px;">
+                                    === SISTEMA DE DEBUG AUTENTICACIÓN ===<br>
+                                    Dispositivo: <span id="deviceType">Detectando...</span><br>
+                                    Timestamp: <span id="timestamp"></span><br>
+                                    ==========================================<br><br>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Test de Login -->
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-success">
+                                        <h6 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>Test de Login</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="testEmail" value="maurochica23@gmail.com">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Contraseña</label>
+                                            <input type="password" class="form-control" id="testPassword" value="kennia23">
+                                        </div>
+                                        <button class="btn btn-success w-100" onclick="testLogin()">
+                                            <i class="fas fa-test-tube me-2"></i>Probar Login
+                                        </button>
+                                        <div id="loginResult" class="mt-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header bg-info">
+                                        <h6 class="mb-0"><i class="fas fa-code me-2"></i>Código QR para Móvil</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <p>Escanea para acceder desde móvil:</p>
+                                        <div id="qrCode" class="mb-3">
+                                            <div class="bg-dark p-4 rounded">
+                                                <i class="fas fa-qrcode fa-4x text-white"></i><br>
+                                                <small class="text-muted mt-2 d-block">QR Code</small>
+                                            </div>
+                                        </div>
+                                        <code id="currentUrl" class="small"></code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // === FUNCIONES UTILITARIAS ===
+        function log(message, type = 'info') {
+            const logsDiv = document.getElementById('debugLogs');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            
+            logsDiv.innerHTML += `[${timestamp}] ${icon} ${message}<br>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function detectDevice() {
+            const userAgent = navigator.userAgent;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+            const isTablet = /iPad|Android.*(?:Tablet|Tab)/i.test(userAgent);
+            const isTouch = 'ontouchstart' in window;
+            
+            return {
+                userAgent,
+                isMobile,
+                isTablet,
+                isTouch,
+                platform: navigator.platform,
+                language: navigator.language,
+                cookieEnabled: navigator.cookieEnabled,
+                onLine: navigator.onLine
+            };
+        }
+
+        // === FUNCIONES DE ANÁLISIS ===
+        function analizarUsuarios() {
+            log('🔍 Analizando usuarios almacenados...', 'info');
+            
+            try {
+                const usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
+                log(`📊 Total usuarios encontrados: ${usuarios.length}`, 'info');
+                
+                if (usuarios.length === 0) {
+                    log('❌ No hay usuarios en localStorage', 'error');
+                    return;
+                }
+                
+                usuarios.forEach((usuario, index) => {
+                    log(`👤 Usuario ${index + 1}:`, 'info');
+                    log(`   Email: ${usuario.email}`, 'info');
+                    log(`   Password: ${JSON.stringify(usuario.password)} (tipo: ${typeof usuario.password})`, 'info');
+                    log(`   Estado: ${usuario.estado}`, 'info');
+                    log(`   Rol: ${usuario.rol}`, 'info');
+                    log(`   ID: ${usuario.id}`, 'info');
+                    log(`   Fecha creación: ${usuario.fechaCreacion}`, 'info');
+                    log('   ---', 'info');
+                });
+                
+                // Verificar específicamente el admin
+                const admin = usuarios.find(u => u.email === 'maurochica23@gmail.com');
+                if (admin) {
+                    log('✅ Usuario administrador encontrado', 'success');
+                    log(`🔐 Password del admin: "${admin.password}" (longitud: ${admin.password.length})`, 'info');
+                    
+                    // Test de comparación de contraseñas
+                    const testPass = 'kennia23';
+                    const match1 = admin.password === testPass;
+                    const match2 = String(admin.password).trim() === String(testPass).trim();
+                    
+                    log(`🧪 Test comparación exacta: ${match1}`, match1 ? 'success' : 'error');
+                    log(`🧪 Test comparación string: ${match2}`, match2 ? 'success' : 'error');
+                } else {
+                    log('❌ Usuario administrador NO encontrado', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error analizando usuarios: ${error.message}`, 'error');
+            }
+        }
+
+        function testearAutenticacion() {
+            log('🔑 Testeando sistema de autenticación...', 'info');
+            
+            // Verificar funciones disponibles
+            const funcionesAuth = [
+                'obtenerUsuarios',
+                'autenticarUsuario',
+                'inicializarUsuarioAdmin'
+            ];
+            
+            funcionesAuth.forEach(func => {
+                const disponible = typeof window[func] === 'function';
+                log(`📋 ${func}: ${disponible ? 'Disponible' : 'NO disponible'}`, disponible ? 'success' : 'error');
+            });
+            
+            // Test directo si las funciones están disponibles
+            if (typeof window.obtenerUsuarios === 'function') {
+                try {
+                    const usuarios = window.obtenerUsuarios();
+                    log(`✅ obtenerUsuarios() ejecutada: ${usuarios.length} usuarios`, 'success');
+                } catch (error) {
+                    log(`❌ Error en obtenerUsuarios(): ${error.message}`, 'error');
+                }
+            }
+            
+            if (typeof window.autenticarUsuario === 'function') {
+                try {
+                    const resultado = window.autenticarUsuario('maurochica23@gmail.com', 'kennia23');
+                    log(`🔐 Test autenticación: ${JSON.stringify(resultado)}`, resultado.success ? 'success' : 'error');
+                } catch (error) {
+                    log(`❌ Error en autenticarUsuario(): ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function sincronizarUsuarios() {
+            log('🔄 Sincronizando usuarios entre dispositivos...', 'info');
+            
+            // Forzar recreación del usuario administrador
+            try {
+                let usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
+                
+                // Buscar admin existente
+                const adminIndex = usuarios.findIndex(u => u.email === 'maurochica23@gmail.com');
+                
+                // Definir usuario admin estándar
+                const usuarioAdminEstandar = {
+                    id: 'admin_real_001',
+                    nombre: 'Mauro Chica',
+                    email: 'maurochica23@gmail.com',
+                    password: 'kennia23',
+                    rol: 'administrador',
+                    estado: 'activo',
+                    fechaCreacion: new Date().toISOString(),
+                    ultimaModificacion: new Date().toISOString(),
+                    ultimoAcceso: null,
+                    permisos: {
+                        dashboard: true,
+                        salas: true,
+                        ventas: true,
+                        gastos: true,
+                        stock: true,
+                        reportes: true,
+                        usuarios: true,
+                        ajustes: true
+                    }
+                };
+                
+                if (adminIndex !== -1) {
+                    log('📝 Actualizando usuario administrador existente...', 'info');
+                    usuarios[adminIndex] = usuarioAdminEstandar;
+                } else {
+                    log('➕ Creando nuevo usuario administrador...', 'info');
+                    usuarios.push(usuarioAdminEstandar);
+                }
+                
+                // Guardar usuarios sincronizados
+                localStorage.setItem('usuarios', JSON.stringify(usuarios));
+                log('✅ Usuarios sincronizados exitosamente', 'success');
+                
+                // Verificar resultado
+                setTimeout(() => {
+                    analizarUsuarios();
+                }, 500);
+                
+            } catch (error) {
+                log(`❌ Error sincronizando usuarios: ${error.message}`, 'error');
+            }
+        }
+
+        function repararAutenticacion() {
+            log('🔧 Reparando sistema de autenticación...', 'info');
+            
+            // Paso 1: Limpiar datos corruptos
+            log('🧹 Limpiando datos potencialmente corruptos...', 'info');
+            const keysToClean = ['sesionActual', 'salas_current_session', 'bienvenidaMostrada'];
+            keysToClean.forEach(key => {
+                localStorage.removeItem(key);
+                sessionStorage.removeItem(key);
+            });
+            
+            // Paso 2: Sincronizar usuarios
+            sincronizarUsuarios();
+            
+            // Paso 3: Verificar localStorage
+            setTimeout(() => {
+                log('🔍 Verificando integridad del localStorage...', 'info');
+                try {
+                    const usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
+                    const admin = usuarios.find(u => u.email === 'maurochica23@gmail.com');
+                    
+                    if (admin && admin.password === 'kennia23') {
+                        log('✅ Reparación completada exitosamente', 'success');
+                        log('🎯 Sistema listo para autenticación en todas las plataformas', 'success');
+                    } else {
+                        log('❌ La reparación no se completó correctamente', 'error');
+                    }
+                } catch (error) {
+                    log(`❌ Error verificando reparación: ${error.message}`, 'error');
+                }
+            }, 1000);
+        }
+
+        function testLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            const resultDiv = document.getElementById('loginResult');
+            
+            log(`🧪 Probando login con: ${email} / ${password}`, 'info');
+            
+            try {
+                // Test usando función global si está disponible
+                if (typeof window.autenticarUsuario === 'function') {
+                    const resultado = window.autenticarUsuario(email, password);
+                    log(`📋 Resultado autenticación: ${JSON.stringify(resultado)}`, resultado.success ? 'success' : 'error');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-${resultado.success ? 'success' : 'danger'}">
+                            <strong>${resultado.success ? 'Éxito' : 'Error'}:</strong> 
+                            ${resultado.success ? 'Login correcto' : resultado.mensaje}
+                        </div>
+                    `;
+                } else {
+                    // Test manual
+                    const usuarios = JSON.parse(localStorage.getItem('usuarios') || '[]');
+                    const usuario = usuarios.find(u => 
+                        u.email.toLowerCase() === email.toLowerCase() && 
+                        String(u.password).trim() === String(password).trim() && 
+                        u.estado === 'activo'
+                    );
+                    
+                    const exito = !!usuario;
+                    log(`🔧 Test manual: ${exito ? 'ÉXITO' : 'FALLO'}`, exito ? 'success' : 'error');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-${exito ? 'success' : 'danger'}">
+                            <strong>${exito ? 'Éxito' : 'Error'}:</strong> 
+                            ${exito ? 'Credenciales válidas' : 'Credenciales incorrectas'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                log(`❌ Error en test de login: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function exportarDatos() {
+            log('📤 Exportando datos del sistema...', 'info');
+            
+            const datos = {
+                dispositivo: detectDevice(),
+                timestamp: new Date().toISOString(),
+                usuarios: JSON.parse(localStorage.getItem('usuarios') || '[]'),
+                sesion: localStorage.getItem('sesionActual'),
+                configuracion: Object.keys(localStorage).filter(key => key.includes('gamecontrol')).reduce((obj, key) => {
+                    obj[key] = localStorage.getItem(key);
+                    return obj;
+                }, {})
+            };
+            
+            const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `gamecontrol-debug-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            log('✅ Datos exportados exitosamente', 'success');
+        }
+
+        function limpiarTodo() {
+            if (confirm('⚠️ ¿Estás seguro de que quieres limpiar TODOS los datos? Esta acción no se puede deshacer.')) {
+                log('🗑️ Limpiando todos los datos...', 'warning');
+                
+                // Limpiar localStorage y sessionStorage
+                Object.keys(localStorage).forEach(key => {
+                    if (key.includes('gamecontrol') || ['usuarios', 'sesionActual', 'salas'].some(prefix => key.includes(prefix))) {
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                Object.keys(sessionStorage).forEach(key => {
+                    sessionStorage.removeItem(key);
+                });
+                
+                log('✅ Datos limpiados. Recarga la página para empezar de cero.', 'success');
+            }
+        }
+
+        // === INICIALIZACIÓN ===
+        document.addEventListener('DOMContentLoaded', function() {
+            const device = detectDevice();
+            const timestamp = new Date().toLocaleString();
+            
+            // Mostrar información del dispositivo
+            document.getElementById('deviceType').textContent = device.isMobile ? 'Móvil' : 'Desktop';
+            document.getElementById('timestamp').textContent = timestamp;
+            document.getElementById('currentUrl').textContent = window.location.href;
+            
+            // Información detallada del dispositivo
+            document.getElementById('deviceInfo').innerHTML = `
+                Tipo: ${device.isMobile ? 'Móvil' : device.isTablet ? 'Tablet' : 'Desktop'}<br>
+                Táctil: ${device.isTouch ? 'Sí' : 'No'}<br>
+                Plataforma: ${device.platform}<br>
+                Idioma: ${device.language}<br>
+                Cookies: ${device.cookieEnabled ? 'Habilitadas' : 'Deshabilitadas'}<br>
+                Online: ${device.onLine ? 'Sí' : 'No'}<br>
+                User Agent: ${device.userAgent.substring(0, 100)}...
+            `;
+            
+            // Información del localStorage
+            const storageSize = new Blob(Object.values(localStorage)).size;
+            const usuariosCount = JSON.parse(localStorage.getItem('usuarios') || '[]').length;
+            
+            document.getElementById('storageInfo').innerHTML = `
+                Tamaño localStorage: ${(storageSize / 1024).toFixed(2)} KB<br>
+                Usuarios almacenados: ${usuariosCount}<br>
+                Sesión activa: ${localStorage.getItem('sesionActual') ? 'Sí' : 'No'}<br>
+                Claves totales: ${Object.keys(localStorage).length}<br>
+                Última modificación: ${localStorage.getItem('usuarios') ? 'Datos presentes' : 'Sin datos'}
+            `;
+            
+            log('🚀 Sistema de debug inicializado', 'success');
+            log(`📱 Dispositivo detectado: ${device.isMobile ? 'Móvil' : 'Desktop'}`, 'info');
+            
+            // Auto-analizar usuarios al cargar
+            setTimeout(analizarUsuarios, 1000);
+        });
+    </script>
+</body>
+</html> 
