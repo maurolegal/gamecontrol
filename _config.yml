@@ -1,0 +1,59 @@
+# Configuración GitHub Pages - GameControl
+# Sistema de Gestión de Salas Gaming
+
+# Configuración básica
+title: "GameControl - Gestión de Salas Gaming"
+description: "Sistema completo de gestión para salas de videojuegos con integración Supabase"
+url: "https://maurolegal.github.io"
+baseurl: "/gamecontrol"
+
+# Autor
+author:
+  name: "Mauro Chica"
+  email: "maurochica23@gmail.com"
+
+# Configuración del sitio
+language: es
+timezone: America/Bogota
+
+# Configuración GitHub Pages
+plugins:
+  - jekyll-sitemap
+  - jekyll-feed
+
+# Archivos a incluir
+include:
+  - _pages
+  - assets
+  - js
+  - css
+  - pages
+
+# Archivos a excluir
+exclude:
+  - README.md
+  - GITHUB_SETUP.md
+  - INSTRUCCIONES_SUPABASE.md
+  - INSTRUCCIONES_SISTEMA_LIMPIO.md
+  - DARK_MODE_UX_GUIDE.md
+  - .gitignore
+  - database_schema.sql
+  - "*.backup"
+  - "*.temp"
+
+# Configuración de markdown
+markdown: kramdown
+highlighter: rouge
+
+# Configuración de performance
+sass:
+  style: compressed
+
+# SEO y metadatos
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+      author: "Mauro Chica" 

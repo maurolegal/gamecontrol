@@ -88,6 +88,22 @@ Proporcionar una solución completa y profesional para la gestión operativa de 
 - Conexión a internet (opcional - funciona offline)
 - Cuenta en Supabase (para sincronización en la nube)
 
+### 🌐 **Acceso Online (GitHub Pages)**
+
+**🎯 Sistema desplegado y listo para usar:**
+
+```
+🌐 https://maurolegal.github.io/gamecontrol/
+```
+
+**🔐 Credenciales de acceso:**
+```
+Usuario: maurochica23@gmail.com
+Contraseña: admin123
+```
+
+> **💡 Recomendado:** Usa el sistema online para acceso inmediato sin instalación.
+
 ### 🔧 Instalación Local
 
 1. **Clonar el repositorio:**
