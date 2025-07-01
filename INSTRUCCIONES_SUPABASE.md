@@ -99,7 +99,7 @@ window.supabaseConfig.configurarModo('hybrid') // o 'remote' o 'local'
 
 ### Usuario Administrador:
 - **Email**: maurochica23@gmail.com
-- **Contraseña**: admin123
+- **Contraseña**: kennia23
 - **Permisos**: Acceso total al sistema
 
 ---

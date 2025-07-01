@@ -440,7 +440,7 @@
                     id: 'admin_real_001',
                     nombre: 'Mauro Chica',
                     email: 'maurochica23@gmail.com',
-                    password: 'admin123',
+                    password: 'kennia23',
                     rol: 'administrador',
                     estado: 'activo',
                     fechaCreacion: new Date().toISOString(),
@@ -520,7 +520,7 @@
                 });
                 
                 // Test de login directo
-                const testResult = autenticarUsuario('maurochica23@gmail.com', 'admin123');
+                const testResult = autenticarUsuario('maurochica23@gmail.com', 'kennia23');
                 console.log('🧪 Test de login:', testResult);
                 
                 if (testResult.success) {
@@ -641,7 +641,7 @@
             
             if (usernameField && passwordField) {
                 usernameField.value = 'maurochica23@gmail.com';
-                passwordField.value = 'admin123';
+                passwordField.value = 'kennia23';
                 console.log('✅ Credenciales pre-llenadas');
             }
             

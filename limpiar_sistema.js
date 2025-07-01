@@ -34,7 +34,7 @@ function limpiarSistemaCompleto() {
         id: 'admin_real_001',
         nombre: 'Mauro Chica',
         email: 'maurochica23@gmail.com',
-        password: 'admin123',
+        password: 'kennia23',
         rol: 'administrador',
         estado: 'activo',
         fechaCreacion: new Date().toISOString(),

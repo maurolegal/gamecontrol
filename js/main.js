@@ -605,7 +605,7 @@ function inicializarSesionDemo() {
     if (!sesionActual) {
         // Simular login automático del administrador
         if (window.authSystem) {
-            window.authSystem.login('admin', 'admin123');
+            window.authSystem.login('admin', 'kennia23');
             console.log('🔐 Sesión automática iniciada como Administrador (demo)');
         }
     }

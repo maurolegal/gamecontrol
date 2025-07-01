@@ -65,7 +65,7 @@ class AuthAdapter {
             }
 
             // Verificación simple de contraseña (en producción usar hash)
-            if (usuario.email === 'maurochica23@gmail.com' && password === 'admin123') {
+            if (usuario.email === 'maurochica23@gmail.com' && password === 'kennia23') {
                 console.log('✅ Autenticación local exitosa');
                 return this.crearSesion(usuario, 'local');
             }

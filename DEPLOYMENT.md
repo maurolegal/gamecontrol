@@ -110,7 +110,7 @@ Cuando tengas tu URL de GitHub Pages, actualiza en Supabase:
 ## 🚀 **Funcionalidades en Production**
 
 ### ✅ **Completamente Funcional:**
-- 🔐 **Sistema de login** (maurochica23@gmail.com / admin123)
+- 🔐 **Sistema de login** (maurochica23@gmail.com / kennia23)
 - 📊 **Dashboard** con KPIs en tiempo real
 - 🎮 **Gestión de salas** y sesiones
 - 💰 **Control financiero** y gastos

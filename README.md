@@ -99,7 +99,7 @@ Proporcionar una solución completa y profesional para la gestión operativa de 
 **🔐 Credenciales de acceso:**
 ```
 Usuario: maurochica23@gmail.com
-Contraseña: admin123
+Contraseña: kennia23
 ```
 
 > **💡 Recomendado:** Usa el sistema online para acceso inmediato sin instalación.
@@ -139,7 +139,7 @@ Contraseña: admin123
 
 **Usuario Administrador:**
 - **Email:** maurochica23@gmail.com
-- **Contraseña:** admin123
+- **Contraseña:** kennia23
 
 ### 🎮 **Gestión de Sesiones**
 

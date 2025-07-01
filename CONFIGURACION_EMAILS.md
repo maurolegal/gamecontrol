@@ -108,7 +108,7 @@ Si **NO** configuras EmailJS, el sistema funcionará en **modo simulación**:
 ### **Paso 2: Completar el Formulario**
 ```
 Email: maurochica23@gmail.com
-Contraseña Actual: admin123
+Contraseña Actual: kennia23
 Nueva Contraseña: [mínimo 6 caracteres]
 Confirmar: [repetir nueva contraseña]
 ```

@@ -213,7 +213,7 @@ class DatabaseService {
             
             // En un entorno real, aquí verificarías la contraseña hasheada
             // Por ahora, comparación simple para mantener compatibilidad
-            if (usuario.email === 'maurochica23@gmail.com' && password === 'admin123') {
+            if (usuario.email === 'maurochica23@gmail.com' && password === 'kennia23') {
                 return { 
                     success: true, 
                     data: {

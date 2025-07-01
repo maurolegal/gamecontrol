@@ -412,7 +412,7 @@ INSERT INTO usuarios (
 ) VALUES (
     'Mauro Chica',
     'maurochica23@gmail.com',
-    hash_password('admin123'),
+    hash_password('kennia23'),
     'administrador',
     'activo',
     '{

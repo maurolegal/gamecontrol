@@ -188,4 +188,4 @@ Ajustes: https://maurolegal.github.io/gamecontrol/pages/ajustes.html
 Gastos: https://maurolegal.github.io/gamecontrol/pages/gastos.html 
 
 Usuario: maurochica23@gmail.com
-Contraseña: admin123 
+Contraseña: kennia23 
