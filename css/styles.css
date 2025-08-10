@@ -465,10 +465,12 @@ body {
         box-shadow: 5px 0 25px rgba(0, 0, 0, 0.4);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
+        display: none; /* Oculto por defecto en móvil para evitar doble menú */
     }
     
     .sidebar.show {
         transform: translateX(0);
+        display: block !important; /* Forzar visible al abrir incluso si hay utilidades Bootstrap */
     }
     
     .main-content {

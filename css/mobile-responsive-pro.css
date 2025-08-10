@@ -130,10 +130,12 @@ body {
         border-right: 1px solid var(--border-color);
         overflow-y: auto;
         overscroll-behavior: contain;
+        display: none; /* Oculto por defecto en móvil */
     }
     
     .sidebar.show {
         transform: translateX(0);
+        display: block !important;
     }
     
     /* Overlay mejorado */
