@@ -172,25 +172,37 @@ function solucionarProblemasMovil() {
     
     // Problema 3: Autenticación que falla en móvil
     console.log('🔑 Mejorando autenticación para móvil...');
-    
-    // Verificar que las funciones de autenticación estén disponibles
+
+    // Verificar que exista algún módulo de autenticación disponible (flexible)
     setTimeout(() => {
-        if (typeof autenticarUsuario === 'function') {
-            console.log('✅ Función autenticarUsuario disponible');
+        const hayAutenticacion = (
+            typeof autenticarUsuario === 'function' ||
+            (window.authAdapter && typeof window.authAdapter.autenticar === 'function') ||
+            (window.sessionManager && typeof window.sessionManager.login === 'function') ||
+            (window.authSystem && typeof window.authSystem.login === 'function')
+        );
+
+        if (hayAutenticacion) {
+            console.log('✅ Módulo de autenticación disponible en móvil');
         } else {
-            console.error('❌ Función autenticarUsuario NO disponible en móvil');
+            console.warn('⚠️ Módulo de autenticación no detectado aún en móvil (se reintentará)');
+            setTimeout(() => {
+                const retryAuth = (
+                    typeof autenticarUsuario === 'function' ||
+                    (window.authAdapter && typeof window.authAdapter.autenticar === 'function') ||
+                    (window.sessionManager && typeof window.sessionManager.login === 'function') ||
+                    (window.authSystem && typeof window.authSystem.login === 'function')
+                );
+                console.log(retryAuth ? '✅ Autenticación detectada tras reintento' : '⚠️ Autenticación aún no detectada');
+            }, 1500);
         }
-        
+
+        // Reporte opcional de usuarios locales si la función existe
         if (typeof obtenerUsuarios === 'function') {
-            const usuarios = obtenerUsuarios();
-            console.log('👥 Usuarios disponibles en móvil:', usuarios.length);
-            
-            const admin = usuarios.find(u => u.email === 'maurochica23@gmail.com');
-            if (admin) {
-                console.log('✅ Usuario admin encontrado en móvil:', admin.email);
-            } else {
-                console.error('❌ Usuario admin NO encontrado en móvil');
-            }
+            try {
+                const usuarios = obtenerUsuarios() || [];
+                console.log('👥 Usuarios locales visibles en móvil:', usuarios.length);
+            } catch {}
         }
     }, 1000);
     
