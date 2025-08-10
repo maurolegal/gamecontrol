@@ -239,6 +239,11 @@ class GestorSalas {
             this.salas = await obtenerSalas();
             this.sesiones = await obtenerSesiones();
             this.config = obtenerConfiguracion();
+            // Asegurar estructura mínima de configuración
+            if (!this.config || typeof this.config !== 'object') this.config = {};
+            if (!this.config.tarifasPorSala || typeof this.config.tarifasPorSala !== 'object') {
+                this.config.tarifasPorSala = {};
+            }
             
             console.log('  - Datos recargados:');
             console.log('    - Salas:', this.salas.length);
@@ -291,9 +296,13 @@ class GestorSalas {
     crearHTMLSala(sala) {
         const sesionesActivas = this.sesiones.filter(s => s.salaId === sala.id && !s.finalizada);
         const tipoInfo = CONFIG.tiposConsola[sala.tipo] || { icon: 'fas fa-gamepad', nombre: 'Consola' };
-        const tarifaActual = this.config.tarifasPorSala[sala.id] || sala.tarifa || 0;
+        const tarifasPorSala = (this.config && this.config.tarifasPorSala) ? this.config.tarifasPorSala : {};
+        const tarifaActual = (tarifasPorSala && Object.prototype.hasOwnProperty.call(tarifasPorSala, sala.id))
+            ? tarifasPorSala[sala.id]
+            : (sala.tarifa || 0);
         const ocupadas = sesionesActivas.length;
-        const disponibles = sala.numEstaciones - ocupadas;
+        const totalEstaciones = Number.isFinite(sala.numEstaciones) ? sala.numEstaciones : 0;
+        const disponibles = Math.max(0, totalEstaciones - ocupadas);
         
         return `
             <div class="sala-card-minimal" data-id="${sala.id}" data-tipo="${sala.tipo}">
