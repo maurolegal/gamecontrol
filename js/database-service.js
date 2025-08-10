@@ -16,20 +16,35 @@ class DatabaseService {
         this.cacheTTL = 5 * 60 * 1000; // 5 minutos
         this.requiereConexion = true; // SIEMPRE requiere Supabase
         
-        this.inicializar();
+        // Inicializar de forma asíncrona cuando el DOM esté listo
+        if (typeof window !== 'undefined') {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => this.inicializar());
+            } else {
+                this.inicializar();
+            }
+        }
     }
 
     // Inicializar el servicio
-    inicializar() {
+    async inicializar() {
         if (typeof window !== 'undefined' && window.supabaseConfig) {
-            this.client = window.supabaseConfig.getClient();
+            try {
+                this.client = await window.supabaseConfig.getSupabaseClient();
+            } catch (error) {
+                console.error('Error inicializando DatabaseService:', error);
+            }
         }
     }
 
     // Obtener cliente de Supabase - OBLIGATORIO
-    getClient() {
+    async getClient() {
         if (!this.client && typeof window !== 'undefined') {
-            this.client = window.supabaseConfig.getClient();
+            try {
+                this.client = await window.supabaseConfig.getSupabaseClient();
+            } catch (error) {
+                console.error('Error obteniendo cliente Supabase:', error);
+            }
         }
         
         if (!this.client) {
@@ -42,7 +57,7 @@ class DatabaseService {
     // Verificar conexión obligatoria
     async verificarConexionObligatoria() {
         try {
-            const client = this.getClient();
+            const client = await this.getClient();
             const { data, error } = await client
                 .from('configuracion')
                 .select('clave')
@@ -66,7 +81,7 @@ class DatabaseService {
     // Seleccionar registros
     async select(tabla, opciones = {}) {
         try {
-            const client = this.getClient();
+            const client = await this.getClient();
             
             let query = client.from(tabla).select(opciones.select || '*');
 
@@ -132,7 +147,7 @@ class DatabaseService {
     // Insertar registro
     async insert(tabla, datos, opciones = {}) {
         try {
-            const client = this.getClient();
+            const client = await this.getClient();
 
             const { data, error } = await client
                 .from(tabla)
@@ -155,9 +170,9 @@ class DatabaseService {
     }
 
     // Actualizar registro
-    async update(tabla, id, datos, opciones = {}) {
+    async update(tabla, datos, opciones = {}) {
         try {
-            const client = this.getClient();
+            const client = await this.getClient();
 
             const { data, error } = await client
                 .from(tabla)
@@ -183,7 +198,7 @@ class DatabaseService {
     // Eliminar registro
     async delete(tabla, id, opciones = {}) {
         try {
-            const client = this.getClient();
+            const client = await this.getClient();
 
             const { data, error } = await client
                 .from(tabla)
@@ -213,7 +228,7 @@ class DatabaseService {
     // Autenticación de usuario
     async autenticarUsuario(email, password) {
         try {
-            const client = this.getClient();
+            const client = await this.getClient();
             
             // Buscar usuario por email
             const { data: usuarios, error } = await client
@@ -307,7 +322,7 @@ class DatabaseService {
     // Obtener productos con stock bajo
     async obtenerProductosStockBajo() {
         try {
-            const client = this.getClient();
+            const client = await this.getClient();
             
             const { data, error } = await client
                 .from('productos')
