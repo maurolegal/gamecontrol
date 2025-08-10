@@ -7176,9 +7176,11 @@ canvas {
     0%, 100% { transform: none; }
 }
 
-/* Deshabilitar efectos de parallax y scroll */
-.sidebar {
-    transform: none !important;
+/* Deshabilitar efectos de parallax y scroll (solo desktop) */
+@media (min-width: 992px) {
+    .sidebar {
+        transform: none;
+    }
 }
 
 /* Deshabilitar animaciones de entrada de modales */
