@@ -367,12 +367,14 @@ async function verificarConexionSupabase() {
 
         const estado = await window.supabaseConfig.verificarEstadoConexion();
         
-        if (estado.conectado) {
+        // Soporta retorno booleano (true/false) o objeto { conectado: boolean }
+        const conectado = (estado === true) || (estado && typeof estado === 'object' && estado.conectado === true);
+        if (conectado) {
             console.log('✅ Conexión a Supabase verificada');
             return true;
-        } else {
-            throw new Error('No hay conexión a Supabase');
         }
+        
+        throw new Error('No hay conexión a Supabase');
 
     } catch (error) {
         console.error('❌ Error verificando conexión:', error);

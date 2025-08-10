@@ -10,7 +10,7 @@
     <div id="debug-info"></div>
     
     <!-- ===== SCRIPTS DE SUPABASE (CARGAR PRIMERO) ===== -->
-    <script src="https://unpkg.com/@supabase/supabase-js@1"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/database-service.js"></script>
     
@@ -32,7 +32,7 @@
             debugInfo.innerHTML += '<p style="color: green;">✅ Supabase config disponible</p>';
             
             try {
-                const client = window.supabaseConfig.getClient();
+                const client = await window.supabaseConfig.getSupabaseClient();
                 if (!client) {
                     debugInfo.innerHTML += '<p style="color: red;">❌ Cliente Supabase no disponible</p>';
                     return;

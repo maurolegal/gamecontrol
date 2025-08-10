@@ -169,8 +169,8 @@ class DatabaseService {
         }
     }
 
-    // Actualizar registro
-    async update(tabla, datos, opciones = {}) {
+    // Actualizar registro por id
+    async update(tabla, id, datos, opciones = {}) {
         try {
             const client = await this.getClient();
 

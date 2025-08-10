@@ -196,7 +196,7 @@
             updateStatus('auth-test', 'testing', '🔄 Probando autenticación...', 'warning');
             
             try {
-                const client = window.supabaseConfig.getClient();
+                const client = await window.supabaseConfig.getSupabaseClient();
                 if (!client) {
                     throw new Error('Cliente no disponible');
                 }
@@ -220,7 +220,7 @@
             updateStatus('database-test', 'testing', '🔄 Probando base de datos...', 'warning');
             
             try {
-                const client = window.supabaseConfig.getClient();
+                const client = await window.supabaseConfig.getSupabaseClient();
                 if (!client) {
                     throw new Error('Cliente no disponible');
                 }

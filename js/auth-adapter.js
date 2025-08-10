@@ -12,8 +12,9 @@ class AuthAdapter {
 
     inicializar() {
         // Intentar obtener el servicio de base de datos
-        if (typeof window !== 'undefined' && window.db) {
-            this.db = window.db;
+        if (typeof window !== 'undefined' && window.databaseService) {
+            this.db = window.databaseService;
+            this.modoLocal = false;
             console.log('✅ AuthAdapter: Conectado con DatabaseService');
         } else {
             this.modoLocal = true;

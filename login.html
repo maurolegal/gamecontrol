@@ -792,8 +792,8 @@
             
             // Verificar sesión existente de Supabase
             try {
-                if (window.supabaseConfig && window.supabaseConfig.getClient) {
-                    const client = window.supabaseConfig.getClient();
+                if (window.supabaseConfig && window.supabaseConfig.getSupabaseClient) {
+                    const client = await window.supabaseConfig.getSupabaseClient();
                     if (client && client.auth) {
                         const { data } = await client.auth.getSession();
                         if (data && data.session) {

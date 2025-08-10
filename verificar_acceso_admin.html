@@ -329,7 +329,7 @@
                 
                 const componentes = {
                     'Supabase Config': !!window.supabaseConfig,
-                    'Supabase Client': !!(window.supabaseConfig && window.supabaseConfig.getClient()),
+                    'Supabase Client': !!(window.supabaseConfig && window.supabaseConfig.getSupabaseClient),
                     'Database Service': !!window.databaseService,
                     'Auth System': !!window.authSystem
                 };

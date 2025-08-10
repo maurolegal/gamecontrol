@@ -20,7 +20,7 @@ async function verificarCredenciales() {
             return false;
         }
         
-        const client = window.supabaseConfig.getClient();
+        const client = await window.supabaseConfig.getSupabaseClient();
         if (!client) {
             console.error('❌ Cliente Supabase no disponible');
             return false;
@@ -173,7 +173,7 @@ function mostrarEstadoSistema() {
     
     const componentes = {
         'Supabase Config': !!window.supabaseConfig,
-        'Supabase Client': !!(window.supabaseConfig && window.supabaseConfig.getClient()),
+        'Supabase Client': !!(window.supabaseConfig && await window.supabaseConfig.getSupabaseClient()),
         'Database Service': !!window.databaseService,
         'Auth System': !!window.authSystem
     };

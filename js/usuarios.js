@@ -120,9 +120,9 @@ class GestorUsuarios {
         // Formulario de crear usuario
         const formCrearUsuario = document.getElementById('formCrearUsuario');
         if (formCrearUsuario) {
-            formCrearUsuario.addEventListener('submit', (e) => {
+            formCrearUsuario.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                this.crearUsuario(new FormData(formCrearUsuario));
+                await this.crearUsuario(new FormData(formCrearUsuario));
             });
         }
 
@@ -186,7 +186,7 @@ class GestorUsuarios {
         if (buscarUsuario) buscarUsuario.addEventListener('input', () => this.aplicarFiltros());
     }
 
-    crearUsuario(formData) {
+    async crearUsuario(formData) {
         const nombre = formData.get('nombre')?.trim();
         const email = formData.get('email')?.trim();
         const rol = formData.get('rol');
@@ -229,21 +229,49 @@ class GestorUsuarios {
             permisos[checkbox.value] = true;
         });
 
-        // Crear nuevo usuario
-        const nuevoUsuario = {
-            id: generarId(),
-            nombre: nombre,
-            email: email,
-            password: password, // Guardar la contraseña (en producción debería encriptarse)
-            rol: rol,
-            estado: 'activo',
-            fechaCreacion: new Date().toISOString(),
-            ultimoAcceso: null,
-            permisos: permisos
-        };
+        // Guardar en Supabase primero
+        try {
+            if (!window.databaseService) {
+                alert('Servicio de base de datos no disponible. Verifica la conexión.');
+                return;
+            }
 
-        this.usuarios.push(nuevoUsuario);
-        guardarUsuarios(this.usuarios);
+            const resultado = await window.databaseService.insert('usuarios', {
+                nombre: nombre,
+                email: email,
+                password_hash: password, // Nota: en producción usar hash seguro
+                rol: rol,
+                estado: 'activo',
+                permisos: permisos
+            });
+
+            if (!resultado || !resultado.success) {
+                alert('No se pudo guardar el usuario en la base de datos.');
+                return;
+            }
+
+            const remoto = resultado.data || {};
+
+            // Mantener una copia local para la UI
+            const nuevoUsuario = {
+                id: remoto.id || generarId(),
+                nombre: remoto.nombre || nombre,
+                email: remoto.email || email,
+                password: password,
+                rol: remoto.rol || rol,
+                estado: remoto.estado || 'activo',
+                fechaCreacion: remoto.fecha_creacion || new Date().toISOString(),
+                ultimoAcceso: remoto.ultimo_acceso || null,
+                permisos: remoto.permisos || permisos
+            };
+
+            this.usuarios.push(nuevoUsuario);
+            guardarUsuarios(this.usuarios);
+        } catch (error) {
+            console.error('Error creando usuario en Supabase:', error);
+            alert('Error guardando en Supabase: ' + (error?.message || 'Desconocido'));
+            return;
+        }
 
         // Limpiar formulario
         document.getElementById('formCrearUsuario').reset();
