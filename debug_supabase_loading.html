@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Supabase Loading</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug: Carga de Supabase</h1>
+    <div id="results"></div>
+
+    <!-- Cargar Supabase SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <script>
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function logObject(obj, name) {
+            if (obj) {
+                addResult(`<strong>${name}:</strong> Disponible`, 'success');
+                addResult(`<pre>${JSON.stringify(obj, null, 2)}</pre>`, 'info');
+            } else {
+                addResult(`<strong>${name}:</strong> No disponible`, 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('🔍 Iniciando verificación de carga de Supabase...', 'info');
+            
+            // Verificar diferentes formas de acceso
+            addResult('<h3>📚 Verificación de Librería</h3>', 'info');
+            
+            // 1. Verificar createClient directo
+            if (typeof createClient !== 'undefined') {
+                addResult('✅ createClient está disponible globalmente', 'success');
+            } else {
+                addResult('❌ createClient NO está disponible globalmente', 'error');
+            }
+            
+            // 2. Verificar supabase global
+            if (typeof supabase !== 'undefined') {
+                addResult('✅ supabase está disponible globalmente', 'success');
+                logObject(supabase, 'supabase object');
+            } else {
+                addResult('❌ supabase NO está disponible globalmente', 'error');
+            }
+            
+            // 3. Verificar window.supabase
+            if (window.supabase) {
+                addResult('✅ window.supabase está disponible', 'success');
+                logObject(window.supabase, 'window.supabase object');
+            } else {
+                addResult('❌ window.supabase NO está disponible', 'error');
+            }
+            
+            // 4. Verificar todas las propiedades globales relacionadas con Supabase
+            addResult('<h3>🔍 Propiedades Globales</h3>', 'info');
+            
+            const globalProps = Object.keys(window).filter(key => 
+                key.toLowerCase().includes('supabase') || 
+                key.toLowerCase().includes('createclient')
+            );
+            
+            if (globalProps.length > 0) {
+                addResult(`✅ Propiedades globales encontradas: ${globalProps.join(', ')}`, 'success');
+            } else {
+                addResult('❌ No se encontraron propiedades globales relacionadas con Supabase', 'error');
+            }
+            
+            // 5. Intentar crear un cliente de prueba
+            addResult('<h3>🧪 Prueba de Creación de Cliente</h3>', 'info');
+            
+            try {
+                let testClient = null;
+                
+                if (typeof createClient !== 'undefined') {
+                    testClient = createClient('https://test.supabase.co', 'test-key');
+                    addResult('✅ Cliente creado usando createClient directo', 'success');
+                } else if (typeof supabase !== 'undefined' && supabase.createClient) {
+                    testClient = supabase.createClient('https://test.supabase.co', 'test-key');
+                    addResult('✅ Cliente creado usando supabase.createClient', 'success');
+                } else if (window.supabase && window.supabase.createClient) {
+                    testClient = window.supabase.createClient('https://test.supabase.co', 'test-key');
+                    addResult('✅ Cliente creado usando window.supabase.createClient', 'success');
+                } else {
+                    addResult('❌ No se pudo crear cliente de prueba', 'error');
+                }
+                
+                if (testClient) {
+                    addResult('✅ Cliente de prueba creado exitosamente', 'success');
+                }
+            } catch (error) {
+                addResult(`❌ Error creando cliente de prueba: ${error.message}`, 'error');
+            }
+            
+            // 6. Verificar si la librería se cargó desde la CDN
+            addResult('<h3>📡 Verificación de CDN</h3>', 'info');
+            
+            const scripts = document.querySelectorAll('script[src*="supabase"]');
+            if (scripts.length > 0) {
+                addResult(`✅ Scripts de Supabase encontrados: ${scripts.length}`, 'success');
+                scripts.forEach((script, index) => {
+                    addResult(`📜 Script ${index + 1}: ${script.src}`, 'info');
+                });
+            } else {
+                addResult('❌ No se encontraron scripts de Supabase', 'error');
+            }
+            
+            addResult('<h3>🏁 Verificación Completada</h3>', 'info');
+        });
+    </script>
+</body>
+</html>

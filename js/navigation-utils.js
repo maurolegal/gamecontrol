@@ -156,22 +156,59 @@ class NavigationUtils {
         }
     }
 
-    // Verificar si una sesión debe redirigir
-    checkAndRedirectIfNeeded() {
-        const sesion = localStorage.getItem('sesionActual');
+    // Verificar si una sesión debe redirigir (prioriza sesión de Supabase)
+    async checkAndRedirectIfNeeded() {
+        // Verificar localStorage primero (más confiable para nuestro sistema)
+        const sesionLocal = localStorage.getItem('sesionActual');
+        let hasSession = false;
         
-        if (this.isLoginPage && sesion) {
-            // Está en login pero ya tiene sesión -> ir al dashboard
-            console.log('ℹ️ Ya hay sesión activa, redirigiendo al dashboard');
+        if (sesionLocal) {
+            try {
+                const sesion = JSON.parse(sesionLocal);
+                const fechaLogin = new Date(sesion.fechaLogin);
+                const ahora = new Date();
+                const horasTranscurridas = (ahora - fechaLogin) / (1000 * 60 * 60);
+                
+                if (horasTranscurridas <= 8) {
+                    hasSession = true;
+                    console.log('🔐 Sesión válida encontrada en localStorage:', sesion.nombre);
+                } else {
+                    console.log('⚠️ Sesión de localStorage expirada, limpiando...');
+                    localStorage.removeItem('sesionActual');
+                }
+            } catch (error) {
+                console.log('❌ Error parseando sesión de localStorage, limpiando...');
+                localStorage.removeItem('sesionActual');
+            }
+        }
+
+        // Solo verificar Supabase si no hay sesión en localStorage
+        if (!hasSession) {
+            try {
+                if (window.supabaseConfig && typeof window.supabaseConfig.getClient === 'function') {
+                    const client = window.supabaseConfig.getClient();
+                    if (client && client.auth && typeof client.auth.getSession === 'function') {
+                        const { data } = await client.auth.getSession();
+                        const supabaseSession = data && data.session ? data.session : null;
+                        hasSession = !!supabaseSession;
+                        console.log('🔐 Estado de sesión (Supabase):', hasSession);
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ No se pudo verificar sesión de Supabase:', error);
+            }
+        }
+
+        if (this.isLoginPage && hasSession) {
+            console.log('ℹ️ Sesión activa detectada, redirigiendo al dashboard');
             this.navigateTo('index');
             return true;
-        } else if (!this.isLoginPage && !sesion) {
-            // No está en login pero no tiene sesión -> ir al login
-            console.log('ℹ️ No hay sesión activa, redirigiendo al login');
+        } else if (!this.isLoginPage && !hasSession) {
+            console.log('ℹ️ Sin sesión activa, redirigiendo al login');
             this.navigateTo('login');
             return true;
         }
-        
+
         return false;
     }
 
@@ -249,10 +286,11 @@ window.loginExitosoInteligente = function() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 NavigationUtils cargado');
     
-    // Verificar y redirigir si es necesario
+    // Verificar y redirigir si es necesario (espera breve para que Supabase inicialice)
     setTimeout(() => {
+        // No es necesario await aquí; cualquier redirección ocurrirá al resolver la promesa
         window.navigationUtils.checkAndRedirectIfNeeded();
-    }, 500);
+    }, 600);
 });
 
 // ===================================================================

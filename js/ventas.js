@@ -103,7 +103,12 @@ class GestorVentas {
     }
 
     obtenerSesionesFinalizadas() {
-        return this.sesiones.filter(sesion => sesion.finalizada);
+        const sesionesFinalizadas = this.sesiones.filter(sesion => sesion.finalizada);
+        console.log('🔍 DEBUG ventas - sesiones finalizadas:');
+        console.log('  - Total sesiones cargadas:', this.sesiones.length);
+        console.log('  - Sesiones finalizadas encontradas:', sesionesFinalizadas.length);
+        console.log('  - Sesiones finalizadas:', sesionesFinalizadas);
+        return sesionesFinalizadas;
     }
 
     obtenerRangoFechas(periodo) {
@@ -165,13 +170,13 @@ class GestorVentas {
             fin.setHours(23, 59, 59, 999);
             
             sesiones = sesiones.filter(sesion => {
-                const fechaSesion = new Date(sesion.inicio);
+                const fechaSesion = new Date(sesion.fecha_inicio || sesion.inicio);
                 return fechaSesion >= inicio && fechaSesion <= fin;
             });
         } else if (this.filtrosActivos.periodo !== 'rango') {
             const { fechaInicio, fechaFin } = this.obtenerRangoFechas(this.filtrosActivos.periodo);
             sesiones = sesiones.filter(sesion => {
-                const fechaSesion = new Date(sesion.inicio);
+                const fechaSesion = new Date(sesion.fecha_inicio || sesion.inicio);
                 return fechaSesion >= fechaInicio && fechaSesion <= fechaFin;
             });
         }
@@ -187,7 +192,7 @@ class GestorVentas {
                 (sesion.metodoPago || 'efectivo') === this.filtrosActivos.metodoPago);
         }
 
-        return sesiones.sort((a, b) => new Date(b.fin || b.inicio) - new Date(a.fin || a.inicio));
+        return sesiones.sort((a, b) => new Date(b.fin || b.fecha_inicio || b.inicio) - new Date(a.fin || a.fecha_inicio || a.inicio));
     }
 
     actualizarEstadisticas() {
@@ -258,7 +263,7 @@ class GestorVentas {
             const salaInfo = sala ? `${sala.nombre} - ${sesion.estacion}` : 'Sala no encontrada';
             
             // Calcular duración
-            const inicio = new Date(sesion.inicio);
+            const inicio = new Date(sesion.fecha_inicio || sesion.inicio);
             const fin = new Date(sesion.fin || Date.now());
             const duracionMinutos = Math.floor((fin - inicio) / (1000 * 60));
             
@@ -276,7 +281,7 @@ class GestorVentas {
             return `
                 <tr>
                     <td class="fw-semibold">${sesion.id.slice(-8)}</td>
-                    <td>${formatearFecha(sesion.inicio)}</td>
+                    <td>${formatearFecha(sesion.fecha_inicio || sesion.inicio)}</td>
                     <td>
                         <div class="d-flex align-items-center">
                             <div class="user-avatar-sm me-2">${sesion.cliente.charAt(0).toUpperCase()}</div>
@@ -286,7 +291,7 @@ class GestorVentas {
                     <td>
                         <span class="badge bg-primary bg-opacity-10 text-primary">${salaInfo}</span>
                     </td>
-                    <td class="text-success fw-semibold">${formatearHora(sesion.inicio)}</td>
+                    <td class="text-success fw-semibold">${formatearHora(sesion.fecha_inicio || sesion.inicio)}</td>
                     <td class="text-danger fw-semibold">${sesion.fin ? formatearHora(sesion.fin) : '-'}</td>
                     <td>${formatearTiempo(duracionMinutos)}</td>
                     <td>${productosTexto}</td>

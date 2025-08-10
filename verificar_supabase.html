@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Supabase</title>
+</head>
+<body>
+    <h1>Verificación de Supabase</h1>
+    <div id="resultado"></div>
+
+    <!-- Cargar Supabase SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const resultado = document.getElementById('resultado');
+            
+            // Verificar si createClient está disponible
+            if (typeof createClient !== 'undefined') {
+                resultado.innerHTML += '<p style="color: green;">✅ createClient está disponible</p>';
+                console.log('✅ createClient está disponible');
+            } else {
+                resultado.innerHTML += '<p style="color: red;">❌ createClient NO está disponible</p>';
+                console.error('❌ createClient NO está disponible');
+            }
+            
+            // Verificar si supabase está disponible globalmente
+            if (typeof supabase !== 'undefined') {
+                resultado.innerHTML += '<p style="color: green;">✅ supabase está disponible</p>';
+                console.log('✅ supabase está disponible');
+            } else {
+                resultado.innerHTML += '<p style="color: red;">❌ supabase NO está disponible</p>';
+                console.error('❌ supabase NO está disponible');
+            }
+            
+            // Verificar si window.supabase está disponible
+            if (window.supabase) {
+                resultado.innerHTML += '<p style="color: green;">✅ window.supabase está disponible</p>';
+                console.log('✅ window.supabase está disponible');
+            } else {
+                resultado.innerHTML += '<p style="color: red;">❌ window.supabase NO está disponible</p>';
+                console.error('❌ window.supabase NO está disponible');
+            }
+            
+            // Intentar crear un cliente de prueba
+            try {
+                if (typeof createClient !== 'undefined') {
+                    const testClient = createClient('https://test.supabase.co', 'test-key');
+                    resultado.innerHTML += '<p style="color: green;">✅ Cliente de prueba creado exitosamente</p>';
+                    console.log('✅ Cliente de prueba creado exitosamente');
+                }
+            } catch (error) {
+                resultado.innerHTML += '<p style="color: red;">❌ Error creando cliente de prueba: ' + error.message + '</p>';
+                console.error('❌ Error creando cliente de prueba:', error);
+            }
+        });
+    </script>
+</body>
+</html>

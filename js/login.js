@@ -40,24 +40,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // Esperar a que Supabase esté disponible
-function waitForSupabase() {
-    return new Promise((resolve, reject) => {
+async function waitForSupabase() {
+    try {
+        // Usar la nueva función asíncrona de supabase-config.js
+        if (window.supabaseConfig && window.supabaseConfig.getSupabaseClient) {
+            await window.supabaseConfig.getSupabaseClient();
+            return;
+        }
+        
+        // Fallback: esperar hasta 4 segundos
         let attempts = 0;
-        const maxAttempts = 20; // 4 segundos máximo
+        const maxAttempts = 20;
         
-        const check = () => {
-            if (window.supabaseConfig && window.supabaseConfig.getClient()) {
-                resolve();
-            } else if (attempts >= maxAttempts) {
-                reject(new Error('Supabase no está disponible'));
-            } else {
-                attempts++;
-                setTimeout(check, 200);
+        while (attempts < maxAttempts) {
+            if (window.supabaseConfig && window.supabaseConfig.getSupabaseClient) {
+                await window.supabaseConfig.getSupabaseClient();
+                return;
             }
-        };
+            await new Promise(resolve => setTimeout(resolve, 200));
+            attempts++;
+        }
         
-        check();
-    });
+        throw new Error('Supabase no está disponible después de 4 segundos');
+    } catch (error) {
+        console.error('Error esperando Supabase:', error);
+        throw error;
+    }
 }
 
 // ===================================================================
@@ -66,7 +74,7 @@ function waitForSupabase() {
 
 async function verificarSesionExistente() {
     try {
-        const client = window.supabaseConfig.getClient();
+        const client = await window.supabaseConfig.getSupabaseClient();
         const { data: { session }, error } = await client.auth.getSession();
         
         if (error) {
@@ -221,7 +229,7 @@ async function manejarLogin(e) {
 
 async function autenticarConSupabase(email, password) {
     try {
-        const client = window.supabaseConfig.getClient();
+        const client = await window.supabaseConfig.getSupabaseClient();
         
         // Usar el servicio de base de datos para autenticar
         if (window.databaseService) {

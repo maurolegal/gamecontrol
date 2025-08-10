@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Auth Redirect</title>
+</head>
+<body>
+    <h1>Debug Authentication Redirect</h1>
+    <div id="debug-info"></div>
+    
+    <!-- ===== SCRIPTS DE SUPABASE (CARGAR PRIMERO) ===== -->
+    <script src="https://unpkg.com/@supabase/supabase-js@1"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    
+    <!-- ===== SCRIPTS DE AUTENTICACIÓN ===== -->
+    <script src="js/auth.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const debugInfo = document.getElementById('debug-info');
+            
+            debugInfo.innerHTML = '<p>🔍 Iniciando debug de autenticación...</p>';
+            
+            // Verificar si Supabase está disponible
+            if (!window.supabaseConfig) {
+                debugInfo.innerHTML += '<p style="color: red;">❌ Supabase config no disponible</p>';
+                return;
+            }
+            
+            debugInfo.innerHTML += '<p style="color: green;">✅ Supabase config disponible</p>';
+            
+            try {
+                const client = window.supabaseConfig.getClient();
+                if (!client) {
+                    debugInfo.innerHTML += '<p style="color: red;">❌ Cliente Supabase no disponible</p>';
+                    return;
+                }
+                
+                debugInfo.innerHTML += '<p style="color: green;">✅ Cliente Supabase disponible</p>';
+                
+                // Verificar sesión
+                const { data: { session }, error } = await client.auth.getSession();
+                
+                if (error) {
+                    debugInfo.innerHTML += `<p style="color: red;">❌ Error obteniendo sesión: ${error.message}</p>`;
+                    return;
+                }
+                
+                if (session) {
+                    debugInfo.innerHTML += '<p style="color: green;">✅ Sesión activa encontrada</p>';
+                    debugInfo.innerHTML += `<p>Usuario: ${session.user.email}</p>`;
+                } else {
+                    debugInfo.innerHTML += '<p style="color: orange;">ℹ️ No hay sesión activa</p>';
+                }
+                
+                // Verificar si auth.js está cargado
+                if (typeof SupabaseAuthSystem !== 'undefined') {
+                    debugInfo.innerHTML += '<p style="color: green;">✅ SupabaseAuthSystem disponible</p>';
+                } else {
+                    debugInfo.innerHTML += '<p style="color: red;">❌ SupabaseAuthSystem no disponible</p>';
+                }
+                
+                // Verificar sessionManager
+                if (window.sessionManager) {
+                    debugInfo.innerHTML += '<p style="color: green;">✅ sessionManager disponible</p>';
+                } else {
+                    debugInfo.innerHTML += '<p style="color: orange;">ℹ️ sessionManager no disponible</p>';
+                }
+                
+            } catch (error) {
+                debugInfo.innerHTML += `<p style="color: red;">❌ Error en debug: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

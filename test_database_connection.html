@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Database Connection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Test Database Connection</h1>
+        <div id="results" class="mt-4"></div>
+    </div>
+
+    <!-- Supabase SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    
+    <script>
+        async function testDatabaseConnection() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                // Test 1: Verificar conexión básica
+                console.log('🔍 Test 1: Verificando conexión básica...');
+                if (window.supabase) {
+                    resultsDiv.innerHTML += '<div class="alert alert-success">✅ Supabase configurado correctamente</div>';
+                } else {
+                    resultsDiv.innerHTML += '<div class="alert alert-danger">❌ Supabase no está configurado</div>';
+                    return;
+                }
+
+                // Test 2: Verificar databaseService
+                console.log('🔍 Test 2: Verificando databaseService...');
+                if (window.databaseService) {
+                    resultsDiv.innerHTML += '<div class="alert alert-success">✅ DatabaseService disponible</div>';
+                } else {
+                    resultsDiv.innerHTML += '<div class="alert alert-danger">❌ DatabaseService no disponible</div>';
+                    return;
+                }
+
+                // Test 3: Verificar tabla sesiones
+                console.log('🔍 Test 3: Verificando tabla sesiones...');
+                try {
+                    const sesionesResult = await window.databaseService.select('sesiones', {
+                        limit: 1
+                    });
+                    
+                    if (sesionesResult.success) {
+                        resultsDiv.innerHTML += '<div class="alert alert-success">✅ Tabla sesiones accesible</div>';
+                        console.log('📋 Estructura de sesión:', sesionesResult.data[0] || 'No hay datos');
+                    } else {
+                        resultsDiv.innerHTML += '<div class="alert alert-danger">❌ Error accediendo a tabla sesiones</div>';
+                        console.error('Error sesiones:', sesionesResult.error);
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML += `<div class="alert alert-danger">❌ Error en tabla sesiones: ${error.message}</div>`;
+                }
+
+                // Test 4: Verificar tabla salas
+                console.log('🔍 Test 4: Verificando tabla salas...');
+                try {
+                    const salasResult = await window.databaseService.select('salas', {
+                        limit: 1
+                    });
+                    
+                    if (salasResult.success) {
+                        resultsDiv.innerHTML += '<div class="alert alert-success">✅ Tabla salas accesible</div>';
+                        console.log('📋 Estructura de sala:', salasResult.data[0] || 'No hay datos');
+                    } else {
+                        resultsDiv.innerHTML += '<div class="alert alert-danger">❌ Error accediendo a tabla salas</div>';
+                        console.error('Error salas:', salasResult.error);
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML += `<div class="alert alert-danger">❌ Error en tabla salas: ${error.message}</div>`;
+                }
+
+                // Test 5: Verificar consulta específica de sesiones
+                console.log('🔍 Test 5: Verificando consulta específica...');
+                try {
+                    const sesionesActivasResult = await window.databaseService.select('sesiones', {
+                        filtros: { finalizada: false },
+                        ordenPor: { campo: 'fecha_inicio', direccion: 'desc' }
+                    });
+                    
+                    if (sesionesActivasResult.success) {
+                        resultsDiv.innerHTML += '<div class="alert alert-success">✅ Consulta de sesiones activas funciona</div>';
+                        console.log('📋 Sesiones activas:', sesionesActivasResult.data);
+                    } else {
+                        resultsDiv.innerHTML += '<div class="alert alert-danger">❌ Error en consulta de sesiones activas</div>';
+                        console.error('Error consulta:', sesionesActivasResult.error);
+                    }
+                } catch (error) {
+                    resultsDiv.innerHTML += `<div class="alert alert-danger">❌ Error en consulta específica: ${error.message}</div>`;
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="alert alert-danger">❌ Error general: ${error.message}</div>`;
+                console.error('Error general:', error);
+            }
+        }
+
+        // Ejecutar tests cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', testDatabaseConnection);
+    </script>
+</body>
+</html>

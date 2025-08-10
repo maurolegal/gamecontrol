@@ -29,18 +29,52 @@ const SUPABASE_CONFIG = {
 // ===================================================================
 
 let supabaseClient = null;
+let initializationPromise = null;
+
+// Función para esperar a que Supabase esté disponible
+function waitForSupabase(maxAttempts = 50) {
+    return new Promise((resolve, reject) => {
+        let attempts = 0;
+        
+        const checkSupabase = () => {
+            attempts++;
+            
+            // Verificar diferentes formas de acceder a createClient
+            let createClientFunction = null;
+            
+            if (typeof createClient !== 'undefined') {
+                createClientFunction = createClient;
+            } else if (typeof supabase !== 'undefined' && supabase.createClient) {
+                createClientFunction = supabase.createClient;
+            } else if (window.supabase && window.supabase.createClient) {
+                createClientFunction = window.supabase.createClient;
+            }
+            
+            if (createClientFunction) {
+                console.log('✅ Supabase detectado después de', attempts, 'intentos');
+                resolve(createClientFunction);
+            } else if (attempts >= maxAttempts) {
+                console.error('❌ Supabase no disponible después de', maxAttempts, 'intentos');
+                reject(new Error('Supabase no está disponible'));
+            } else {
+                setTimeout(checkSupabase, 100);
+            }
+        };
+        
+        checkSupabase();
+    });
+}
 
 // Función para inicializar Supabase
-function initializeSupabase() {
+async function initializeSupabase() {
     try {
-        // Verificar que la librería de Supabase esté cargada
-        if (typeof createClient === 'undefined') {
-            console.error('❌ Supabase client no está disponible. Asegúrate de cargar la librería.');
-            return null;
-        }
-
+        console.log('🔄 Inicializando Supabase...');
+        
+        // Esperar a que Supabase esté disponible
+        const createClientFunction = await waitForSupabase();
+        
         // Crear cliente de Supabase
-        supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, SUPABASE_CONFIG.options);
+        supabaseClient = createClientFunction(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, SUPABASE_CONFIG.options);
         
         console.log('✅ Supabase inicializado correctamente');
         console.log('🔗 URL:', SUPABASE_CONFIG.url);
@@ -52,10 +86,21 @@ function initializeSupabase() {
     }
 }
 
-// Función para obtener el cliente
-function getSupabaseClient() {
+// Función para obtener el cliente (con inicialización asíncrona)
+async function getSupabaseClient() {
     if (!supabaseClient) {
-        console.log('🔄 Inicializando Supabase...');
+        if (!initializationPromise) {
+            initializationPromise = initializeSupabase();
+        }
+        supabaseClient = await initializationPromise;
+    }
+    return supabaseClient;
+}
+
+// Función síncrona para obtener el cliente (para compatibilidad)
+function getSupabaseClientSync() {
+    if (!supabaseClient) {
+        console.warn('⚠️ Supabase no inicializado. Usando inicialización síncrona...');
         return initializeSupabase();
     }
     return supabaseClient;
@@ -68,7 +113,7 @@ function getSupabaseClient() {
 // Verificar conexión con la base de datos
 async function verificarConexion() {
     try {
-        const client = getSupabaseClient();
+        const client = await getSupabaseClient();
         if (!client) {
             throw new Error('Cliente Supabase no disponible');
         }
@@ -115,14 +160,155 @@ function handleSupabaseError(error, operacion = 'operación') {
     };
 }
 
-// Función para formatear respuesta exitosa
+// Función para manejar éxitos de Supabase
 function handleSupabaseSuccess(data, mensaje = 'Operación exitosa') {
+    console.log('✅', mensaje, data);
     return {
         success: true,
         data: data,
-        message: mensaje
+        mensaje: mensaje
     };
 }
+
+// ===================================================================
+// CONFIGURACIÓN DEL SISTEMA
+// ===================================================================
+
+// Configurar modo de operación - SOLO REMOTE PERMITIDO
+function configurarModo(modo) {
+    if (modo !== 'remote') {
+        console.warn('⚠️ Solo se permite modo "remote". Configurando automáticamente a remote.');
+        modo = 'remote';
+    }
+    
+    const modoOperacion = 'remote';
+    console.log('🔧 Sistema configurado en modo REMOTE (solo Supabase)');
+    
+    // No guardar en localStorage - solo memoria
+    return modoOperacion;
+}
+
+// Obtener modo de operación
+function obtenerModo() {
+    return 'remote'; // Siempre remote
+}
+
+// ===================================================================
+// VERIFICACIÓN DE ESTADO DE CONEXIÓN
+// ===================================================================
+
+let connectionCheckInterval = null;
+let connectionAttempts = 0;
+const MAX_CONNECTION_ATTEMPTS = 5;
+
+async function verificarEstadoConexion() {
+    try {
+        console.log('🔍 Verificando estado de conexión...');
+        
+        const resultado = await verificarConexion();
+        
+        if (resultado.success) {
+            console.log('✅ Conexión establecida');
+            connectionAttempts = 0;
+            
+            // Limpiar intervalo si existe
+            if (connectionCheckInterval) {
+                clearInterval(connectionCheckInterval);
+                connectionCheckInterval = null;
+            }
+            
+            return true;
+        } else {
+            connectionAttempts++;
+            console.error(`❌ Error de conexión (Intento ${connectionAttempts}/${MAX_CONNECTION_ATTEMPTS})`);
+            
+            if (connectionAttempts >= MAX_CONNECTION_ATTEMPTS) {
+                console.error('❌ Error de conexión (Intento 5/5)');
+                mostrarErrorConexion();
+                return false;
+            }
+            
+            // Reintentar en 3 segundos
+            console.log('🔄 Reintentando conexión en 3 segundos...');
+            setTimeout(verificarEstadoConexion, 3000);
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Error verificando estado de conexión:', error);
+        return false;
+    }
+}
+
+// Mostrar error de conexión
+function mostrarErrorConexion() {
+    console.error('🚨 ERROR CRÍTICO: No se puede conectar a Supabase');
+    
+    // Crear overlay de error si no existe
+    if (!document.getElementById('errorOverlay')) {
+        mostrarOverlayError();
+    }
+}
+
+// Mostrar overlay de error
+function mostrarOverlayError() {
+    const overlay = document.createElement('div');
+    overlay.id = 'errorOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(220, 53, 69, 0.95);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-family: Arial, sans-serif;
+    `;
+    
+    overlay.innerHTML = `
+        <div style="text-align: center; padding: 2rem;">
+            <h1 style="font-size: 2rem; margin-bottom: 1rem;">🚨 Error de Conexión</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 1rem;">No se puede conectar a la base de datos</p>
+            <p style="font-size: 1rem; margin-bottom: 2rem;">Verifica tu conexión a internet y recarga la página</p>
+            <button onclick="location.reload()" style="
+                background: white;
+                color: #dc3545;
+                border: none;
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                font-size: 1.1rem;
+                cursor: pointer;
+            ">🔄 Recargar Página</button>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+// ===================================================================
+// INICIALIZACIÓN AUTOMÁTICA
+// ===================================================================
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 Inicializando configuración de Supabase...');
+    
+    try {
+        // Inicializar Supabase
+        await getSupabaseClient();
+        
+        // Verificar conexión
+        await verificarEstadoConexion();
+        
+        console.log('✅ Configuración de Supabase completada');
+    } catch (error) {
+        console.error('❌ Error en inicialización:', error);
+        mostrarErrorConexion();
+    }
+});
 
 // ===================================================================
 // CONFIGURACIÓN DE TABLAS
@@ -145,173 +331,6 @@ const TABLAS = {
 
 let modoOperacion = 'remote'; // SOLO MODO REMOTE - NO localStorage
 
-// Configurar modo de operación - SOLO REMOTE PERMITIDO
-function configurarModo(modo) {
-    if (modo !== 'remote') {
-        console.warn('⚠️ Solo se permite modo "remote". Configurando automáticamente a remote.');
-        modo = 'remote';
-    }
-    
-    modoOperacion = 'remote';
-    console.log('🔧 Sistema configurado en modo REMOTE (solo Supabase)');
-    
-    // No guardar en localStorage - solo memoria
-    return modoOperacion;
-}
-
-// Obtener modo de operación - SIEMPRE remote
-function obtenerModo() {
-    return 'remote';
-}
-
-// ===================================================================
-// ESTADO DE CONEXIÓN - MODO ESTRICTO
-// ===================================================================
-
-let estadoConexion = {
-    conectado: false,
-    ultimaVerificacion: null,
-    intentosReconexion: 0,
-    maxIntentos: 5, // Más intentos para conexión crítica
-    requiereConexion: true // OBLIGATORIO estar conectado
-};
-
-// Verificar estado de la conexión - ESTRICTO
-async function verificarEstadoConexion() {
-    const resultado = await verificarConexion();
-    
-    estadoConexion.conectado = resultado.success;
-    estadoConexion.ultimaVerificacion = new Date();
-    
-    if (!resultado.success) {
-        estadoConexion.intentosReconexion++;
-        
-        console.error(`❌ Error de conexión (Intento ${estadoConexion.intentosReconexion}/${estadoConexion.maxIntentos})`);
-        
-        if (estadoConexion.intentosReconexion < estadoConexion.maxIntentos) {
-            console.log(`🔄 Reintentando conexión en 3 segundos...`);
-            setTimeout(verificarEstadoConexion, 3000);
-        } else {
-            console.error('🚨 ERROR CRÍTICO: No se puede conectar a Supabase');
-            mostrarErrorConexion();
-        }
-    } else {
-        estadoConexion.intentosReconexion = 0;
-        console.log('✅ Conexión a Supabase establecida correctamente');
-    }
-    
-    return estadoConexion;
-}
-
-// Mostrar error crítico de conexión
-function mostrarErrorConexion() {
-    const mensaje = `
-🚨 ERROR DE CONEXIÓN CRÍTICO
-
-El sistema requiere conexión a internet para funcionar.
-
-• Verifica tu conexión a internet
-• Comprueba que Supabase esté disponible
-• Refresca la página para reintentar
-
-El sistema no puede funcionar sin conexión a la base de datos.
-    `;
-    
-    alert(mensaje);
-    
-    // Mostrar overlay de error
-    mostrarOverlayError();
-}
-
-// Mostrar overlay de error en la página
-function mostrarOverlayError() {
-    // Remover overlay existente si existe
-    const overlayExistente = document.getElementById('supabase-error-overlay');
-    if (overlayExistente) {
-        overlayExistente.remove();
-    }
-    
-    const overlay = document.createElement('div');
-    overlay.id = 'supabase-error-overlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-family: Arial, sans-serif;
-    `;
-    
-    overlay.innerHTML = `
-        <div style="text-align: center; max-width: 500px; padding: 40px;">
-            <div style="font-size: 60px; margin-bottom: 20px;">🚨</div>
-            <h2 style="color: #ff4444; margin-bottom: 20px;">Error de Conexión</h2>
-            <p style="font-size: 18px; line-height: 1.6; margin-bottom: 30px;">
-                El sistema requiere conexión a internet para funcionar.<br>
-                Verifica tu conexión y refresca la página.
-            </p>
-            <button onclick="window.location.reload()" 
-                    style="background: #007bff; color: white; border: none; 
-                           padding: 12px 24px; border-radius: 5px; 
-                           font-size: 16px; cursor: pointer;">
-                🔄 Reintentar Conexión
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(overlay);
-}
-
-// ===================================================================
-// FUNCIONES GLOBALES
-// ===================================================================
-
-// Hacer disponibles las funciones principales
-window.supabaseConfig = {
-    initialize: initializeSupabase,
-    getClient: getSupabaseClient,
-    verificarConexion,
-    configurarModo,
-    obtenerModo,
-    verificarEstadoConexion,
-    handleError: handleSupabaseError,
-    handleSuccess: handleSupabaseSuccess,
-    TABLAS,
-    CONFIG: SUPABASE_CONFIG
-};
-
-// ===================================================================
-// INICIALIZACIÓN AUTOMÁTICA
-// ===================================================================
-
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 Inicializando conexión con Supabase...');
-    
-    // Obtener modo guardado
-    obtenerModo();
-    console.log(`📋 Modo de operación: ${modoOperacion}`);
-    
-    // Inicializar cliente
-    const client = initializeSupabase();
-    
-    if (client && (modoOperacion === 'remote' || modoOperacion === 'hybrid')) {
-        // Verificar conexión inicial
-        setTimeout(async () => {
-            const estado = await verificarEstadoConexion();
-            console.log('📊 Estado de conexión inicial:', estado);
-        }, 1000);
-        
-        // Verificación periódica cada 5 minutos
-        setInterval(verificarEstadoConexion, 300000);
-    }
-});
-
 // ===================================================================
 // EXPORTAR CONFIGURACIÓN
 // ===================================================================
@@ -323,8 +342,25 @@ if (typeof module !== 'undefined' && module.exports) {
         TABLAS,
         initializeSupabase,
         getSupabaseClient,
+        getSupabaseClientSync,
         verificarConexion,
         handleSupabaseError,
-        handleSupabaseSuccess
+        handleSupabaseSuccess,
+        configurarModo,
+        obtenerModo
     };
-} 
+}
+
+// Hacer disponible globalmente
+window.supabaseConfig = {
+    SUPABASE_CONFIG,
+    TABLAS,
+    initializeSupabase,
+    getSupabaseClient,
+    getSupabaseClientSync,
+    verificarConexion,
+    handleSupabaseError,
+    handleSupabaseSuccess,
+    configurarModo,
+    obtenerModo
+}; 

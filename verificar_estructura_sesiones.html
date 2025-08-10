@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Estructura Sesiones</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Verificar Estructura de Tabla Sesiones</h1>
+        <div id="results" class="mt-4"></div>
+    </div>
+
+    <!-- Supabase SDK -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    
+    <script>
+        async function verificarEstructuraSesiones() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                // Verificar que Supabase esté configurado
+                if (!window.supabase) {
+                    resultsDiv.innerHTML = '<div class="alert alert-danger">❌ Supabase no está configurado</div>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = '<div class="alert alert-info">🔍 Verificando estructura de tabla sesiones...</div>';
+
+                // Intentar obtener información de la tabla
+                try {
+                    // Test 1: Consulta básica para verificar que la tabla existe
+                    const { data: sesiones, error: error1 } = await window.supabase
+                        .from('sesiones')
+                        .select('*')
+                        .limit(1);
+
+                    if (error1) {
+                        resultsDiv.innerHTML += `<div class="alert alert-danger">❌ Error accediendo a tabla sesiones: ${error1.message}</div>`;
+                        console.error('Error tabla sesiones:', error1);
+                        return;
+                    }
+
+                    resultsDiv.innerHTML += '<div class="alert alert-success">✅ Tabla sesiones existe y es accesible</div>';
+
+                    // Test 2: Verificar estructura de columnas
+                    if (sesiones && sesiones.length > 0) {
+                        const primeraSesion = sesiones[0];
+                        resultsDiv.innerHTML += '<div class="alert alert-info">📋 Estructura de la primera sesión:</div>';
+                        
+                        const estructuraDiv = document.createElement('div');
+                        estructuraDiv.className = 'card mb-3';
+                        estructuraDiv.innerHTML = `
+                            <div class="card-body">
+                                <h6 class="card-title">Columnas disponibles:</h6>
+                                <ul class="list-group list-group-flush">
+                                    ${Object.keys(primeraSesion).map(col => `
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>${col}</span>
+                                            <span class="badge bg-secondary">${typeof primeraSesion[col]}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        `;
+                        resultsDiv.appendChild(estructuraDiv);
+                    }
+
+                    // Test 3: Verificar consulta específica con fecha_inicio
+                    try {
+                        const { data: sesionesActivas, error: error2 } = await window.supabase
+                            .from('sesiones')
+                            .select('*')
+                            .eq('finalizada', false)
+                            .order('fecha_inicio', { ascending: false })
+                            .limit(5);
+
+                        if (error2) {
+                            resultsDiv.innerHTML += `<div class="alert alert-warning">⚠️ Error en consulta con fecha_inicio: ${error2.message}</div>`;
+                            console.error('Error consulta fecha_inicio:', error2);
+                        } else {
+                            resultsDiv.innerHTML += '<div class="alert alert-success">✅ Consulta con fecha_inicio funciona correctamente</div>';
+                            console.log('Sesiones activas:', sesionesActivas);
+                        }
+                    } catch (error) {
+                        resultsDiv.innerHTML += `<div class="alert alert-danger">❌ Error en consulta específica: ${error.message}</div>`;
+                    }
+
+                    // Test 4: Verificar si existe la columna 'inicio' (antigua)
+                    try {
+                        const { data: sesionesInicio, error: error3 } = await window.supabase
+                            .from('sesiones')
+                            .select('inicio')
+                            .limit(1);
+
+                        if (error3 && error3.message.includes('column') && error3.message.includes('inicio')) {
+                            resultsDiv.innerHTML += '<div class="alert alert-info">ℹ️ La columna "inicio" no existe (correcto, debe ser fecha_inicio)</div>';
+                        } else if (error3) {
+                            resultsDiv.innerHTML += `<div class="alert alert-warning">⚠️ Error verificando columna inicio: ${error3.message}</div>`;
+                        } else {
+                            resultsDiv.innerHTML += '<div class="alert alert-warning">⚠️ La columna "inicio" existe (puede causar conflictos)</div>';
+                        }
+                    } catch (error) {
+                        resultsDiv.innerHTML += `<div class="alert alert-info">ℹ️ Error al verificar columna inicio: ${error.message}</div>`;
+                    }
+
+                } catch (error) {
+                    resultsDiv.innerHTML += `<div class="alert alert-danger">❌ Error general: ${error.message}</div>`;
+                    console.error('Error general:', error);
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">❌ Error de configuración: ${error.message}</div>`;
+                console.error('Error de configuración:', error);
+            }
+        }
+
+        // Ejecutar verificación cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', verificarEstructuraSesiones);
+    </script>
+</body>
+</html>

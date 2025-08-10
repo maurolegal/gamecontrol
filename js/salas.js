@@ -1,31 +1,171 @@
-// Funciones de utilidad para el manejo del localStorage
-function obtenerSalas() {
+// Funciones de utilidad para el manejo de datos con Supabase
+function generarId() {
+    return 'sala_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+function obtenerConfiguracion() {
     try {
-        const salas = JSON.parse(localStorage.getItem('salas'));
+        const config = JSON.parse(localStorage.getItem('configuracion'));
+        return config || {
+            tarifasPorSala: {},
+            tiposConsola: {
+                playstation: { prefijo: 'PS' },
+                xbox: { prefijo: 'XB' },
+                nintendo: { prefijo: 'NT' },
+                pc: { prefijo: 'PC' }
+            }
+        };
+    } catch (error) {
+        console.warn('Error al obtener configuración:', error);
+        return {
+            tarifasPorSala: {},
+            tiposConsola: {
+                playstation: { prefijo: 'PS' },
+                xbox: { prefijo: 'XB' },
+                nintendo: { prefijo: 'NT' },
+                pc: { prefijo: 'PC' }
+            }
+        };
+    }
+}
+
+function guardarConfiguracion(config) {
+    localStorage.setItem('configuracion', JSON.stringify(config));
+}
+
+// Configuración global
+const CONFIG = {
+    tiposConsola: {
+        playstation: { prefijo: 'PS', icon: 'fab fa-playstation' },
+        xbox: { prefijo: 'XB', icon: 'fab fa-xbox' },
+        nintendo: { prefijo: 'NT', icon: 'fas fa-gamepad' },
+        pc: { prefijo: 'PC', icon: 'fas fa-desktop' }
+    }
+};
+
+// Funciones de utilidad
+function formatearMoneda(valor) {
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0
+    }).format(valor);
+}
+
+function formatearTiempo(minutos) {
+    const horas = Math.floor(minutos / 60);
+    const mins = minutos % 60;
+    return `${horas}h ${mins}m`;
+}
+
+function mostrarNotificacion(mensaje, tipo = 'info') {
+    // Evitar recursión verificando que no estemos llamando a la función local
+    if (typeof window !== 'undefined' && 
+        window.mostrarNotificacion && 
+        window.mostrarNotificacion !== mostrarNotificacion) {
+        window.mostrarNotificacion(mensaje, tipo);
+    } else {
+        console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+    }
+}
+async function obtenerSalas() {
+    try {
+        if (window.databaseService) {
+            const resultado = await window.databaseService.select('salas', {
+                ordenPor: { campo: 'nombre', direccion: 'asc' }
+            });
+            if (!resultado.success) return [];
+            const filas = Array.isArray(resultado.data) ? resultado.data : [];
+            // Mapear columnas de BD -> formato de UI
+            return filas.map((row) => {
+                const equipamiento = row.equipamiento || {};
+                const tarifas = row.tarifas || {};
+                return {
+                    id: row.id,
+                    nombre: row.nombre,
+                    // Guardamos el tipo de consola en equipamiento.tipo_consola; si no existe, inferimos o usamos 'pc'
+                    tipo: (equipamiento.tipo_consola || (row.tipo || '')).toString().toLowerCase() || 'pc',
+                    numEstaciones: row.num_estaciones ?? row.numEstaciones ?? 4,
+                    prefijo: equipamiento.prefijo || 'EST',
+                    tarifa: tarifas.base || 0,
+                    activo: (typeof row.activa === 'boolean') ? row.activa : true
+                };
+            });
+        }
+        
+        // Fallback a localStorage
+        const salas = JSON.parse(localStorage.getItem('salas') || '[]');
         return Array.isArray(salas) ? salas : [];
     } catch (error) {
-        console.warn('Error al obtener salas del localStorage:', error);
+        console.warn('Error al obtener salas:', error);
         return [];
     }
 }
 
-function guardarSalas(salas) {
-    localStorage.setItem('salas', JSON.stringify(salas));
+async function guardarSalas(salas) {
+    try {
+        // Evitar inserts duplicados en remoto desde este método.
+        // La creación en remoto se maneja en el flujo de creación de sala.
+        
+        // Fallback a localStorage
+        localStorage.setItem('salas', JSON.stringify(salas));
+    } catch (error) {
+        console.error('Error guardando salas:', error);
+        localStorage.setItem('salas', JSON.stringify(salas));
+    }
 }
 
-function obtenerSesiones() {
-    return JSON.parse(localStorage.getItem('sesiones')) || [];
+async function obtenerSesiones() {
+    try {
+        if (window.databaseService) {
+            const resultado = await window.databaseService.select('sesiones', {
+                filtros: { finalizada: false },
+                ordenPor: { campo: 'fecha_inicio', direccion: 'desc' }
+            });
+            if (!resultado.success) return [];
+            const filas = Array.isArray(resultado.data) ? resultado.data : [];
+            // Mapear columnas BD -> estructura UI
+            return filas.map((row) => ({
+                id: row.id,
+                salaId: row.sala_id || row.salaId,
+                estacion: row.estacion,
+                cliente: row.cliente,
+                fecha_inicio: row.fecha_inicio,
+                tarifa: row.tarifa_base ?? row.tarifa ?? 0,
+                tiempo: row.tiempo_contratado ?? row.tiempo ?? 60,
+                tiempoOriginal: row.tiempo_contratado ?? row.tiempoOriginal ?? row.tiempo ?? 60,
+                tiempoAdicional: row.tiempo_adicional ?? 0,
+                costoAdicional: row.costo_adicional ?? 0,
+                productos: row.productos || [],
+                tiemposAdicionales: row.tiempos_adicionales || [],
+                finalizada: !!row.finalizada
+            }));
+        }
+        
+        // Fallback a localStorage
+        return JSON.parse(localStorage.getItem('sesiones') || '[]');
+    } catch (error) {
+        console.warn('Error al obtener sesiones:', error);
+        return [];
+    }
 }
 
-function guardarSesiones(sesiones) {
-    localStorage.setItem('sesiones', JSON.stringify(sesiones));
+async function guardarSesiones(sesiones) {
+    try {
+        // Persistir solamente en localStorage aquí para evitar errores de esquema.
+        // La persistencia remota debe mapear columnas explícitamente y manejarse donde corresponda.
+        localStorage.setItem('sesiones', JSON.stringify(sesiones));
+    } catch (error) {
+        console.error('Error guardando sesiones:', error);
+        localStorage.setItem('sesiones', JSON.stringify(sesiones));
+    }
 }
 
 // Clase para gestionar las salas
 class GestorSalas {
     constructor() {
-        this.salas = obtenerSalas();
-        this.sesiones = obtenerSesiones();
+        this.salas = [];
+        this.sesiones = [];
         this.config = obtenerConfiguracion();
         
         // Migrar tarifas del formato anterior al nuevo
@@ -36,17 +176,31 @@ class GestorSalas {
         this.tablaSesiones = document.getElementById('tablaSesiones');
         this.busqueda = document.getElementById('buscarSala');
         
-        // Inicializar la vista
-        this.actualizarVista();
+
+        
+        // Inicializar datos y vista
+        this.inicializarDatos();
         
         // Configurar event listeners
         this.configurarEventListeners();
+        
+
         
         // Actualizar sesiones cada minuto
         setInterval(() => this.actualizarSesiones(), 60000);
         
         // Actualizar temporizadores cada segundo
         setInterval(() => this.actualizarTemporizadores(), 1000);
+    }
+    
+    async inicializarDatos() {
+        try {
+            this.salas = await obtenerSalas();
+            this.sesiones = await obtenerSesiones();
+            this.actualizarVista();
+        } catch (error) {
+            console.error('Error inicializando datos:', error);
+        }
     }
     
     migrarTarifasANuevoFormato() {
@@ -77,15 +231,33 @@ class GestorSalas {
         }
     }
     
-    actualizarVista() {
-        // Recargar datos del localStorage
-        this.salas = obtenerSalas();
-        this.sesiones = obtenerSesiones();
-        this.config = obtenerConfiguracion();
-        
-        this.actualizarSalas();
-        this.actualizarSesiones();
-        this.actualizarEstadisticas();
+    async actualizarVista() {
+        try {
+            console.log('🔍 DEBUG actualizarVista() iniciando...');
+            
+            // Recargar datos
+            this.salas = await obtenerSalas();
+            this.sesiones = await obtenerSesiones();
+            this.config = obtenerConfiguracion();
+            
+            console.log('  - Datos recargados:');
+            console.log('    - Salas:', this.salas.length);
+            console.log('    - Sesiones:', this.sesiones.length);
+            console.log('    - Sesiones activas:', this.sesiones.filter(s => !s.finalizada).length);
+            
+            console.log('  - Llamando actualizarSalas()...');
+            this.actualizarSalas();
+            
+            console.log('  - Llamando actualizarSesiones()...');
+            this.actualizarSesiones();
+            
+            console.log('  - Llamando actualizarEstadisticas()...');
+            this.actualizarEstadisticas();
+            
+            console.log('✅ actualizarVista() completado');
+        } catch (error) {
+            console.error('❌ Error actualizando vista:', error);
+        }
     }
     
     actualizarSalas() {
@@ -305,17 +477,28 @@ class GestorSalas {
     }
     
     actualizarSesiones() {
-        if (!this.tablaSesiones) return;
+        console.log('🔍 DEBUG actualizarSesiones():');
+        console.log('  - this.tablaSesiones:', !!this.tablaSesiones);
+        
+        if (!this.tablaSesiones) {
+            console.log('❌ tablaSesiones no encontrada, saliendo');
+            return;
+        }
         
         const sesionesActivas = this.sesiones.filter(s => !s.finalizada);
+        console.log('  - Total sesiones:', this.sesiones.length);
+        console.log('  - Sesiones activas:', sesionesActivas.length);
+        console.log('  - Sesiones activas data:', sesionesActivas);
+        
         const tbody = this.tablaSesiones.querySelector('tbody');
+        console.log('  - tbody encontrado:', !!tbody);
         
         if (tbody) {
             tbody.innerHTML = sesionesActivas.map(sesion => {
                 const sala = this.salas.find(s => s.id === sesion.salaId);
                 if (!sala) return '';
                 
-                const inicio = new Date(sesion.inicio);
+                const inicio = new Date(sesion.fecha_inicio);
                 const duracionMs = Date.now() - inicio.getTime();
                 const duracionMinutos = Math.floor(duracionMs / (1000 * 60));
                 
@@ -395,6 +578,11 @@ class GestorSalas {
                     </tr>
                 `;
             }).join('');
+            
+            console.log('  - HTML generado para', sesionesActivas.length, 'sesiones');
+            console.log('  - tbody.innerHTML.length:', tbody.innerHTML.length);
+        } else {
+            console.log('❌ tbody no encontrado');
         }
     }
 
@@ -584,23 +772,38 @@ class GestorSalas {
                     id: generarId(),
                     salaId: sala.id,
                     estacion: formData.get('estacion'),
-                    cliente: formData.get('cliente'),
-                    inicio: new Date().toISOString(),
-                    tarifa: tarifa,
+                    cliente: formData.get('cliente')?.trim() || 'Genérico',
+                    fecha_inicio: new Date().toISOString(),
+                    tarifa_base: tarifa,
+                    tiempo_contratado: tiempo,
                     tiempo: tiempo,
                     tiempoOriginal: tiempo,
+                    tiempoAdicional: 0,
+                    costoAdicional: 0,
+                    productos: [],
+                    tiemposAdicionales: [],
                     finalizada: false
                 };
 
                 this.sesiones.push(sesion);
                 guardarSesiones(this.sesiones);
                 
+                console.log('🔍 DEBUG creación sesión:');
+                console.log('  - Sesión agregada a this.sesiones');
+                console.log('  - this.sesiones.length:', this.sesiones.length);
+                console.log('  - Sesiones activas:', this.sesiones.filter(s => !s.finalizada).length);
+                
                 const bootstrapModal = bootstrap.Modal.getInstance(modal);
                 if (bootstrapModal) {
                     bootstrapModal.hide();
                 }
 
-                this.actualizarVista();
+                console.log('  - Llamando actualización directa (sin recargar datos)...');
+                this.actualizarSalas();
+                this.actualizarSesiones();
+                this.actualizarEstadisticas();
+                console.log('  - Actualización directa completada');
+                
                 mostrarNotificacion(`Sesión iniciada: ${formatearMoneda(tarifa)} por ${tiempo} minutos`, 'success');
             };
         }
@@ -676,7 +879,7 @@ class GestorSalas {
 
         // Calcular totales
         const ahora = new Date();
-        const fechaInicio = new Date(sesion.inicio);
+        const fechaInicio = new Date(sesion.fecha_inicio);
         const duracionTotal = Math.ceil((ahora - fechaInicio) / (1000 * 60)); // en minutos
         
         // Calcular costo de tiempo
@@ -960,6 +1163,11 @@ class GestorSalas {
 
         // Guardar cambios
         guardarSesiones(this.sesiones);
+        
+        console.log('🔍 DEBUG finalizar sesión:');
+        console.log('  - Sesión finalizada:', sesion);
+        console.log('  - Total sesiones en localStorage:', this.sesiones.length);
+        console.log('  - Sesiones finalizadas:', this.sesiones.filter(s => s.finalizada).length);
 
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalFinalizarSesion'));
@@ -1115,47 +1323,76 @@ class GestorSalas {
         // Manejar formulario de nueva sala
         const formNuevaSala = document.getElementById('formNuevaSala');
         if (formNuevaSala) {
-            formNuevaSala.addEventListener('submit', (e) => {
+            formNuevaSala.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 const tipo = formData.get('tipo');
                 const tipoInfo = CONFIG.tiposConsola[tipo] || { prefijo: 'EST' };
                 const tarifa = parseFloat(formData.get('tarifa')) || 0;
                 
-                const nuevaSala = {
-                    id: generarId(),
+                // Construir payload compatible con esquema de Supabase (tabla salas)
+                const payloadInsertSala = {
                     nombre: formData.get('nombre'),
-                    tipo: tipo,
-                    numEstaciones: parseInt(formData.get('estaciones')),
-                    prefijo: formData.get('prefijo') || tipoInfo.prefijo,
-                    tarifa: tarifa
+                    equipamiento: {
+                        tipo_consola: tipo,
+                        prefijo: formData.get('prefijo') || tipoInfo.prefijo
+                    },
+                    num_estaciones: parseInt(formData.get('estaciones')),
+                    tarifas: { base: tarifa },
+                    activa: true
                 };
+                let nuevaSalaId;
                 
-                // Agregar la sala a la lista de salas
-                this.salas.push(nuevaSala);
-                guardarSalas(this.salas);
-                
-                // Actualizar las tarifas en la configuración
-                const config = obtenerConfiguracion();
-                config.tarifasPorSala[nuevaSala.id] = tarifa;
-                guardarConfiguracion(config);
-                this.config = config;
-                
-                this.actualizarVista();
-                
-                // Cerrar el modal usando Bootstrap
-                const modalElement = document.getElementById('modalNuevaSala');
-                if (modalElement) {
-                    const modal = bootstrap.Modal.getInstance(modalElement);
-                    if (modal) {
-                        modal.hide();
+                try {
+                    // Guardar en Supabase si está disponible
+                    if (window.databaseService) {
+                        const res = await window.databaseService.insert('salas', payloadInsertSala);
+                        nuevaSalaId = res.data?.id;
+                        console.log('✅ Sala guardada en Supabase', nuevaSalaId);
                     }
+                    
+                    // Agregar la sala a la lista local en formato de UI
+                    this.salas.push({
+                        id: nuevaSalaId || generarId(),
+                        nombre: payloadInsertSala.nombre,
+                        tipo: payloadInsertSala.equipamiento.tipo_consola,
+                        numEstaciones: payloadInsertSala.num_estaciones,
+                        prefijo: payloadInsertSala.equipamiento.prefijo,
+                        tarifa: tarifa,
+                        activo: true
+                    });
+                    await guardarSalas(this.salas);
+                    
+                    // Actualizar las tarifas en la configuración
+                    const config = obtenerConfiguracion();
+                    const salaIdParaTarifa = this.salas[this.salas.length - 1].id;
+                    config.tarifasPorSala[salaIdParaTarifa] = tarifa;
+                    guardarConfiguracion(config);
+                    this.config = config;
+                    
+                    await this.actualizarVista();
+                    
+                    // Cerrar el modal usando Bootstrap
+                    const modalElement = document.getElementById('modalNuevaSala');
+                    if (modalElement) {
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        if (modal) {
+                            modal.hide();
+                        }
+                    }
+                    
+                    // Limpiar formulario
+                    e.target.reset();
+                    
+                    mostrarNotificacion('Sala creada correctamente', 'success');
+                    
+                    // Disparar evento personalizado para notificar a ajustes.js
+                    window.dispatchEvent(new CustomEvent('salasActualizadas'));
+                    
+                } catch (error) {
+                    console.error('Error creando sala:', error);
+                    mostrarNotificacion('Error creando sala. Inténtalo de nuevo.', 'error');
                 }
-                
-                mostrarNotificacion('Sala creada correctamente', 'success');
-                
-                // Disparar evento personalizado para notificar a ajustes.js
-                window.dispatchEvent(new CustomEvent('salasActualizadas'));
             });
         }
 
@@ -1176,8 +1413,8 @@ class GestorSalas {
                     id: generarId(),
                     salaId: salaId,
                     estacion: formData.get('estacion'),
-                    cliente: formData.get('cliente'),
-                    inicio: new Date().toISOString(),
+                    cliente: formData.get('cliente')?.trim() || 'Genérico',
+                    fecha_inicio: new Date().toISOString(),
                     tarifa: tarifaActual,
                     finalizada: false
                 };
@@ -1462,7 +1699,7 @@ class GestorSalas {
     }
 
     calcularTiempoRestante(sesion) {
-        const inicio = new Date(sesion.inicio);
+        const inicio = new Date(sesion.fecha_inicio);
         const ahora = new Date();
         const tiempoTranscurrido = Math.floor((ahora - inicio) / (1000 * 60)); // en minutos
         
@@ -1513,7 +1750,7 @@ class GestorSalas {
     }
 
     formatearTemporizadorPreciso(sesion) {
-        const inicio = new Date(sesion.inicio);
+        const inicio = new Date(sesion.fecha_inicio);
         const ahora = new Date();
         const tiempoTranscurridoMs = ahora - inicio;
         
@@ -2201,7 +2438,13 @@ class GestorSalas {
             modal.hide();
         }
 
-        this.actualizarVista();
+        // Actualizar vista sin recargar datos para mantener las sesiones locales
+        console.log('🔍 DEBUG agregar tiempo - actualizando vista directamente...');
+        this.actualizarSalas();
+        this.actualizarSesiones();
+        this.actualizarEstadisticas();
+        console.log('  - Actualización directa completada');
+        
         mostrarNotificacion(
             `Se agregaron ${tiempoAdicional} minutos por ${formatearMoneda(costoAdicional)} a la sesión`, 
             'success'
@@ -2504,7 +2747,12 @@ class GestorSalas {
             modal.hide();
         }
 
-        this.actualizarVista();
+        // Actualizar vista sin recargar datos para mantener las sesiones locales
+        console.log('🔍 DEBUG agregar productos - actualizando vista directamente...');
+        this.actualizarSalas();
+        this.actualizarSesiones();
+        this.actualizarEstadisticas();
+        console.log('  - Actualización directa completada');
         
         const resumen = productos.map(p => `${p.cantidad}x ${p.nombre}`).join(', ');
         mostrarNotificacion(`Productos agregados: ${resumen} | Total: ${formatearMoneda(total)}`, 'success');
@@ -2555,7 +2803,7 @@ class GestorSalas {
                                             <h6 class="card-title">
                                                 <i class="fas fa-clock me-2"></i>Inicio
                                             </h6>
-                                            <p class="mb-0">${new Date(sesion.inicio).toLocaleString('es-ES')}</p>
+                                            <p class="mb-0">${new Date(sesion.fecha_inicio).toLocaleString('es-ES')}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -2996,9 +3244,8 @@ class GestorSalas {
                                     <label class="form-label">Nombre del cliente</label>
                                     <input type="text" class="form-control form-control-lg text-center" 
                                            name="nombreCliente" 
-                                           placeholder="Ej: Juan Pérez" 
-                                           autocomplete="off"
-                                           required>
+                                           placeholder="Ej: Juan Pérez (opcional)" 
+                                           autocomplete="off">
                                 </div>
                                 
                                 <div class="costo-info mt-3 p-2 bg-light rounded">
@@ -3034,11 +3281,9 @@ class GestorSalas {
         document.getElementById('formInicioRapido').addEventListener('submit', (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const nombreCliente = formData.get('nombreCliente').trim();
+            const nombreCliente = formData.get('nombreCliente')?.trim() || 'Genérico';
             
-            if (nombreCliente) {
-                this.confirmarInicioRapido(salaId, estacion, tiempoMinutos, nombreCliente);
-            }
+            this.confirmarInicioRapido(salaId, estacion, tiempoMinutos, nombreCliente);
         });
 
         // Mostrar el modal
@@ -3116,10 +3361,14 @@ class GestorSalas {
             id: `sesion_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             salaId: sala.id,
             estacion: estacion,
-            cliente: nombreCliente.trim(),
-            inicio: new Date().toISOString(),
-            tiempoMinutos: tiempoMinutos,
-            tarifa: tarifaSesion,
+            cliente: nombreCliente.trim() || 'Genérico',
+            fecha_inicio: new Date().toISOString(),
+            tarifa_base: tarifaSesion,
+            tiempo_contratado: tiempoMinutos,
+            tiempo: tiempoMinutos,
+            tiempoOriginal: tiempoMinutos,
+            tiempoAdicional: 0,
+            costoAdicional: 0,
             finalizada: false,
             tiemposAdicionales: [],
             productos: []
@@ -3133,8 +3382,12 @@ class GestorSalas {
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalInicioRapido'));
         modal.hide();
 
-        // Actualizar la vista
-        this.actualizarVista();
+        // Actualizar la vista sin recargar datos
+        console.log('🔍 DEBUG sesión rápida - actualizando vista directamente...');
+        this.actualizarSalas();
+        this.actualizarSesiones();
+        this.actualizarEstadisticas();
+        console.log('  - Actualización directa completada');
 
         // Mostrar confirmación
         mostrarNotificacion(

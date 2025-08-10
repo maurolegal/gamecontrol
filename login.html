@@ -391,6 +391,14 @@
         </div>
     </div>
 
+    <!-- ===== SUPABASE SDK (CARGAR PRIMERO) ===== -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    
+    <!-- ===== SCRIPTS DE AUTENTICACIÓN ===== -->
+    <script src="js/auth.js"></script>
+    
     <!-- EmailJS SDK -->
     <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
     
@@ -587,73 +595,225 @@
             }
         }
         
-        // Manejar envío del formulario
-        document.addEventListener('DOMContentLoaded', function() {
+        // Función para inicializar Supabase
+        async function inicializarSupabase() {
+            console.log('🚀 Inicializando Supabase para login...');
+            try {
+                // Esperar a que Supabase esté disponible
+                let attempts = 0;
+                const maxAttempts = 50; // 5 segundos máximo
+                
+                while (attempts < maxAttempts) {
+                    if (window.supabaseConfig && window.supabaseConfig.getSupabaseClient) {
+                        console.log('✅ Supabase config detectado en intento', attempts + 1);
+                        
+                        // Probar la conexión
+                        try {
+                            const client = await window.supabaseConfig.getSupabaseClient();
+                            if (client) {
+                                console.log('✅ Cliente de Supabase obtenido exitosamente');
+                                return true;
+                            }
+                        } catch (error) {
+                            console.log('⚠️ Error obteniendo cliente, reintentando...', error.message);
+                        }
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                
+                console.error('❌ Supabase no disponible después de 5 segundos');
+                return false;
+            } catch (error) {
+                console.error('❌ Error inicializando Supabase:', error);
+                return false;
+            }
+        }
+        
+        // Manejar envío del formulario con Supabase
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('🟢 DOM completamente cargado');
+            
+            // Inicializar Supabase
+            const supabaseReady = await inicializarSupabase();
+            if (!supabaseReady) {
+                console.warn('⚠️ Supabase no está listo, pero continuando...');
+            }
             
             const form = document.getElementById('loginForm');
             if (form) {
-                form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            console.log('🔐 Formulario de login enviado');
-            
-            const loginText = document.querySelector('.login-text');
-            const loading = document.querySelector('.loading');
-            const submitBtn = this.querySelector('button[type="submit"]');
-            
-            // Mostrar loading
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    console.log('🔐 Formulario de login enviado');
+                    
+                    const loginText = document.querySelector('.login-text');
+                    const loading = document.querySelector('.loading');
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    
+                    // Mostrar loading
                     if (loginText) loginText.style.display = 'none';
                     if (loading) loading.classList.add('show');
                     if (submitBtn) submitBtn.disabled = true;
-            
-            const email = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            console.log('📝 Credenciales:', { email, password: '***' });
-            
-                    // Verificar que las funciones existen (ya están definidas arriba)
-            if (typeof autenticarUsuario !== 'function') {
-                        console.error('❌ Función autenticarUsuario no disponible');
-                showAlert('Error del sistema. Recarga la página.');
-                return;
-            }
-            
-            // Simular delay de red
-            setTimeout(() => {
-                console.log('🔍 Intentando login con sistema original...');
-                const result = autenticarUsuario(email, password);
-                console.log('📋 Resultado del login:', result);
-                
-                if (result.success) {
-                    console.log('✅ Login exitoso, mostrando alerta y preparando redirección...');
-                    showAlert('¡Login exitoso! Redirigiendo...', 'success');
                     
-                    console.log('⏰ Esperando 2.5 segundos antes de redirigir...');
-                    setTimeout(() => {
-                                console.log('🚀 Redirigiendo al dashboard con navegación inteligente...');
+                    const email = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    console.log('📝 Credenciales:', { email, password: '***' });
+                    
+                    try {
+                        // Esperar a que Supabase esté disponible
+                        console.log('🔄 Esperando a que Supabase esté disponible...');
+                        
+                        let attempts = 0;
+                        const maxAttempts = 30; // 3 segundos máximo
+                        
+                        while (attempts < maxAttempts) {
+                            if (window.supabaseConfig && window.supabaseConfig.getSupabaseClient) {
+                                console.log('✅ Supabase config detectado en intento', attempts + 1);
+                                break;
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                            attempts++;
+                        }
+                        
+                        if (!window.supabaseConfig || !window.supabaseConfig.getSupabaseClient) {
+                            throw new Error('Sistema de autenticación no disponible después de 3 segundos');
+                        }
+                        
+                        console.log('🔐 Obteniendo cliente de Supabase...');
+                        const client = await window.supabaseConfig.getSupabaseClient();
+                        if (!client) {
+                            throw new Error('No se puede conectar con la base de datos');
+                        }
+                        
+                        console.log('🔐 Intentando autenticación con Supabase...');
+                        
+                        // Usar el sistema de autenticación de Supabase
+                        if (window.sessionManager) {
+                            const resultado = await window.sessionManager.login(email, password);
+                            
+                            if (resultado.success) {
+                                console.log('✅ Login exitoso con Supabase:', resultado.usuario.nombre);
+                                showAlert(`¡Bienvenido ${resultado.usuario.nombre}! Redirigiendo...`, 'success');
+                                
+                                // Redirigir después de un momento
+                                setTimeout(() => {
+                                    console.log('🚀 Redirigiendo al dashboard...');
+                                    if (window.navigationUtils) {
+                                        window.navigationUtils.loginSuccess();
+                                    } else {
+                                        window.location.href = 'index.html';
+                                    }
+                                }, 1500);
+                            } else {
+                                console.log('❌ Login fallido:', resultado.error);
+                                showAlert(resultado.error || 'Error de autenticación');
+                            }
+                        } else {
+                            // Fallback: autenticación directa con base de datos
+                            console.log('🔄 Usando autenticación directa con base de datos...');
+                            
+                            // Buscar usuario en la base de datos
+                            const { data: usuarios, error: userError } = await client
+                                .from('usuarios')
+                                .select('*')
+                                .eq('email', email)
+                                .eq('estado', 'activo')
+                                .limit(1);
+                            
+                            if (userError) {
+                                throw new Error(`Error consultando usuario: ${userError.message}`);
+                            }
+                            
+                            if (!usuarios || usuarios.length === 0) {
+                                showAlert('Usuario no encontrado o inactivo');
+                                return;
+                            }
+                            
+                            const usuario = usuarios[0];
+                            
+                            // Verificar contraseña
+                            const { data: passwordValid, error: passError } = await client
+                                .rpc('verificar_password', {
+                                    password: password,
+                                    hash: usuario.password_hash
+                                });
+                            
+                            if (passError || !passwordValid) {
+                                showAlert('Contraseña incorrecta');
+                                return;
+                            }
+                            
+                            // Actualizar último acceso
+                            await client
+                                .from('usuarios')
+                                .update({ ultimo_acceso: new Date().toISOString() })
+                                .eq('id', usuario.id);
+                            
+                            // Guardar sesión local para compatibilidad
+                            const sesion = {
+                                id: usuario.id,
+                                nombre: usuario.nombre,
+                                email: usuario.email,
+                                rol: usuario.rol,
+                                permisos: usuario.permisos || {},
+                                fechaLogin: new Date().toISOString()
+                            };
+                            localStorage.setItem('sesionActual', JSON.stringify(sesion));
+                            
+                            console.log('✅ Login exitoso:', usuario.nombre);
+                            showAlert(`¡Bienvenido ${usuario.nombre}! Redirigiendo...`, 'success');
+                            
+                            // Redirigir
+                            setTimeout(() => {
                                 if (window.navigationUtils) {
                                     window.navigationUtils.loginSuccess();
                                 } else {
-                                    // Fallback en caso de que no esté disponible
-                        window.location.href = 'index.html';
+                                    window.location.href = 'index.html';
                                 }
-                    }, 2500);
-                } else {
-                    console.log('❌ Login fallido:', result.mensaje);
-                    showAlert(result.mensaje || 'Error al iniciar sesión');
-                    
-                    // Restaurar botón
-                            if (loginText) loginText.style.display = 'inline';
-                            if (loading) loading.classList.remove('show');
-                            if (submitBtn) submitBtn.disabled = false;
-                }
-            }, 1000);
+                            }, 1500);
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Error en login:', error);
+                        showAlert('Error de conexión. Verifica tu internet.');
+                    } finally {
+                        // Restaurar botón
+                        if (loginText) loginText.style.display = 'inline';
+                        if (loading) loading.classList.remove('show');
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
                 });
             }
         });
         
-        // Inicializar página de login
-        window.addEventListener('load', function() {
+        // Inicializar página de login con verificación de sesión
+        window.addEventListener('load', async function() {
             console.log('🟢 Página login.html completamente cargada');
+            
+            // Verificar sesión existente de Supabase
+            try {
+                if (window.supabaseConfig && window.supabaseConfig.getClient) {
+                    const client = window.supabaseConfig.getClient();
+                    if (client && client.auth) {
+                        const { data } = await client.auth.getSession();
+                        if (data && data.session) {
+                            console.log('✅ Sesión de Supabase activa encontrada, redirigiendo...');
+                            showAlert('Ya tienes una sesión activa. Redirigiendo...', 'info');
+                            
+                            setTimeout(() => {
+                                if (window.navigationUtils) {
+                                    window.navigationUtils.loginSuccess();
+                                } else {
+                                    window.location.href = 'index.html';
+                                }
+                            }, 1500);
+                            return;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('ℹ️ No se pudo verificar sesión de Supabase:', error);
+            }
             
             // Limpiar posibles datos corruptos antes de inicializar
             try {

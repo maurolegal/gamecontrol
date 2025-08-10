@@ -188,19 +188,26 @@ class NotificationSystem {
             const sesionesActivas = sesiones.filter(s => !s.finalizada);
 
             sesionesActivas.forEach(sesion => {
-                const inicio = new Date(sesion.inicio);
-                const tiempoTranscurrido = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60));
-                const tiempoContratado = sesion.tiempo || 60;
-                const tiempoRestante = tiempoContratado - tiempoTranscurrido;
+                const fechaInicio = sesion.fecha_inicio || sesion.inicio;
+                if (!fechaInicio) return;
                 
-                if (tiempoRestante <= 5 && tiempoRestante > 0) {
-                    this.addNotification('warning', 'Sesión próxima a vencer', 
-                        `${sesion.cliente} en ${sesion.estacion} - ${tiempoRestante} min restantes`,
-                        { type: 'session', sesionId: sesion.id, action: 'extend' });
-                } else if (tiempoRestante <= 0) {
-                    this.addNotification('danger', 'Sesión vencida', 
-                        `${sesion.cliente} en ${sesion.estacion} - ${Math.abs(tiempoRestante)} min excedidos`,
-                        { type: 'session', sesionId: sesion.id, action: 'finalize' });
+                try {
+                    const inicio = new Date(fechaInicio);
+                    const tiempoTranscurrido = Math.floor((Date.now() - inicio.getTime()) / (1000 * 60));
+                    const tiempoContratado = sesion.tiempo || sesion.tiempoOriginal || 60;
+                    const tiempoRestante = tiempoContratado - tiempoTranscurrido;
+                
+                    if (tiempoRestante <= 5 && tiempoRestante > 0) {
+                        this.addNotification('warning', 'Sesión próxima a vencer', 
+                            `${sesion.cliente} en ${sesion.estacion} - ${tiempoRestante} min restantes`,
+                            { type: 'session', sesionId: sesion.id, action: 'extend' });
+                    } else if (tiempoRestante <= 0) {
+                        this.addNotification('danger', 'Sesión vencida', 
+                            `${sesion.cliente} en ${sesion.estacion} - ${Math.abs(tiempoRestante)} min excedidos`,
+                            { type: 'session', sesionId: sesion.id, action: 'finalize' });
+                    }
+                } catch (dateError) {
+                    console.warn('Error procesando fecha de sesión:', sesion, dateError);
                 }
             });
         } catch (error) {
@@ -214,8 +221,15 @@ class NotificationSystem {
             const hoy = new Date().toISOString().split('T')[0];
             
             const sesionesHoy = sesiones.filter(s => {
-                const fechaSesion = new Date(s.inicio).toISOString().split('T')[0];
-                return fechaSesion === hoy && s.finalizada;
+                const fechaInicio = s.fecha_inicio || s.inicio;
+                if (!fechaInicio) return false;
+                try {
+                    const fechaSesion = new Date(fechaInicio).toISOString().split('T')[0];
+                    return fechaSesion === hoy && s.finalizada;
+                } catch (error) {
+                    console.warn('Fecha inválida en sesión:', s);
+                    return false;
+                }
             });
             
             const ingresosHoy = sesionesHoy.reduce((total, sesion) => {

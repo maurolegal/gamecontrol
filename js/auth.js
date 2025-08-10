@@ -51,22 +51,56 @@ class SupabaseAuthSystem {
     // Verificar sesión existente
     async checkExistingSession() {
         try {
-            const { data: { session }, error } = await this.client.auth.getSession();
+            console.log('🔍 Verificando sesión existente...');
             
-            if (error) {
-                console.error('Error obteniendo sesión:', error);
-                return;
+            // Primero intentar con Supabase Auth
+            try {
+                const { data: { session }, error } = await this.client.auth.getSession();
+                
+                if (error) {
+                    console.error('❌ Error obteniendo sesión de Supabase Auth:', error);
+                } else if (session) {
+                    console.log('✅ Sesión de Supabase Auth encontrada');
+                    await this.handleActiveSession(session);
+                    return;
+                }
+            } catch (authError) {
+                console.log('⚠️ Error con Supabase Auth, verificando localStorage...');
             }
-
-            if (session) {
-                console.log('✅ Sesión activa encontrada');
-                await this.handleActiveSession(session);
-            } else {
-                console.log('ℹ️ No hay sesión activa');
-                this.redirectToLogin();
+            
+            // Fallback: verificar localStorage
+            const sesionLocal = localStorage.getItem('sesionActual');
+            if (sesionLocal) {
+                try {
+                    const sesion = JSON.parse(sesionLocal);
+                    console.log('✅ Sesión de localStorage encontrada:', sesion.nombre);
+                    
+                    // Verificar que la sesión no haya expirado (8 horas)
+                    const fechaLogin = new Date(sesion.fechaLogin);
+                    const ahora = new Date();
+                    const horasTranscurridas = (ahora - fechaLogin) / (1000 * 60 * 60);
+                    
+                    if (horasTranscurridas <= 8) {
+                        this.currentUser = sesion;
+                        this.updateUserInterface();
+                        this.checkPagePermissions();
+                        console.log('✅ Sesión de localStorage válida');
+                        return;
+                    } else {
+                        console.log('⚠️ Sesión de localStorage expirada');
+                        localStorage.removeItem('sesionActual');
+                    }
+                } catch (parseError) {
+                    console.error('❌ Error parseando sesión de localStorage:', parseError);
+                    localStorage.removeItem('sesionActual');
+                }
             }
+            
+            console.log('ℹ️ No hay sesión activa, redirigiendo a login...');
+            this.redirectToLogin();
+            
         } catch (error) {
-            console.error('Error verificando sesión:', error);
+            console.error('❌ Error verificando sesión:', error);
             this.redirectToLogin();
         }
     }
@@ -386,11 +420,23 @@ class SupabaseAuthSystem {
     // Redireccionar a login
     redirectToLogin() {
         if (window.location.pathname.includes('login.html')) {
+            console.log('🛑 Ya estamos en login, evitando redirect infinito');
             return; // Ya estamos en login
         }
         
+        // Prevenir redirect infinito
+        if (this._redirecting) {
+            console.log('🛑 Ya se está redirigiendo, evitando loop');
+            return;
+        }
+        
+        this._redirecting = true;
         console.log('🔄 Redirigiendo a login...');
-        window.location.href = 'login.html';
+        
+        // Usar setTimeout para evitar problemas de timing
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 100);
     }
 
     // Mostrar error de conexión
@@ -438,7 +484,31 @@ class SupabaseAuthSystem {
 
     // Verificar si está autenticado
     isAuthenticated() {
-        return !!(this.currentSession && this.currentUser);
+        // Verificar sesión de Supabase Auth
+        if (this.currentSession && this.currentUser) {
+            return true;
+        }
+        
+        // Verificar sesión de localStorage como fallback
+        const sesionLocal = localStorage.getItem('sesionActual');
+        if (sesionLocal) {
+            try {
+                const sesion = JSON.parse(sesionLocal);
+                const fechaLogin = new Date(sesion.fechaLogin);
+                const ahora = new Date();
+                const horasTranscurridas = (ahora - fechaLogin) / (1000 * 60 * 60);
+                
+                if (horasTranscurridas <= 8) {
+                    return true;
+                } else {
+                    localStorage.removeItem('sesionActual');
+                }
+            } catch (error) {
+                localStorage.removeItem('sesionActual');
+            }
+        }
+        
+        return false;
     }
 }
 
@@ -448,20 +518,49 @@ class SupabaseAuthSystem {
 
 // Función para verificar autenticación (compatibilidad)
 function verificarAutenticacion() {
-    if (!sessionManager || !sessionManager.isAuthenticated()) {
-        console.log('❌ No hay sesión activa');
-        return null;
+    // Primero verificar sessionManager
+    if (sessionManager && sessionManager.isAuthenticated()) {
+        const user = sessionManager.getCurrentUser();
+        if (user) {
+            return {
+                id: user.id,
+                nombre: user.nombre,
+                email: user.email,
+                rol: user.rol,
+                permisos: user.permisos || {},
+                fechaLogin: new Date().toISOString()
+            };
+        }
     }
     
-    const user = sessionManager.getCurrentUser();
-    return {
-        id: user.id,
-        nombre: user.nombre,
-        email: user.email,
-        rol: user.rol,
-        permisos: user.permisos || {},
-        fechaLogin: new Date().toISOString()
-    };
+    // Fallback: verificar localStorage
+    const sesionLocal = localStorage.getItem('sesionActual');
+    if (sesionLocal) {
+        try {
+            const sesion = JSON.parse(sesionLocal);
+            const fechaLogin = new Date(sesion.fechaLogin);
+            const ahora = new Date();
+            const horasTranscurridas = (ahora - fechaLogin) / (1000 * 60 * 60);
+            
+            if (horasTranscurridas <= 8) {
+                return {
+                    id: sesion.id,
+                    nombre: sesion.nombre,
+                    email: sesion.email,
+                    rol: sesion.rol,
+                    permisos: sesion.permisos || {},
+                    fechaLogin: sesion.fechaLogin
+                };
+            } else {
+                localStorage.removeItem('sesionActual');
+            }
+        } catch (error) {
+            localStorage.removeItem('sesionActual');
+        }
+    }
+    
+    console.log('❌ No hay sesión activa');
+    return null;
 }
 
 // Función para verificar permisos (compatibilidad)
@@ -498,22 +597,56 @@ function cerrarSesion() {
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔍 Inicializando autenticación...');
+    
     // Verificar que estemos en una página que requiere autenticación
     const paginasProtegidas = ['index.html', 'salas.html', 'ventas.html', 'gastos.html', 'stock.html', 'reportes.html', 'usuarios.html', 'ajustes.html'];
     const paginaActual = window.location.pathname.split('/').pop();
     
+    console.log('📄 Página actual:', paginaActual);
+    console.log('📋 Páginas protegidas:', paginasProtegidas);
+    console.log('🔒 Requiere autenticación:', paginasProtegidas.includes(paginaActual) || paginaActual === '');
+    
     if (paginasProtegidas.includes(paginaActual) || paginaActual === '') {
-        // Esperar a que Supabase esté disponible
+        console.log('🔐 Inicializando sistema de autenticación...');
+        
+        // Prevenir múltiples inicializaciones
+        if (window.sessionManager) {
+            console.log('⚠️ sessionManager ya existe, evitando reinicialización');
+            return;
+        }
+        
+        // Esperar a que Supabase esté disponible con timeout
+        let attempts = 0;
+        const maxAttempts = 50; // 5 segundos máximo
+        
         const initAuth = () => {
-            if (window.supabaseConfig) {
+            attempts++;
+            
+            if (window.supabaseConfig && window.supabaseConfig.getClient()) {
+                console.log('✅ Supabase config disponible, creando sessionManager...');
                 sessionManager = new SupabaseAuthSystem();
                 window.sessionManager = sessionManager; // Para acceso global
-            } else {
+                console.log('✅ sessionManager creado exitosamente');
+            } else if (attempts < maxAttempts) {
+                console.log(`⏳ Esperando Supabase config... (intento ${attempts}/${maxAttempts})`);
                 setTimeout(initAuth, 100);
+            } else {
+                console.error('❌ Timeout esperando Supabase config');
+                // Mostrar mensaje de error al usuario
+                const errorMsg = 'Error de conexión con la base de datos. Verifica tu conexión a internet.';
+                if (typeof mostrarNotificacion === 'function') {
+                    mostrarNotificacion(errorMsg, 'error');
+                } else {
+                    alert(errorMsg);
+                }
             }
         };
         
-        initAuth();
+        // Iniciar con un pequeño delay para asegurar que los scripts estén cargados
+        setTimeout(initAuth, 200);
+    } else {
+        console.log('ℹ️ Esta página no requiere autenticación');
     }
 });
 

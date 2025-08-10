@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase CDN</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { border-color: #28a745; background-color: #f8fff9; }
+        .error { border-color: #dc3545; background-color: #fff8f8; }
+        .info { border-color: #17a2b8; background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de CDN de Supabase</h1>
+    <div id="results"></div>
+
+    <script>
+        function addTest(name, testFunction) {
+            const div = document.createElement('div');
+            div.className = 'test info';
+            div.innerHTML = `<h3>${name}</h3><div id="result-${name}">Probando...</div>`;
+            document.getElementById('results').appendChild(div);
+            
+            setTimeout(() => {
+                try {
+                    const result = testFunction();
+                    const resultDiv = document.getElementById(`result-${name}`);
+                    resultDiv.innerHTML = result;
+                    div.className = result.includes('✅') ? 'test success' : 'test error';
+                } catch (error) {
+                    const resultDiv = document.getElementById(`result-${name}`);
+                    resultDiv.innerHTML = `❌ Error: ${error.message}`;
+                    div.className = 'test error';
+                }
+            }, 1000);
+        }
+
+        // Test 1: CDN actual
+        addTest('CDN Actual (unpkg.com/@supabase/supabase-js@2)', () => {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+            script.onload = () => {
+                if (typeof createClient !== 'undefined') {
+                    return '✅ createClient disponible';
+                } else if (typeof supabase !== 'undefined') {
+                    return '✅ supabase disponible';
+                } else {
+                    return '❌ No se detectó Supabase';
+                }
+            };
+            script.onerror = () => '❌ Error cargando script';
+            document.head.appendChild(script);
+            return '⏳ Cargando...';
+        });
+
+        // Test 2: CDN alternativo
+        addTest('CDN Alternativo (jsdelivr)', () => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            script.onload = () => {
+                if (typeof createClient !== 'undefined') {
+                    return '✅ createClient disponible';
+                } else if (typeof supabase !== 'undefined') {
+                    return '✅ supabase disponible';
+                } else {
+                    return '❌ No se detectó Supabase';
+                }
+            };
+            script.onerror = () => '❌ Error cargando script';
+            document.head.appendChild(script);
+            return '⏳ Cargando...';
+        });
+
+        // Test 3: Versión específica
+        addTest('Versión Específica (2.38.0)', () => {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@supabase/supabase-js@2.38.0';
+            script.onload = () => {
+                if (typeof createClient !== 'undefined') {
+                    return '✅ createClient disponible';
+                } else if (typeof supabase !== 'undefined') {
+                    return '✅ supabase disponible';
+                } else {
+                    return '❌ No se detectó Supabase';
+                }
+            };
+            script.onerror = () => '❌ Error cargando script';
+            document.head.appendChild(script);
+            return '⏳ Cargando...';
+        });
+
+        // Test 4: Verificar estructura global
+        setTimeout(() => {
+            addTest('Verificación Global', () => {
+                let result = '';
+                result += `createClient: ${typeof createClient}<br>`;
+                result += `supabase: ${typeof supabase}<br>`;
+                result += `window.supabase: ${typeof window.supabase}<br>`;
+                
+                if (typeof createClient !== 'undefined') {
+                    result += '✅ createClient está disponible';
+                } else if (typeof supabase !== 'undefined') {
+                    result += '✅ supabase está disponible';
+                } else {
+                    result += '❌ No se detectó Supabase';
+                }
+                
+                return result;
+            });
+        }, 3000);
+    </script>
+</body>
+</html>
