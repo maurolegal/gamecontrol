@@ -144,7 +144,7 @@ class GestorReportes {
         const sesiones = this.filtrarDatos(obtenerSesiones().filter(s => s.finalizada), 'inicio');
         
         const ingresosTotales = sesiones.reduce((total, sesion) => {
-            let totalSesion = sesion.tarifa || 0;
+            let totalSesion = sesion.tarifa_base || sesion.tarifa || 0;
             
             // Agregar tiempos adicionales
             if (sesion.costoAdicional) {
@@ -220,14 +220,14 @@ class GestorReportes {
         const ocupacionPorSala = salas.map(sala => {
             const sesionesSala = sesiones.filter(s => s.salaId === sala.id);
             const horasUso = sesionesSala.reduce((total, sesion) => {
-                const inicio = new Date(sesion.inicio);
-                const fin = new Date(sesion.fin || Date.now());
+                const inicio = new Date(sesion.fecha_inicio || sesion.inicio);
+                const fin = new Date(sesion.fecha_fin || sesion.fin || Date.now());
                 const duracion = (fin - inicio) / (1000 * 60 * 60); // Horas
                 return total + duracion;
             }, 0);
 
             const ingresosSala = sesionesSala.reduce((total, sesion) => {
-                let totalSesion = sesion.tarifa || 0;
+                let totalSesion = sesion.tarifa_base || sesion.tarifa || 0;
                 if (sesion.costoAdicional) totalSesion += sesion.costoAdicional;
                 if (sesion.tiemposAdicionales) {
                     totalSesion += sesion.tiemposAdicionales.reduce((sum, t) => sum + (t.costo || 0), 0);
@@ -601,7 +601,7 @@ class GestorReportes {
                     return fechaSesion.toDateString() === fecha.toDateString();
                 })
                 .reduce((total, sesion) => {
-                    let totalSesion = sesion.tarifa || 0;
+                    let totalSesion = sesion.tarifa_base || sesion.tarifa || 0;
                     if (sesion.costoAdicional) totalSesion += sesion.costoAdicional;
                     if (sesion.tiemposAdicionales) {
                         totalSesion += sesion.tiemposAdicionales.reduce((sum, t) => sum + (t.costo || 0), 0);

@@ -6,6 +6,12 @@
 
 class DashboardManager {
     constructor() {
+        // Prevenir múltiples inicializaciones
+        if (window.dashboardManagerInstance) {
+            console.log('⚠️ DashboardManager ya está inicializado, retornando instancia existente');
+            return window.dashboardManagerInstance;
+        }
+        
         this.charts = {};
         this.intervalos = [];
         this.datos = {
@@ -16,11 +22,21 @@ class DashboardManager {
             configuracion: {}
         };
         this.cargandoDatos = false;
+        this.inicializado = false;
+        
+        // Marcar como instancia global
+        window.dashboardManagerInstance = this;
         
         this.init();
     }
 
     async init() {
+        // Prevenir múltiples inicializaciones
+        if (this.inicializado) {
+            console.log('⚠️ DashboardManager ya está inicializado, omitiendo...');
+            return;
+        }
+        
         try {
             console.log('📊 Inicializando Dashboard Manager (Solo Supabase)...');
             
@@ -31,6 +47,7 @@ class DashboardManager {
             await this.actualizarMetricas();
             this.iniciarActualizacionAutomatica();
             
+            this.inicializado = true;
             console.log('✅ Dashboard Manager inicializado correctamente');
         } catch (error) {
             console.error('❌ Error inicializando Dashboard:', error);
@@ -85,11 +102,17 @@ class DashboardManager {
             ]);
 
             // Procesar resultados
-            this.datos.sesiones = sesionesResult.success ? sesionesResult.data : [];
-            this.datos.gastos = gastosResult.success ? gastosResult.data : [];
-            this.datos.salas = salasResult.success ? salasResult.data : [];
-            this.datos.productos = productosResult.success ? productosResult.data : [];
+            this.datos.sesiones = sesionesResult.success ? (sesionesResult.data || []) : [];
+            this.datos.gastos = gastosResult.success ? (gastosResult.data || []) : [];
+            this.datos.salas = salasResult.success ? (salasResult.data || []) : [];
+            this.datos.productos = productosResult.success ? (productosResult.data || []) : [];
             this.datos.configuracion = configResult || {};
+
+            // Completar con datos locales si faltan (compatibilidad con páginas existentes)
+            this.mezclarConDatosLocales();
+
+            // Normalizar nombres de campos y calcular derivados
+            this.normalizarDatos();
 
             console.log('✅ Datos cargados desde Supabase:', {
                 sesiones: this.datos.sesiones.length,
@@ -102,14 +125,15 @@ class DashboardManager {
             console.error('❌ Error cargando datos:', error);
             this.mostrarNotificacion('Error cargando datos del dashboard', 'error');
             
-            // Inicializar arrays vacíos en caso de error
+            // Fallback: intentar cargar datos locales para no dejar el dashboard vacío
             this.datos = {
-                sesiones: [],
-                gastos: [],
-                salas: [],
-                productos: [],
+                sesiones: this.getSesionesLocales(),
+                gastos: this.getGastosLocales(),
+                salas: this.getSalasLocales(),
+                productos: this.getProductosLocales(),
                 configuracion: {}
             };
+            this.normalizarDatos();
         } finally {
             this.cargandoDatos = false;
         }
@@ -153,6 +177,126 @@ class DashboardManager {
             ticketPromedio,
             gastosHoy: gastosHoy.reduce((total, g) => total + g.monto, 0)
         };
+    }
+
+    // ===== FUENTES LOCALES (COMPATIBILIDAD) =====
+    mezclarConDatosLocales() {
+        try {
+            if (!this.datos.productos || this.datos.productos.length === 0) {
+                const locales = this.getProductosLocales();
+                if (locales.length > 0) this.datos.productos = locales;
+            }
+            if (!this.datos.salas || this.datos.salas.length === 0) {
+                const locales = this.getSalasLocales();
+                if (locales.length > 0) this.datos.salas = locales;
+            }
+            if (!this.datos.sesiones || this.datos.sesiones.length === 0) {
+                const locales = this.getSesionesLocales();
+                if (locales.length > 0) this.datos.sesiones = locales;
+            }
+            if (!this.datos.gastos || this.datos.gastos.length === 0) {
+                const locales = this.getGastosLocales();
+                if (locales.length > 0) this.datos.gastos = locales;
+            }
+        } catch (e) {
+            console.warn('⚠️ Error mezclando datos locales:', e);
+        }
+    }
+
+    getProductosLocales() {
+        try {
+            if (window.gestorStock && Array.isArray(window.gestorStock.productos)) {
+                return window.gestorStock.productos;
+            }
+            const ls = localStorage.getItem('productos_stock');
+            return ls ? JSON.parse(ls) : [];
+        } catch { return []; }
+    }
+
+    getSalasLocales() {
+        try {
+            const ls = localStorage.getItem('salas');
+            return ls ? JSON.parse(ls) : [];
+        } catch { return []; }
+    }
+
+    getSesionesLocales() {
+        try {
+            const ls = localStorage.getItem('sesiones');
+            return ls ? JSON.parse(ls) : [];
+        } catch { return []; }
+    }
+
+    getGastosLocales() {
+        try {
+            const ls = localStorage.getItem('gastos');
+            return ls ? JSON.parse(ls) : [];
+        } catch { return []; }
+    }
+
+    // ===== NORMALIZACIÓN Y HELPERS DE CAMPOS =====
+    normalizarDatos() {
+        try {
+            // Productos: asegurar stockMinimo y campos numéricos
+            this.datos.productos = (this.datos.productos || []).map(p => ({
+                ...p,
+                stockMinimo: (p.stockMinimo ?? p.stock_minimo ?? p.stockminimo ?? 0),
+                precio: (p.precio ?? p.precio_venta ?? p.price ?? 0),
+                costo: (p.costo ?? p.costo_unitario ?? p.cost ?? 0),
+                stock: (p.stock ?? 0)
+            }));
+
+            // Salas: exponer tarifaHora y normalizar num_estaciones
+            this.datos.salas = (this.datos.salas || []).map(s => {
+                const tarifas = s.tarifas || s.tarifas_json || {};
+                const tarifaHora = s.tarifaHora ?? s.tarifa_hora ?? tarifas.tarifaHora ?? tarifas.tarifa_hora ?? 0;
+                const num_estaciones = s.num_estaciones ?? s.numEstaciones ?? 0;
+                return { ...s, tarifaHora, num_estaciones };
+            });
+
+            // Sesiones: normalizar nombres y derivar duracion_minutos
+            this.datos.sesiones = (this.datos.sesiones || []).map(se => {
+                const tiempoContratado = se.tiempo_contratado ?? se.duracion_minutos ?? se.tiempoContratado ?? 0;
+                const tiempoAdicional = se.tiempo_adicional ?? se.tiempoAdicional ?? 0;
+                const duracionMinutos = tiempoContratado + tiempoAdicional;
+                return {
+                    ...se,
+                    // IDs y referencias
+                    sala_id: se.sala_id ?? se.salaId ?? se.sala_id,
+                    // Fechas
+                    fecha_inicio: se.fecha_inicio ?? se.fechaInicio ?? se.fecha_inicio,
+                    fecha_fin: se.fecha_fin ?? se.fechaFin ?? se.fecha_fin,
+                    // Totales
+                    total_general: se.total_general ?? se.totalGeneral ?? 0,
+                    // Derivados
+                    duracion_minutos: duracionMinutos
+                };
+            });
+
+            // Gastos: normalizar nombres de fecha y monto
+            this.datos.gastos = (this.datos.gastos || []).map(g => ({
+                ...g,
+                fecha_gasto: g.fecha_gasto ?? g.fecha ?? g.fechaGasto ?? g.fecha_gasto,
+                monto: Number(g.monto ?? g.valor ?? 0),
+                concepto: g.concepto ?? g.descripcion ?? g.detalle ?? 'Gasto'
+            }));
+        } catch (error) {
+            console.warn('⚠️ Error normalizando datos:', error);
+        }
+    }
+
+    getStockMinimo(producto) {
+        return producto?.stockMinimo ?? producto?.stock_minimo ?? 0;
+    }
+
+    getDuracionMinutos(sesion) {
+        if (!sesion) return 0;
+        return sesion.duracion_minutos ?? ((sesion.tiempo_contratado ?? 0) + (sesion.tiempo_adicional ?? 0));
+    }
+
+    getTarifaHora(sala) {
+        if (!sala) return 0;
+        return sala.tarifaHora ?? sala.tarifa_hora ?? (sala.tarifas?.tarifaHora ?? sala.tarifas?.tarifa_hora ?? 0);
     }
 
     calcularMetricasMes() {
@@ -260,19 +404,22 @@ class DashboardManager {
     // ===== SESIONES ACTIVAS =====
     async actualizarSesionesActivas() {
         try {
-            const sesionesActivas = this.datos.sesiones.filter(s => !s.finalizada);
-            const tbody = document.getElementById('tablaSesionesActivas');
-            const badge = document.getElementById('totalSesionesActivas');
+            const tablaSesionesActivas = document.getElementById('tablaSesionesActivas');
+            const totalSesionesActivas = document.getElementById('totalSesionesActivas');
             
-            if (badge) badge.textContent = sesionesActivas.length;
+            if (!tablaSesionesActivas || !totalSesionesActivas) return;
 
-            if (!tbody) return;
+            // Filtrar sesiones activas (no finalizadas)
+            const sesionesActivas = this.datos.sesiones.filter(s => !s.fecha_fin);
+            const salasMap = new Map(this.datos.salas.map(s => [s.id, s]));
+
+            totalSesionesActivas.textContent = sesionesActivas.length;
 
             if (sesionesActivas.length === 0) {
-                tbody.innerHTML = `
+                tablaSesionesActivas.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
-                            <i class="fas fa-clock me-2"></i>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            <i class="fas fa-clock fa-2x mb-2"></i><br>
                             No hay sesiones activas
                         </td>
                     </tr>
@@ -280,34 +427,88 @@ class DashboardManager {
                 return;
             }
 
-            tbody.innerHTML = sesionesActivas.map(sesion => {
-                const sala = this.datos.salas.find(s => s.id === sesion.sala_id);
+            // Ordenar por tiempo transcurrido (más recientes primero)
+            sesionesActivas.sort((a, b) => new Date(b.fecha_inicio) - new Date(a.fecha_inicio));
+
+            tablaSesionesActivas.innerHTML = sesionesActivas.slice(0, 5).map(sesion => {
+                const sala = salasMap.get(sesion.sala_id);
                 const tiempoTranscurrido = this.calcularTiempoTranscurrido(sesion.fecha_inicio);
-                const costoActual = this.calcularCostoSesion(sesion, sala);
-                
+                const costo = this.calcularCostoSesion(sesion, sala);
+                const tiempoRestante = this.calcularTiempoRestante(sesion.fecha_inicio, this.getDuracionMinutos(sesion));
+
                 return `
                     <tr>
                         <td>
-                            <strong>${sesion.cliente}</strong><br>
-                            <small class="text-muted">${sesion.estacion}</small>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-gamepad me-2 text-primary"></i>
+                                <div>
+                                    <strong>${sala ? sala.nombre : 'Sala'}</strong><br>
+                                    <small class="text-muted">${sesion.estacion || 'Estación'}</small>
+                                </div>
+                            </div>
                         </td>
-                        <td>${sala ? sala.nombre : 'N/A'}</td>
-                        <td>${this.formatearFecha(sesion.fecha_inicio)}</td>
                         <td>
-                            <span class="badge bg-primary">${tiempoTranscurrido}</span>
+                            <div>
+                                <strong>${sesion.cliente || 'Cliente'}</strong><br>
+                                <small class="text-muted">${this.formatearFechaRelativa(sesion.fecha_inicio)}</small>
+                            </div>
                         </td>
-                        <td>${this.formatearMoneda(costoActual)}</td>
                         <td>
-                            <button class="btn btn-sm btn-success" onclick="dashboard.finalizarSesion('${sesion.id}')">
-                                <i class="fas fa-stop me-1"></i>Finalizar
-                            </button>
+                            <div>
+                                <span class="badge bg-info">${tiempoTranscurrido}</span><br>
+                                <small class="text-muted">${tiempoRestante}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <strong class="text-success">${this.formatearMoneda(costo)}</strong>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-outline-primary btn-sm" 
+                                        onclick="window.dashboardManager.agregarTiempo('${sesion.id}')"
+                                        title="Agregar tiempo">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button class="btn btn-outline-success btn-sm" 
+                                        onclick="window.dashboardManager.agregarProductos('${sesion.id}')"
+                                        title="Agregar productos">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm" 
+                                        onclick="window.dashboardManager.finalizarSesion('${sesion.id}')"
+                                        title="Finalizar sesión">
+                                    <i class="fas fa-stop"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
             }).join('');
 
+            // Mostrar indicador si hay más sesiones
+            if (sesionesActivas.length > 5) {
+                const filaExtra = document.createElement('tr');
+                filaExtra.innerHTML = `
+                    <td colspan="5" class="text-center text-muted py-2">
+                        <small>Y ${sesionesActivas.length - 5} sesiones más...</small>
+                    </td>
+                `;
+                tablaSesionesActivas.appendChild(filaExtra);
+            }
+
         } catch (error) {
-            console.error('Error actualizando sesiones activas:', error);
+            console.error('❌ Error actualizando sesiones activas:', error);
+            const tablaSesionesActivas = document.getElementById('tablaSesionesActivas');
+            if (tablaSesionesActivas) {
+                tablaSesionesActivas.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger py-4">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>
+                            Error cargando sesiones
+                        </td>
+                    </tr>
+                `;
+            }
         }
     }
 
@@ -382,168 +583,294 @@ class DashboardManager {
     // ===== ALERTAS =====
     async actualizarAlertas() {
         try {
-            const alertasContainer = document.getElementById('alertasSistema');
-            if (!alertasContainer) return;
+            const alertasSistema = document.getElementById('alertasSistema');
+            if (!alertasSistema) return;
 
             const alertas = [];
 
-            // Verificar stock bajo
-            const productosStockBajo = this.datos.productos.filter(p => 
-                p.stock <= (p.stock_minimo || 5)
-            );
+            // 1. Alertas de stock
+            const productosStockBajo = this.datos.productos.filter(p => p.stock > 0 && p.stock <= this.getStockMinimo(p));
+            const productosAgotados = this.datos.productos.filter(p => p.stock === 0);
             
+            if (productosAgotados.length > 0) {
+                alertas.push({
+                    tipo: 'danger',
+                    icono: 'fas fa-exclamation-triangle',
+                    titulo: 'Productos Agotados',
+                    mensaje: `${productosAgotados.length} productos sin stock`,
+                    accion: 'Ver Stock',
+                    url: 'pages/stock.html'
+                });
+            }
+
             if (productosStockBajo.length > 0) {
                 alertas.push({
                     tipo: 'warning',
-                    icono: 'fas fa-exclamation-triangle',
+                    icono: 'fas fa-exclamation-circle',
+                    titulo: 'Stock Bajo',
                     mensaje: `${productosStockBajo.length} productos con stock bajo`,
                     accion: 'Ver Stock',
-                    enlace: 'stock.html'
+                    url: 'pages/stock.html'
                 });
             }
 
-            // Verificar sesiones largas (más de 4 horas)
-            const sesionesLargas = this.datos.sesiones.filter(s => {
-                if (s.finalizada) return false;
-                const tiempoTranscurrido = (new Date() - new Date(s.fecha_inicio)) / (1000 * 60);
-                return tiempoTranscurrido > 240; // 4 horas
+            // 2. Alertas de sesiones
+            const sesionesActivas = this.datos.sesiones.filter(s => !s.fecha_fin);
+            const sesionesVencidas = sesionesActivas.filter(s => {
+                const inicio = new Date(s.fecha_inicio);
+                const duracionMs = (this.getDuracionMinutos(s) || 0) * 60 * 1000;
+                const fin = new Date(inicio.getTime() + duracionMs);
+                return new Date() > fin;
             });
 
-            if (sesionesLargas.length > 0) {
-                alertas.push({
-                    tipo: 'info',
-                    icono: 'fas fa-clock',
-                    mensaje: `${sesionesLargas.length} sesiones activas por más de 4 horas`,
-                    accion: 'Revisar',
-                    enlace: 'salas.html'
-                });
-            }
-
-            // Verificar gastos del día
-            const hoy = new Date().toDateString();
-            const gastosHoy = this.datos.gastos.filter(g => 
-                new Date(g.fecha_gasto).toDateString() === hoy
-            );
-            const totalGastosHoy = gastosHoy.reduce((sum, g) => sum + g.monto, 0);
-
-            if (totalGastosHoy > 100000) { // Más de 100k en gastos del día
+            if (sesionesVencidas.length > 0) {
                 alertas.push({
                     tipo: 'warning',
-                    icono: 'fas fa-money-bill-wave',
-                    mensaje: `Gastos del día: ${this.formatearMoneda(totalGastosHoy)}`,
-                    accion: 'Ver Gastos',
-                    enlace: 'gastos.html'
+                    icono: 'fas fa-clock',
+                    titulo: 'Sesiones Vencidas',
+                    mensaje: `${sesionesVencidas.length} sesiones han vencido`,
+                    accion: 'Ver Salas',
+                    url: 'pages/salas.html'
                 });
             }
 
+            // 3. Alertas de ocupación
+            const salasOcupadas = sesionesActivas.length;
+            const totalSalas = this.datos.salas.reduce((total, sala) => total + (sala.num_estaciones || 0), 0);
+            const ocupacion = totalSalas > 0 ? (salasOcupadas / totalSalas) * 100 : 0;
+
+            if (ocupacion >= 90) {
+                alertas.push({
+                    tipo: 'info',
+                    icono: 'fas fa-users',
+                    titulo: 'Alta Ocupación',
+                    mensaje: 'Sistema al 90% de capacidad',
+                    accion: 'Ver Salas',
+                    url: 'pages/salas.html'
+                });
+            }
+
+            // 4. Alertas de ingresos
+            const ingresosHoy = this.calcularMetricasHoy().ingresosDia;
+            const metaDiaria = this.datos.configuracion.metaIngresosDiarios || 100000;
+            
+            if (ingresosHoy < metaDiaria * 0.5) {
+                alertas.push({
+                    tipo: 'info',
+                    icono: 'fas fa-chart-line',
+                    titulo: 'Ingresos Bajos',
+                    mensaje: 'Ingresos por debajo del 50% de la meta',
+                    accion: 'Ver Reportes',
+                    url: 'pages/reportes.html'
+                });
+            }
+
+            // Mostrar alertas
             if (alertas.length === 0) {
-                alertasContainer.innerHTML = `
-                    <div class="text-center text-success py-3">
+                alertasSistema.innerHTML = `
+                    <div class="alert alert-success">
                         <i class="fas fa-check-circle me-2"></i>
-                        Todo funcionando correctamente
+                        <strong>Sistema en orden</strong><br>
+                        <small class="text-muted">No hay alertas pendientes</small>
                     </div>
                 `;
                 return;
             }
 
-            alertasContainer.innerHTML = alertas.map(alerta => `
-                <div class="alert alert-${alerta.tipo} d-flex align-items-center justify-content-between mb-2">
-                    <div class="d-flex align-items-center">
-                        <i class="${alerta.icono} me-2"></i>
-                        <span>${alerta.mensaje}</span>
+            // Mostrar máximo 3 alertas
+            const alertasMostrar = alertas.slice(0, 3);
+            
+            alertasSistema.innerHTML = alertasMostrar.map(alerta => `
+                <div class="alert alert-${alerta.tipo} mb-3">
+                    <div class="d-flex align-items-start">
+                        <i class="${alerta.icono} me-2 mt-1"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${alerta.titulo}</h6>
+                            <p class="mb-2 small">${alerta.mensaje}</p>
+                            <a href="${alerta.url}" class="btn btn-sm btn-outline-${alerta.tipo}">
+                                ${alerta.accion}
+                            </a>
+                        </div>
                     </div>
-                    <a href="${alerta.enlace}" class="btn btn-sm btn-outline-${alerta.tipo}">
-                        ${alerta.accion}
-                    </a>
                 </div>
             `).join('');
 
+            // Mostrar indicador si hay más alertas
+            if (alertas.length > 3) {
+                const indicadorExtra = document.createElement('div');
+                indicadorExtra.className = 'text-center text-muted';
+                indicadorExtra.innerHTML = `
+                    <small>Y ${alertas.length - 3} alertas más...</small>
+                `;
+                alertasSistema.appendChild(indicadorExtra);
+            }
+
         } catch (error) {
-            console.error('Error actualizando alertas:', error);
+            console.error('❌ Error actualizando alertas:', error);
+            const alertasSistema = document.getElementById('alertasSistema');
+            if (alertasSistema) {
+                alertasSistema.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error cargando alertas del sistema
+                    </div>
+                `;
+            }
         }
     }
 
     // ===== ESTADO DE STOCK =====
     async actualizarEstadoStock() {
         try {
-            const stockContainer = document.getElementById('estadoStock');
-            if (!stockContainer) return;
+            const estadoStock = document.getElementById('estadoStock');
+            if (!estadoStock) return;
 
-            if (this.datos.productos.length === 0) {
-                stockContainer.innerHTML = `
-                    <div class="text-center text-muted py-3">
-                        <i class="fas fa-boxes me-2"></i>
-                        No hay productos registrados
+            // Obtener productos con stock bajo o agotado
+            const productosAgotados = this.datos.productos.filter(p => p.stock === 0);
+            const productosStockBajo = this.datos.productos.filter(p => p.stock > 0 && p.stock <= this.getStockMinimo(p));
+
+            let html = '';
+
+            if (productosAgotados.length > 0) {
+                html += `
+                    <div class="alert alert-danger mb-3">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Productos Agotados</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless mb-0">
+                                <tbody>
+                                    ${productosAgotados.slice(0, 3).map(p => `
+                                        <tr>
+                                            <td><strong>${p.nombre}</strong></td>
+                                            <td class="text-end"><span class="badge bg-danger">Agotado</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        ${productosAgotados.length > 3 ? `<small class="text-muted">Y ${productosAgotados.length - 3} más...</small>` : ''}
                     </div>
                 `;
-                return;
             }
 
-            // Productos con stock crítico (stock <= stock_mínimo)
-            const stockCritico = this.datos.productos.filter(p => p.stock <= (p.stock_minimo || 0));
-            const stockBajo = this.datos.productos.filter(p => 
-                p.stock > (p.stock_minimo || 0) && p.stock <= (p.stock_minimo || 0) * 2
-            );
-            const stockNormal = this.datos.productos.filter(p => 
-                p.stock > (p.stock_minimo || 0) * 2
-            );
+            if (productosStockBajo.length > 0) {
+                html += `
+                    <div class="alert alert-warning mb-3">
+                        <h6><i class="fas fa-exclamation-circle me-2"></i>Stock Bajo</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless mb-0">
+                                <tbody>
+                                    ${productosStockBajo.slice(0, 3).map(p => `
+                                        <tr>
+                                            <td><strong>${p.nombre}</strong></td>
+                                            <td class="text-end"><span class="badge bg-warning">${p.stock} unidades</span></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        ${productosStockBajo.length > 3 ? `<small class="text-muted">Y ${productosStockBajo.length - 3} más...</small>` : ''}
+                    </div>
+                `;
+            }
 
-            stockContainer.innerHTML = `
-                <div class="row text-center">
+            if (productosAgotados.length === 0 && productosStockBajo.length === 0) {
+                html = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Stock en orden</strong><br>
+                        <small class="text-muted">Todos los productos tienen stock suficiente</small>
+                    </div>
+                `;
+            }
+
+            // Agregar resumen de stock
+            const totalProductos = this.datos.productos.length;
+            const productosConStock = this.datos.productos.filter(p => p.stock > 0).length;
+            const valorTotalStock = this.datos.productos.reduce((total, p) => total + (p.stock * (p.precio || 0)), 0);
+
+            html += `
+                <div class="row text-center mt-3">
                     <div class="col-4">
-                        <div class="text-danger">
-                            <i class="fas fa-exclamation-triangle d-block mb-1"></i>
-                            <div class="fw-bold">${stockCritico.length}</div>
-                            <small>Crítico</small>
+                        <div class="border-end">
+                            <h6 class="text-muted mb-1">Total</h6>
+                            <strong class="text-primary">${totalProductos}</strong>
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="text-warning">
-                            <i class="fas fa-exclamation-circle d-block mb-1"></i>
-                            <div class="fw-bold">${stockBajo.length}</div>
-                            <small>Bajo</small>
+                        <div class="border-end">
+                            <h6 class="text-muted mb-1">Con Stock</h6>
+                            <strong class="text-success">${productosConStock}</strong>
                         </div>
                     </div>
                     <div class="col-4">
-                        <div class="text-success">
-                            <i class="fas fa-check-circle d-block mb-1"></i>
-                            <div class="fw-bold">${stockNormal.length}</div>
-                            <small>Normal</small>
-                        </div>
+                        <h6 class="text-muted mb-1">Valor</h6>
+                        <strong class="text-info">${this.formatearMoneda(valorTotalStock)}</strong>
                     </div>
                 </div>
-                
-                ${stockCritico.length > 0 ? `
-                    <hr>
-                    <div class="small">
-                        <strong>Stock crítico:</strong><br>
-                        ${stockCritico.slice(0, 3).map(p => 
-                            `• ${p.nombre} (${p.stock} unidades)`
-                        ).join('<br>')}
-                        ${stockCritico.length > 3 ? `<br>... y ${stockCritico.length - 3} más` : ''}
-                    </div>
-                ` : ''}
             `;
 
+            estadoStock.innerHTML = html;
+
         } catch (error) {
-            console.error('Error actualizando estado de stock:', error);
+            console.error('❌ Error actualizando estado del stock:', error);
+            const estadoStock = document.getElementById('estadoStock');
+            if (estadoStock) {
+                estadoStock.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error cargando estado del stock
+                    </div>
+                `;
+            }
         }
     }
 
     // ===== GRÁFICOS =====
     inicializarGraficos() {
+        // Limpiar gráficos existentes antes de crear nuevos
+        this.limpiarGraficos();
+        
+        // Crear nuevos gráficos
         this.crearGraficoIngresos();
         this.crearGraficoDistribucionSalas();
+    }
+    
+    limpiarGraficos() {
+        // Destruir gráficos existentes si existen
+        if (this.charts.ingresos) {
+            this.charts.ingresos.destroy();
+            this.charts.ingresos = null;
+        }
+        if (this.charts.distribucion) {
+            this.charts.distribucion.destroy();
+            this.charts.distribucion = null;
+        }
+        
+        // Limpiar el objeto de gráficos
+        this.charts = {};
+        
+        console.log('🧹 Gráficos limpiados correctamente');
     }
 
     crearGraficoIngresos() {
         const ctx = document.getElementById('ingresoChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.log('⚠️ Canvas ingresoChart no encontrado, omitiendo gráfico de ingresos');
+            return;
+        }
+
+        // Verificar que el canvas no esté siendo usado por otro gráfico
+        if (ctx.chart) {
+            console.log('⚠️ Canvas ingresoChart ya tiene un gráfico, destruyendo el anterior...');
+            ctx.chart.destroy();
+            ctx.chart = null;
+        }
 
         // Datos de ingresos por día (últimos 7 días)
         const datos = this.obtenerDatosIngresosSemana();
 
-        this.charts.ingresos = new Chart(ctx, {
+        try {
+            this.charts.ingresos = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: datos.labels,
@@ -574,15 +901,35 @@ class DashboardManager {
                 }
             }
         });
+            
+            // Marcar el canvas como usado por este gráfico
+            ctx.chart = this.charts.ingresos;
+            
+            console.log('✅ Gráfico de ingresos creado correctamente');
+        } catch (error) {
+            console.error('❌ Error creando gráfico de ingresos:', error);
+            this.charts.ingresos = null;
+        }
     }
 
     crearGraficoDistribucionSalas() {
         const ctx = document.getElementById('distribucionSalasChart');
-        if (!ctx) return;
+        if (!ctx) {
+            console.log('⚠️ Canvas distribucionSalasChart no encontrado, omitiendo gráfico de distribución');
+            return;
+        }
+
+        // Verificar que el canvas no esté siendo usado por otro gráfico
+        if (ctx.chart) {
+            console.log('⚠️ Canvas distribucionSalasChart ya tiene un gráfico, destruyendo el anterior...');
+            ctx.chart.destroy();
+            ctx.chart = null;
+        }
 
         const datos = this.obtenerDistribucionSalas();
 
-        this.charts.distribucion = new Chart(ctx, {
+        try {
+            this.charts.distribucion = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: datos.labels,
@@ -608,6 +955,15 @@ class DashboardManager {
                 }
             }
         });
+            
+            // Marcar el canvas como usado por este gráfico
+            ctx.chart = this.charts.distribucion;
+            
+            console.log('✅ Gráfico de distribución de salas creado correctamente');
+        } catch (error) {
+            console.error('❌ Error creando gráfico de distribución de salas:', error);
+            this.charts.distribucion = null;
+        }
     }
 
     obtenerDatosIngresosSemana() {
@@ -864,21 +1220,124 @@ class DashboardManager {
     destruir() {
         // Limpiar intervalos
         this.intervalos.forEach(clearInterval);
+        this.intervalos = [];
         
         // Destruir gráficos
-        Object.values(this.charts).forEach(chart => {
-            if (chart) chart.destroy();
-        });
+        this.limpiarGraficos();
         
+        // Limpiar instancia global
+        if (window.dashboardManagerInstance === this) {
+            window.dashboardManagerInstance = null;
+        }
+        
+        this.inicializado = false;
         console.log('🧹 Dashboard Manager destruido');
     }
+    
+    reinicializar() {
+        console.log('🔄 Reinicializando Dashboard Manager...');
+        this.destruir();
+        this.init();
+    }
+
+    // ===== FUNCIONES AUXILIARES PARA ACCIONES DE SALAS =====
+    
+    agregarTiempo(sesionId) {
+        try {
+            console.log('⏰ Agregando tiempo a sesión:', sesionId);
+            
+            // Redirigir a la página de salas con la sesión seleccionada
+            if (window.gestorSalas && typeof window.gestorSalas.agregarTiempo === 'function') {
+                window.gestorSalas.agregarTiempo(sesionId);
+            } else {
+                // Si no está disponible, redirigir a la página de salas
+                window.location.href = 'pages/salas.html';
+            }
+        } catch (error) {
+            console.error('❌ Error agregando tiempo:', error);
+            this.mostrarNotificacion('Error al agregar tiempo', 'error');
+        }
+    }
+
+    agregarProductos(sesionId) {
+        try {
+            console.log('🛒 Agregando productos a sesión:', sesionId);
+            
+            // Redirigir a la página de salas con la sesión seleccionada
+            if (window.gestorSalas && typeof window.gestorSalas.agregarProductos === 'function') {
+                window.gestorSalas.agregarProductos(sesionId);
+            } else {
+                // Si no está disponible, redirigir a la página de salas
+                window.location.href = 'pages/salas.html';
+            }
+        } catch (error) {
+            console.error('❌ Error agregando productos:', error);
+            this.mostrarNotificacion('Error al agregar productos', 'error');
+        }
+    }
+
+    finalizarSesion(sesionId) {
+        try {
+            console.log('⏹️ Finalizando sesión:', sesionId);
+            
+            // Redirigir a la página de salas con la sesión seleccionada
+            if (window.gestorSalas && typeof window.gestorSalas.finalizarSesion === 'function') {
+                window.gestorSalas.finalizarSesion(sesionId);
+            } else {
+                // Si no está disponible, redirigir a la página de salas
+                window.location.href = 'pages/salas.html';
+            }
+        } catch (error) {
+            console.error('❌ Error finalizando sesión:', error);
+            this.mostrarNotificacion('Error al finalizar sesión', 'error');
+        }
+    }
+
+    calcularTiempoRestante(fechaInicio, duracionMinutos) {
+        try {
+            const inicio = new Date(fechaInicio);
+            const ahora = new Date();
+            const duracionMs = (duracionMinutos || 0) * 60 * 1000;
+            const fin = new Date(inicio.getTime() + duracionMs);
+            
+            if (ahora >= fin) {
+                return '<span class="text-danger">Vencida</span>';
+            }
+            
+            const tiempoRestante = fin - ahora;
+            const minutosRestantes = Math.ceil(tiempoRestante / (60 * 1000));
+            
+            if (minutosRestantes <= 5) {
+                return `<span class="text-warning">${minutosRestantes}m</span>`;
+            } else if (minutosRestantes <= 15) {
+                return `<span class="text-info">${minutosRestantes}m</span>`;
+            } else {
+                return `<span class="text-success">${minutosRestantes}m</span>`;
+            }
+        } catch (error) {
+            return '--';
+        }
+    }
+
+    // ===== FUNCIONES DE UTILIDAD =====
 }
 
 // ===== INICIALIZACIÓN =====
 let dashboard;
 
 document.addEventListener('DOMContentLoaded', () => {
-    dashboard = new DashboardManager();
+    console.log('📊 Dashboard.js: DOMContentLoaded event fired');
+    console.log('📊 Dashboard.js: DashboardManager class available:', typeof DashboardManager);
+    
+    try {
+        dashboard = new DashboardManager();
+        console.log('📊 Dashboard.js: Dashboard instance created successfully');
+        
+        // Exportar inmediatamente después de crear la instancia
+        window.dashboard = dashboard;
+    } catch (error) {
+        console.error('❌ Dashboard.js: Error creating Dashboard instance:', error);
+    }
 });
 
 // Limpiar al salir de la página
@@ -888,5 +1347,28 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// Exportar para uso global
-window.dashboard = dashboard; 
+// Exportar para uso global - hacerlo inmediatamente
+window.DashboardManager = DashboardManager;
+
+// Método global para acceder al dashboard de forma segura
+window.getDashboardManager = () => {
+    if (window.dashboardManagerInstance) {
+        return window.dashboardManagerInstance;
+    }
+    
+    if (window.DashboardManager) {
+        try {
+            return new window.DashboardManager();
+        } catch (error) {
+            console.error('❌ Error creando nueva instancia de DashboardManager:', error);
+            return null;
+        }
+    }
+    
+    return null;
+};
+
+// Log para debugging
+console.log('📊 Dashboard.js: Script loaded, DashboardManager class:', typeof DashboardManager);
+console.log('📊 Dashboard.js: DashboardManager added to window:', typeof window.DashboardManager);
+console.log('📊 Dashboard.js: getDashboardManager function added:', typeof window.getDashboardManager); 

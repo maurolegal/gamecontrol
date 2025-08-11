@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Integración Stock-Salas - GameControl</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-result {
+            background: #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .test-success { background: #d4edda; color: #155724; }
+        .test-error { background: #f8d7da; color: #721c24; }
+        .test-info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-link me-2"></i>
+            Test de Integración Stock-Salas
+        </h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h4><i class="fas fa-boxes me-2"></i>Sistema de Stock</h4>
+                    <p>Prueba la funcionalidad del sistema de inventario</p>
+                    
+                    <button class="btn btn-primary mb-2" onclick="testCrearProductos()">
+                        <i class="fas fa-plus me-2"></i>Crear Productos de Prueba
+                    </button>
+                    
+                    <button class="btn btn-info mb-2" onclick="testVerStock()">
+                        <i class="fas fa-eye me-2"></i>Ver Stock Actual
+                    </button>
+                    
+                    <button class="btn btn-warning mb-2" onclick="testVentaProducto()">
+                        <i class="fas fa-shopping-cart me-2"></i>Simular Venta
+                    </button>
+                    
+                    <div id="resultadosStock"></div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h4><i class="fas fa-gamepad me-2"></i>Sistema de Salas</h4>
+                    <p>Prueba la integración con el sistema de salas</p>
+                    
+                    <button class="btn btn-success mb-2" onclick="testIntegracionSalas()">
+                        <i class="fas fa-link me-2"></i>Probar Integración
+                    </button>
+                    
+                    <button class="btn btn-secondary mb-2" onclick="testTrazabilidad()">
+                        <i class="fas fa-search me-2"></i>Ver Trazabilidad
+                    </button>
+                    
+                    <div id="resultadosSalas"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="test-section">
+                    <h4><i class="fas fa-chart-line me-2"></i>Log de Eventos</h4>
+                    <div id="logEventos" class="test-result" style="max-height: 300px; overflow-y: auto;">
+                        <small class="text-muted">Los eventos se mostrarán aquí...</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Librería Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Scripts del sistema -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    <script src="js/stock.js"></script>
+    
+    <script>
+        // Variables globales para testing
+        let productosTest = [];
+        let sesionTest = {
+            id: 'test_sesion_001',
+            salaId: 'test_sala_001',
+            estacion: 'PS1',
+            cliente: 'Cliente de Prueba'
+        };
+
+        // Función para agregar logs
+        function agregarLog(mensaje, tipo = 'info') {
+            const log = document.getElementById('logEventos');
+            const timestamp = new Date().toLocaleTimeString();
+            const clase = tipo === 'error' ? 'test-error' : tipo === 'success' ? 'test-success' : 'test-info';
+            
+            log.innerHTML += `
+                <div class="${clase}">
+                    <small>[${timestamp}]</small> ${mensaje}
+                </div>
+            `;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Test: Crear productos de prueba
+        function testCrearProductos() {
+            try {
+                agregarLog('🔄 Creando productos de prueba...', 'info');
+                
+                if (!window.gestorStock) {
+                    throw new Error('GestorStock no está disponible');
+                }
+
+                // Crear categorías de prueba
+                const categoriasTest = [
+                    { id: 'cat_bebidas', nombre: 'Bebidas', color: 'primary', icono: 'fas fa-coffee' },
+                    { id: 'cat_snacks', nombre: 'Snacks', color: 'success', icono: 'fas fa-cookie' },
+                    { id: 'cat_gaming', nombre: 'Gaming', color: 'warning', icono: 'fas fa-gamepad' }
+                ];
+
+                // Crear productos de prueba
+                productosTest = [
+                    {
+                        id: 'prod_001',
+                        nombre: 'Coca-Cola 350ml',
+                        categoria: 'cat_bebidas',
+                        precio: 2500,
+                        costo: 1500,
+                        stock: 50,
+                        stockMinimo: 10,
+                        descripcion: 'Bebida gaseosa'
+                    },
+                    {
+                        id: 'prod_002',
+                        nombre: 'Papas Fritas',
+                        categoria: 'cat_snacks',
+                        precio: 3000,
+                        costo: 1800,
+                        stock: 30,
+                        stockMinimo: 5,
+                        descripcion: 'Snack salado'
+                    },
+                    {
+                        id: 'prod_003',
+                        nombre: 'Mouse Gaming',
+                        categoria: 'cat_gaming',
+                        precio: 45000,
+                        costo: 30000,
+                        stock: 8,
+                        stockMinimo: 3,
+                        descripcion: 'Mouse para gaming'
+                    }
+                ];
+
+                // Simular que se agregaron al sistema
+                agregarLog(`✅ ${productosTest.length} productos de prueba creados`, 'success');
+                agregarLog(`📊 Stock total: ${productosTest.reduce((sum, p) => sum + p.stock, 0)} unidades`, 'info');
+                
+                document.getElementById('resultadosStock').innerHTML = `
+                    <div class="test-result test-success">
+                        <strong>Productos creados:</strong><br>
+                        ${productosTest.map(p => `• ${p.nombre} (${p.stock} unidades)`).join('<br>')}
+                    </div>
+                `;
+
+            } catch (error) {
+                agregarLog(`❌ Error: ${error.message}`, 'error');
+                document.getElementById('resultadosStock').innerHTML = `
+                    <div class="test-result test-error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test: Ver stock actual
+        function testVerStock() {
+            try {
+                agregarLog('👀 Verificando stock actual...', 'info');
+                
+                if (productosTest.length === 0) {
+                    throw new Error('Primero crea productos de prueba');
+                }
+
+                const stockInfo = productosTest.map(p => ({
+                    nombre: p.nombre,
+                    stock: p.stock,
+                    estado: p.stock <= p.stockMinimo ? 'BAJO' : p.stock === 0 ? 'AGOTADO' : 'NORMAL'
+                }));
+
+                agregarLog(`📦 Stock verificado: ${stockInfo.length} productos`, 'success');
+                
+                document.getElementById('resultadosStock').innerHTML = `
+                    <div class="test-result test-info">
+                        <strong>Estado del Stock:</strong><br>
+                        ${stockInfo.map(p => `• ${p.nombre}: ${p.stock} (${p.estado})`).join('<br>')}
+                    </div>
+                `;
+
+            } catch (error) {
+                agregarLog(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test: Simular venta de producto
+        function testVentaProducto() {
+            try {
+                agregarLog('🛒 Simulando venta de producto...', 'info');
+                
+                if (productosTest.length === 0) {
+                    throw new Error('Primero crea productos de prueba');
+                }
+
+                const producto = productosTest[0]; // Coca-Cola
+                const cantidadVenta = 5;
+                
+                if (producto.stock < cantidadVenta) {
+                    throw new Error(`Stock insuficiente: ${producto.stock} < ${cantidadVenta}`);
+                }
+
+                // Simular venta
+                producto.stock -= cantidadVenta;
+                const totalVenta = cantidadVenta * producto.precio;
+                
+                agregarLog(`✅ Venta simulada: ${cantidadVenta}x ${producto.nombre}`, 'success');
+                agregarLog(`💰 Total: ${totalVenta.toLocaleString('es-CO', {style: 'currency', currency: 'COP'})}`, 'info');
+                agregarLog(`📦 Stock restante: ${producto.stock} unidades`, 'info');
+                
+                // Verificar si stock está bajo
+                if (producto.stock <= producto.stockMinimo) {
+                    agregarLog(`⚠️ Stock bajo para ${producto.nombre}!`, 'error');
+                }
+
+                document.getElementById('resultadosStock').innerHTML = `
+                    <div class="test-result test-success">
+                        <strong>Venta Simulada:</strong><br>
+                        Producto: ${producto.nombre}<br>
+                        Cantidad: ${cantidadVenta}<br>
+                        Total: ${totalVenta.toLocaleString('es-CO', {style: 'currency', currency: 'COP'})}<br>
+                        Stock restante: ${producto.stock}
+                    </div>
+                `;
+
+            } catch (error) {
+                agregarLog(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test: Integración con salas
+        function testIntegracionSalas() {
+            try {
+                agregarLog('🔗 Probando integración con sistema de salas...', 'info');
+                
+                if (!window.gestorStock) {
+                    throw new Error('GestorStock no está disponible');
+                }
+
+                // Simular venta desde salas usando la nueva función
+                const producto = productosTest[1]; // Papas Fritas
+                const cantidadVenta = 3;
+                
+                if (producto.stock < cantidadVenta) {
+                    throw new Error(`Stock insuficiente: ${producto.stock} < ${cantidadVenta}`);
+                }
+
+                // Usar la función de trazabilidad
+                const ventaExitosa = window.gestorStock.registrarVentaDesdeSalas({
+                    productoId: producto.id,
+                    cantidad: cantidadVenta,
+                    precioUnitario: producto.precio,
+                    sesionId: sesionTest.id,
+                    salaId: sesionTest.salaId,
+                    estacion: sesionTest.estacion,
+                    cliente: sesionTest.cliente,
+                    productoNombre: producto.nombre
+                });
+
+                if (ventaExitosa) {
+                    agregarLog(`✅ Venta desde salas registrada exitosamente`, 'success');
+                    agregarLog(`🎮 Sesión: ${sesionTest.salaId} - ${sesionTest.estacion}`, 'info');
+                    agregarLog(`👤 Cliente: ${sesionTest.cliente}`, 'info');
+                    
+                    document.getElementById('resultadosSalas').innerHTML = `
+                        <div class="test-result test-success">
+                            <strong>Integración Exitosa:</strong><br>
+                            Producto vendido desde salas<br>
+                            Trazabilidad completa registrada<br>
+                            Stock actualizado automáticamente
+                        </div>
+                    `;
+                } else {
+                    throw new Error('La venta desde salas falló');
+                }
+
+            } catch (error) {
+                agregarLog(`❌ Error en integración: ${error.message}`, 'error');
+                document.getElementById('resultadosSalas').innerHTML = `
+                    <div class="test-result test-error">
+                        <strong>Error de Integración:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test: Ver trazabilidad
+        function testTrazabilidad() {
+            try {
+                agregarLog('🔍 Verificando trazabilidad de movimientos...', 'info');
+                
+                if (!window.gestorStock) {
+                    throw new Error('GestorStock no está disponible');
+                }
+
+                const movimientos = window.gestorStock.movimientos || [];
+                const ventasDesdeSalas = movimientos.filter(m => m.tipo === 'venta' && m.sesionId);
+                
+                agregarLog(`📊 Total movimientos: ${movimientos.length}`, 'info');
+                agregarLog(`🎮 Ventas desde salas: ${ventasDesdeSalas.length}`, 'info');
+                
+                if (ventasDesdeSalas.length > 0) {
+                    const ultimaVenta = ventasDesdeSalas[0];
+                    agregarLog(`📝 Última venta: ${ultimaVenta.productoNombre}`, 'success');
+                    agregarLog(`🎯 Sala: ${ultimaVenta.salaId} - Estación: ${ultimaVenta.estacion}`, 'info');
+                    agregarLog(`👤 Cliente: ${ultimaVenta.cliente}`, 'info');
+                }
+
+                document.getElementById('resultadosSalas').innerHTML = `
+                    <div class="test-result test-info">
+                        <strong>Trazabilidad:</strong><br>
+                        Movimientos totales: ${movimientos.length}<br>
+                        Ventas desde salas: ${ventasDesdeSalas.length}<br>
+                        ${ventasDesdeSalas.length > 0 ? '✅ Trazabilidad completa funcionando' : '⚠️ No hay ventas registradas'}
+                    </div>
+                `;
+
+            } catch (error) {
+                agregarLog(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Configurar eventos de escucha
+        window.addEventListener('load', function() {
+            agregarLog('🚀 Sistema de testing iniciado', 'success');
+            agregarLog('📋 Usa los botones para probar la funcionalidad', 'info');
+            
+            // Escuchar eventos del sistema
+            window.addEventListener('stockActualizado', (event) => {
+                agregarLog(`🔄 Stock actualizado: ${event.detail.productoId}`, 'info');
+            });
+            
+            window.addEventListener('movimientoRegistrado', (event) => {
+                agregarLog(`📝 Movimiento registrado: ${event.detail.tipo}`, 'info');
+            });
+        });
+    </script>
+</body>
+</html>

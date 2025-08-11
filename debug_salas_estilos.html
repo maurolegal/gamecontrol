@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Salas - Estilos</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Debug de Estilos de Salas</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Prueba de Estilos</h3>
+                
+                <!-- Prueba de salas grid minimal -->
+                <div class="salas-grid-minimal">
+                    <div class="sala-card-minimal">
+                        <div class="sala-header-minimal">
+                            <div class="sala-info-minimal">
+                                <div class="sala-title-minimal">
+                                    <i class="fas fa-gamepad"></i>
+                                    Sala de Prueba
+                                    <span class="sala-type-badge">PS5</span>
+                                </div>
+                                <div class="sala-stats-minimal">
+                                    <span class="sala-stat">
+                                        <i class="fas fa-clock"></i>
+                                        $2/min
+                                    </span>
+                                    <span class="sala-stat">
+                                        <i class="fas fa-users"></i>
+                                        4 jugadores
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="sala-actions-minimal">
+                                <button class="btn btn-outline-primary btn-sm" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="estaciones-grid-minimal">
+                            <div class="estacion-minimal disponible">
+                                <div class="estacion-numero-minimal">1</div>
+                                <div class="estacion-status-minimal">Disponible</div>
+                                <button class="btn-iniciar-minimal btn btn-success btn-sm">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                            <div class="estacion-minimal disponible">
+                                <div class="estacion-numero-minimal">2</div>
+                                <div class="estacion-status-minimal">Disponible</div>
+                                <button class="btn-iniciar-minimal btn btn-success btn-sm">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="sala-footer-minimal">
+                            <div class="ocupacion-minimal">
+                                <div class="ocupacion-item disponibles">
+                                    <i class="fas fa-circle text-success"></i>
+                                    <span>2 disponibles</span>
+                                </div>
+                                <div class="ocupacion-item ocupadas">
+                                    <i class="fas fa-circle text-danger"></i>
+                                    <span>0 ocupadas</span>
+                                </div>
+                            </div>
+                            <div class="tarifa-minimal">
+                                <span class="tarifa-label">Tarifa:</span>
+                                <span class="tarifa-valor">$2/min</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <h3>Información de Debug</h3>
+                <div id="debugInfo"></div>
+                
+                <h4>Verificaciones CSS</h4>
+                <ul id="cssChecks"></ul>
+                
+                <h4>Verificaciones JavaScript</h4>
+                <ul id="jsChecks"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const debugInfo = document.getElementById('debugInfo');
+            const cssChecks = document.getElementById('cssChecks');
+            const jsChecks = document.getElementById('jsChecks');
+            
+            // Verificar elementos
+            const salasGrid = document.querySelector('.salas-grid-minimal');
+            const salaCard = document.querySelector('.sala-card-minimal');
+            
+            // Información de debug
+            debugInfo.innerHTML = `
+                <p><strong>Salas Grid:</strong> ${salasGrid ? 'Encontrado' : 'NO ENCONTRADO'}</p>
+                <p><strong>Sala Card:</strong> ${salaCard ? 'Encontrado' : 'NO ENCONTRADO'}</p>
+                <p><strong>Window Width:</strong> ${window.innerWidth}px</p>
+                <p><strong>Device Pixel Ratio:</strong> ${window.devicePixelRatio}</p>
+            `;
+            
+            // Verificaciones CSS
+            if (salasGrid) {
+                const computedStyle = window.getComputedStyle(salasGrid);
+                cssChecks.innerHTML = `
+                    <li><strong>Display:</strong> ${computedStyle.display}</li>
+                    <li><strong>Visibility:</strong> ${computedStyle.visibility}</li>
+                    <li><strong>Opacity:</strong> ${computedStyle.opacity}</li>
+                    <li><strong>Position:</strong> ${computedStyle.position}</li>
+                    <li><strong>Z-Index:</strong> ${computedStyle.zIndex}</li>
+                    <li><strong>Grid Template Columns:</strong> ${computedStyle.gridTemplateColumns}</li>
+                    <li><strong>Gap:</strong> ${computedStyle.gap}</li>
+                `;
+            }
+            
+            // Verificaciones JavaScript
+            jsChecks.innerHTML = `
+                <li><strong>Document Ready:</strong> ✅</li>
+                <li><strong>Bootstrap:</strong> ${typeof bootstrap !== 'undefined' ? '✅' : '❌'}</li>
+                <li><strong>Font Awesome:</strong> ${document.querySelector('.fas') ? '✅' : '❌'}</li>
+                <li><strong>CSS Loaded:</strong> ${document.styleSheets.length > 0 ? '✅' : '❌'}</li>
+            `;
+            
+            // Verificar si hay estilos CSS aplicados
+            const styleSheets = Array.from(document.styleSheets);
+            let customCSSFound = false;
+            
+            styleSheets.forEach(sheet => {
+                try {
+                    if (sheet.href && sheet.href.includes('styles.css')) {
+                        customCSSFound = true;
+                        console.log('CSS personalizado encontrado:', sheet.href);
+                    }
+                } catch (e) {
+                    console.log('No se puede acceder a la hoja de estilos:', e);
+                }
+            });
+            
+            if (customCSSFound) {
+                jsChecks.innerHTML += '<li><strong>Custom CSS:</strong> ✅</li>';
+            } else {
+                jsChecks.innerHTML += '<li><strong>Custom CSS:</strong> ❌</li>';
+            }
+            
+            // Verificar estilos inline
+            if (salasGrid) {
+                const inlineStyles = salasGrid.getAttribute('style');
+                if (inlineStyles) {
+                    jsChecks.innerHTML += `<li><strong>Inline Styles:</strong> ${inlineStyles}</li>`;
+                } else {
+                    jsChecks.innerHTML += '<li><strong>Inline Styles:</strong> Ninguno</li>';
+                }
+            }
+            
+            // Verificar clases CSS
+            if (salasGrid) {
+                const classes = Array.from(salasGrid.classList);
+                jsChecks.innerHTML += `<li><strong>CSS Classes:</strong> ${classes.join(', ')}</li>`;
+            }
+        });
+    </script>
+</body>
+</html>

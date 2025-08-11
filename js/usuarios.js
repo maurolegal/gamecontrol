@@ -236,10 +236,25 @@ class GestorUsuarios {
                 return;
             }
 
+            // Hashear contraseña en Supabase (usa función hash_password)
+            let passwordHash = null;
+            try {
+                const client = await window.databaseService.getClient();
+                const { data: hashed, error: hashError } = await client.rpc('hash_password', { password });
+                if (hashError || !hashed) {
+                    throw hashError || new Error('hash_password retornó vacío');
+                }
+                passwordHash = hashed;
+            } catch (hashErr) {
+                console.error('❌ Error hasheando contraseña en Supabase:', hashErr);
+                alert('No se pudo asegurar la contraseña en el servidor. Reintenta más tarde.');
+                return;
+            }
+
             const resultado = await window.databaseService.insert('usuarios', {
                 nombre: nombre,
                 email: email,
-                password_hash: password, // Nota: en producción usar hash seguro
+                password_hash: passwordHash,
                 rol: rol,
                 estado: 'activo',
                 permisos: permisos
@@ -657,28 +672,26 @@ class GestorUsuarios {
             return;
         }
 
-        // Actualizar contraseña en el sistema local
+        // Actualizar contraseña en Supabase (hash + update)
+        (async () => {
+            try {
+                const client = await window.databaseService.getClient();
+                const { data: hashed, error: hashError } = await client.rpc('hash_password', { password: nuevaPassword });
+                if (hashError || !hashed) throw hashError || new Error('hash_password retornó vacío');
+
+                const usuarioLocal = this.usuarios[usuarioIndex];
+                await client.from('usuarios')
+                    .update({ password_hash: hashed })
+                    .eq('email', usuarioLocal.email);
+            } catch (e) {
+                console.error('❌ Error actualizando contraseña en Supabase:', e);
+                alert('No se pudo actualizar la contraseña en el servidor.');
+            }
+        })();
+
+        // Actualizar contraseña en el sistema local (solo para UI/transición)
         this.usuarios[usuarioIndex].password = nuevaPassword;
         guardarUsuarios(this.usuarios);
-
-        // Sincronizar con el sistema de autenticación si existe
-        if (window.authSystem) {
-            // Buscar usuario en el sistema de auth por email o username
-            const usuarioLocal = this.usuarios[usuarioIndex];
-            const authUsers = window.authSystem.users;
-            
-            // Buscar por email en el sistema de auth
-            const authUserIndex = authUsers.findIndex(u => 
-                u.email === usuarioLocal.email || 
-                u.nombre === usuarioLocal.nombre.split(' ')[0].toLowerCase()
-            );
-            
-            if (authUserIndex !== -1) {
-                authUsers[authUserIndex].password = nuevaPassword;
-                window.authSystem.saveUsers(authUsers);
-                console.log('Contraseña sincronizada con el sistema de autenticación');
-            }
-        }
 
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalCambiarPassword'));

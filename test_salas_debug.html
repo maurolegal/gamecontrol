@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Salas - GameControl</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Debug de Salas</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Estado del Sistema</h3>
+                <div id="estadoSistema"></div>
+            </div>
+            <div class="col-md-6">
+                <h3>Contenedor de Salas</h3>
+                <div id="contenedorSalas">
+                    <!-- Las salas se generarán aquí -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <h3>Logs de Debug</h3>
+                <div id="logsDebug" style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; max-height: 400px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Función para agregar logs
+        function agregarLog(mensaje) {
+            const logsDiv = document.getElementById('logsDebug');
+            const timestamp = new Date().toLocaleTimeString();
+            logsDiv.innerHTML += `[${timestamp}] ${mensaje}<br>`;
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        // Función para mostrar estado del sistema
+        function mostrarEstadoSistema() {
+            const estadoDiv = document.getElementById('estadoSistema');
+            const contenedorSalas = document.getElementById('contenedorSalas');
+            
+            estadoDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Información del Sistema</h5>
+                        <ul class="list-unstyled">
+                            <li><strong>Contenedor Salas:</strong> ${contenedorSalas ? '✅ Encontrado' : '❌ No encontrado'}</li>
+                            <li><strong>ID del contenedor:</strong> ${contenedorSalas ? contenedorSalas.id : 'N/A'}</li>
+                            <li><strong>Clases CSS:</strong> ${contenedorSalas ? contenedorSalas.className : 'N/A'}</li>
+                            <li><strong>Contenido HTML:</strong> ${contenedorSalas ? contenedorSalas.innerHTML.substring(0, 100) + '...' : 'N/A'}</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Función para probar la generación de HTML de una sala
+        function probarGeneracionHTML() {
+            const salaEjemplo = {
+                id: 'test-1',
+                nombre: 'Sala PlayStation Test',
+                tipo: 'playstation',
+                numEstaciones: 4,
+                prefijo: 'PS',
+                tarifa: 5000,
+                activo: true
+            };
+
+            const sesionesEjemplo = [];
+
+            // Simular la función crearHTMLSala
+            const crearHTMLSala = (sala, sesionesActivas) => {
+                const tipoInfo = {
+                    playstation: { prefijo: 'PS', icon: 'fab fa-playstation' },
+                    xbox: { prefijo: 'XB', icon: 'fab fa-xbox' },
+                    nintendo: { prefijo: 'NT', icon: 'fas fa-gamepad' },
+                    pc: { prefijo: 'PC', icon: 'fas fa-desktop' }
+                }[sala.tipo] || { icon: 'fas fa-gamepad', nombre: 'Consola' };
+
+                const ocupadas = sesionesActivas.length;
+                const totalEstaciones = sala.numEstaciones;
+                const disponibles = Math.max(0, totalEstaciones - ocupadas);
+
+                return `
+                    <div class="sala-card-minimal" data-id="${sala.id}" data-tipo="${sala.tipo}">
+                        <div class="sala-header-minimal">
+                            <div class="sala-info-minimal">
+                                <div class="sala-title-minimal">
+                                    <i class="${tipoInfo.icon}"></i>
+                                    ${sala.nombre}
+                                    <span class="sala-type-badge">${tipoInfo.nombre || 'Consola'}</span>
+                                </div>
+                                <div class="sala-stats-minimal">
+                                    <div class="sala-stat">
+                                        <i class="fas fa-tv"></i>
+                                        <span>${sala.numEstaciones} estaciones</span>
+                                    </div>
+                                    <div class="sala-stat">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        <span class="tarifa-valor">$${sala.tarifa}/h</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sala-actions-minimal">
+                                <button class="btn btn-outline-primary btn-sm" title="Editar sala">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" title="Eliminar sala">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="estaciones-grid-minimal">
+                            ${generarHTMLEstaciones(sala, sesionesActivas)}
+                        </div>
+                        
+                        <div class="sala-footer-minimal">
+                            <div class="ocupacion-minimal">
+                                <div class="ocupacion-item disponibles">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>${disponibles} libre${disponibles !== 1 ? 's' : ''}</span>
+                                </div>
+                                <div class="ocupacion-item ocupadas">
+                                    <i class="fas fa-clock"></i>
+                                    <span>${ocupadas} en uso</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const generarHTMLEstaciones = (sala, sesionesActivas) => {
+                let html = '';
+                for (let i = 1; i <= sala.numEstaciones; i++) {
+                    const estacion = `${sala.prefijo}${i}`;
+                    const sesion = sesionesActivas.find(s => s.estacion === estacion);
+                    const estaOcupada = !!sesion;
+                    
+                    html += `
+                        <div class="estacion-minimal ${estaOcupada ? 'ocupada' : 'disponible'}" 
+                             data-estacion="${estacion}">
+                            <div class="estacion-numero-minimal">${estacion}</div>
+                            <div class="estacion-status-minimal">
+                                ${estaOcupada ? 'En Uso' : 'Libre'}
+                            </div>
+                            ${estaOcupada ? 
+                                `<div class="estacion-sesion-minimal">
+                                    <div class="cliente-minimal">Cliente Test</div>
+                                    <div class="tiempo-minimal">00:30</div>
+                                </div>` : 
+                                `<div class="estacion-disponible-acciones">
+                                    <button class="btn btn-primary btn-iniciar-minimal">
+                                        <i class="fas fa-play me-1"></i>Iniciar
+                                    </button>
+                                </div>`
+                            }
+                        </div>
+                    `;
+                }
+                return html;
+            };
+
+            const htmlGenerado = crearHTMLSala(salaEjemplo, sesionesEjemplo);
+            agregarLog('HTML generado exitosamente');
+            agregarLog('Longitud del HTML: ' + htmlGenerado.length + ' caracteres');
+            
+            // Mostrar el HTML generado en el contenedor
+            const contenedor = document.getElementById('contenedorSalas');
+            contenedor.innerHTML = htmlGenerado;
+            
+            agregarLog('HTML insertado en el contenedor');
+        }
+
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            agregarLog('Página cargada');
+            mostrarEstadoSistema();
+            
+            // Probar la generación de HTML después de un breve delay
+            setTimeout(() => {
+                agregarLog('Probando generación de HTML...');
+                probarGeneracionHTML();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

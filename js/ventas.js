@@ -83,7 +83,7 @@ class GestorVentas {
         }
 
         // Calcular total basado en tarifas y productos
-        let total = sesion.tarifa || 0;
+        let total = sesion.tarifa_base || sesion.tarifa || 0;
         
         // Sumar tiempos adicionales
         if (sesion.costoAdicional) {
@@ -264,7 +264,7 @@ class GestorVentas {
             
             // Calcular duración
             const inicio = new Date(sesion.fecha_inicio || sesion.inicio);
-            const fin = new Date(sesion.fin || Date.now());
+            const fin = new Date(sesion.fecha_fin || sesion.fin || Date.now());
             const duracionMinutos = Math.floor((fin - inicio) / (1000 * 60));
             
             // Calcular total
@@ -292,7 +292,7 @@ class GestorVentas {
                         <span class="badge bg-primary bg-opacity-10 text-primary">${salaInfo}</span>
                     </td>
                     <td class="text-success fw-semibold">${formatearHora(sesion.fecha_inicio || sesion.inicio)}</td>
-                    <td class="text-danger fw-semibold">${sesion.fin ? formatearHora(sesion.fin) : '-'}</td>
+                    <td class="text-danger fw-semibold">${sesion.fecha_fin || sesion.fin ? formatearHora(sesion.fecha_fin || sesion.fin) : '-'}</td>
                     <td>${formatearTiempo(duracionMinutos)}</td>
                     <td>${productosTexto}</td>
                     <td>
@@ -583,13 +583,13 @@ class GestorVentas {
         const salaInfo = sala ? `${sala.nombre} - ${sesion.estacion}` : 'Sala no encontrada';
         
         // Calcular información de la sesión
-        const inicio = new Date(sesion.inicio);
-        const fin = new Date(sesion.fin || Date.now());
+        const inicio = new Date(sesion.fecha_inicio || sesion.inicio);
+        const fin = new Date(sesion.fecha_fin || sesion.fin || Date.now());
         const duracionMinutos = Math.floor((fin - inicio) / (1000 * 60));
         const total = this.calcularTotalSesion(sesion);
         
         // Calcular desglose de costos
-        const costoTiempo = sesion.tarifa || 0;
+        const costoTiempo = sesion.tarifa_base || sesion.tarifa || 0;
         const costoAdicionales = (sesion.costoAdicional || 0) + 
             (sesion.tiemposAdicionales ? sesion.tiemposAdicionales.reduce((sum, t) => sum + (t.costo || 0), 0) : 0);
         const costoProductos = sesion.productos ? 
@@ -654,15 +654,15 @@ class GestorVentas {
                                 <div class="col-6">
                                     <small class="text-muted">Inicio:</small>
                                     <div class="fw-semibold text-success">
-                                        ${formatearFecha(sesion.inicio)}<br>
-                                        ${formatearHora(sesion.inicio)}
+                                        ${formatearFecha(sesion.fecha_inicio || sesion.inicio)}<br>
+                                        ${formatearHora(sesion.fecha_inicio || sesion.inicio)}
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">Cierre:</small>
                                     <div class="fw-semibold text-danger">
-                                        ${sesion.fin ? formatearFecha(sesion.fin) : 'En curso'}<br>
-                                        ${sesion.fin ? formatearHora(sesion.fin) : '-'}
+                                        ${sesion.fecha_fin || sesion.fin ? formatearFecha(sesion.fecha_fin || sesion.fin) : 'En curso'}<br>
+                                        ${sesion.fecha_fin || sesion.fin ? formatearHora(sesion.fecha_fin || sesion.fin) : '-'}
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -764,13 +764,13 @@ class GestorVentas {
         const salaInfo = sala ? `${sala.nombre} - ${sesion.estacion}` : 'Sala no encontrada';
         
         // Calcular información
-        const inicio = new Date(sesion.inicio);
-        const fin = new Date(sesion.fin || Date.now());
+        const inicio = new Date(sesion.fecha_inicio || sesion.inicio);
+        const fin = new Date(sesion.fecha_fin || sesion.fin || Date.now());
         const duracionMinutos = Math.floor((fin - inicio) / (1000 * 60));
         const total = this.calcularTotalSesion(sesion);
         
         // Calcular desglose
-        const costoTiempo = sesion.tarifa || 0;
+        const costoTiempo = sesion.tarifa_base || sesion.tarifa || 0;
         const costoAdicionales = (sesion.costoAdicional || 0) + 
             (sesion.tiemposAdicionales ? sesion.tiemposAdicionales.reduce((sum, t) => sum + (t.costo || 0), 0) : 0);
 
@@ -916,8 +916,8 @@ class GestorVentas {
                     <div class="info-box">
                         <h3>Sesión</h3>
                         <p class="highlight">${salaInfo}</p>
-                        <p>Inicio: ${formatearFecha(sesion.inicio)} ${formatearHora(sesion.inicio)}</p>
-                        <p>Cierre: ${sesion.fin ? `${formatearFecha(sesion.fin)} ${formatearHora(sesion.fin)}` : 'En curso'}</p>
+                                    <p>Inicio: ${formatearFecha(sesion.fecha_inicio || sesion.inicio)} ${formatearHora(sesion.fecha_inicio || sesion.inicio)}</p>
+            <p>Cierre: ${sesion.fecha_fin || sesion.fin ? `${formatearFecha(sesion.fecha_fin || sesion.fin)} ${formatearHora(sesion.fecha_fin || sesion.fin)}` : 'En curso'}</p>
                         <p>Duración: <span class="highlight">${formatearTiempo(duracionMinutos)}</span></p>
                     </div>
                 </div>

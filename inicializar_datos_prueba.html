@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicializar Datos de Prueba</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Inicializar Datos de Prueba</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Datos de Salas</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="inicializarSalas()">Inicializar Salas</button>
+                        <button class="btn btn-info" onclick="verSalas()">Ver Salas</button>
+                        <button class="btn btn-warning" onclick="limpiarSalas()">Limpiar Salas</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Datos de Sesiones</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="inicializarSesiones()">Inicializar Sesiones</button>
+                        <button class="btn btn-info" onclick="verSesiones()">Ver Sesiones</button>
+                        <button class="btn btn-warning" onclick="limpiarSesiones()">Limpiar Sesiones</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Estado Actual</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="estado"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function inicializarSalas() {
+            const salas = [
+                {
+                    id: '1',
+                    nombre: 'Sala Gaming 1',
+                    tipo: 'pc',
+                    numEstaciones: 4,
+                    prefijo: 'EST',
+                    tarifa: 5,
+                    activo: true
+                },
+                {
+                    id: '2',
+                    nombre: 'Sala Gaming 2',
+                    tipo: 'ps5',
+                    numEstaciones: 3,
+                    prefijo: 'PS5',
+                    tarifa: 6,
+                    activo: true
+                },
+                {
+                    id: '3',
+                    nombre: 'Sala Gaming 3',
+                    tipo: 'xbox',
+                    numEstaciones: 2,
+                    prefijo: 'XBX',
+                    tarifa: 5.5,
+                    activo: true
+                }
+            ];
+            
+            localStorage.setItem('salas', JSON.stringify(salas));
+            mostrarEstado('Salas inicializadas correctamente');
+        }
+        
+        function inicializarSesiones() {
+            const sesiones = [
+                {
+                    id: '1',
+                    salaId: '1',
+                    estacion: 'EST1',
+                    cliente: 'Juan Pérez',
+                    fecha_inicio: new Date().toISOString(),
+                    tarifa_base: 5,
+                    tiempo_contratado: 60,
+                    finalizada: false
+                }
+            ];
+            
+            localStorage.setItem('sesiones', JSON.stringify(sesiones));
+            mostrarEstado('Sesiones inicializadas correctamente');
+        }
+        
+        function verSalas() {
+            const salas = JSON.parse(localStorage.getItem('salas') || '[]');
+            mostrarEstado(`Salas en localStorage: ${JSON.stringify(salas, null, 2)}`);
+        }
+        
+        function verSesiones() {
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            mostrarEstado(`Sesiones en localStorage: ${JSON.stringify(sesiones, null, 2)}`);
+        }
+        
+        function limpiarSalas() {
+            localStorage.removeItem('salas');
+            mostrarEstado('Salas eliminadas');
+        }
+        
+        function limpiarSesiones() {
+            localStorage.removeItem('sesiones');
+            mostrarEstado('Sesiones eliminadas');
+        }
+        
+        function mostrarEstado(mensaje) {
+            const estadoDiv = document.getElementById('estado');
+            estadoDiv.innerHTML = `<div class="alert alert-info">${mensaje}</div>`;
+            
+            // Auto-limpiar después de 3 segundos
+            setTimeout(() => {
+                estadoDiv.innerHTML = '';
+            }, 3000);
+        }
+        
+        // Mostrar estado inicial
+        document.addEventListener('DOMContentLoaded', () => {
+            const salas = JSON.parse(localStorage.getItem('salas') || '[]');
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            
+            mostrarEstado(`Estado actual: ${salas.length} salas, ${sesiones.length} sesiones`);
+        });
+    </script>
+</body>
+</html>

@@ -79,13 +79,6 @@
                         <p class="mb-0 text-muted">Resumen ejecutivo del sistema gaming</p>
                     </div>
                     <div class="d-flex align-items-center gap-3">
-                        <div class="input-group" style="max-width: 300px;">
-                            <input type="text" class="form-control" id="buscarGlobal" placeholder="Buscar...">
-                            <button class="btn btn-outline-secondary" type="button">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        
                         <!-- Perfil de Usuario -->
                         <div class="d-flex align-items-center gap-2">
                             <div class="user-info d-none d-md-flex flex-column text-end">
@@ -320,6 +313,20 @@
     <!-- ===== SCRIPTS DE AUTENTICACIÓN ===== -->
     <script src="js/auth.js"></script>
     
+    <!-- ===== SCRIPTS DE UTILIDADES ===== -->
+    <script src="js/notifications.js"></script>
+    <script src="js/theme-ux.js"></script>
+    <script src="js/navigation-utils.js"></script>
+    <script src="js/mobile-compatibility.js"></script>
+    
+    <!-- ===== SCRIPTS DE MÓDULOS PRINCIPALES ===== -->
+    <script src="js/stock.js"></script>
+    <script src="js/salas.js"></script>
+    <script src="js/ventas.js"></script>
+    <script src="js/gastos.js"></script>
+    <script src="js/reportes.js"></script>
+    <script src="js/usuarios.js"></script>
+    
     <!-- ===== SCRIPTS PRINCIPALES ===== -->
     <script src="js/main.js"></script>
     <script src="js/dashboard.js"></script>
@@ -346,6 +353,54 @@
                 if (waitForSupabase()) {
                     // Supabase está listo, continuar con la inicialización normal
                     console.log('✅ Sistema listo para autenticación');
+                    
+                    // Inicializar dashboard después de que todos los módulos estén cargados
+                    const initializeDashboard = () => {
+                        console.log('🔍 Verificando disponibilidad de DashboardManager...');
+                        console.log('🔍 window.DashboardManager:', typeof window.DashboardManager);
+                        console.log('🔍 window.dashboardManagerInstance:', typeof window.dashboardManagerInstance);
+                        
+                        if (window.getDashboardManager && typeof window.getDashboardManager === 'function') {
+                            console.log('🎯 Obteniendo Dashboard Manager...');
+                            try {
+                                const dashboardManager = window.getDashboardManager();
+                                if (dashboardManager) {
+                                    window.dashboardManager = dashboardManager;
+                                    console.log('✅ Dashboard Manager obtenido correctamente');
+                                } else {
+                                    console.error('❌ No se pudo obtener Dashboard Manager');
+                                }
+                            } catch (error) {
+                                console.error('❌ Error al obtener Dashboard Manager:', error);
+                            }
+                        } else if (window.DashboardManager && typeof window.DashboardManager === 'function') {
+                            console.log('🎯 Inicializando Dashboard Manager...');
+                            try {
+                                // Usar el patrón singleton - solo crear si no existe
+                                if (!window.dashboardManagerInstance) {
+                                    window.dashboardManager = new window.DashboardManager();
+                                    console.log('✅ Dashboard Manager inicializado correctamente');
+                                } else {
+                                    console.log('✅ Dashboard Manager ya existe, usando instancia existente');
+                                    window.dashboardManager = window.dashboardManagerInstance;
+                                }
+                            } catch (error) {
+                                console.error('❌ Error al inicializar Dashboard Manager:', error);
+                            }
+                        } else {
+                            console.error('❌ DashboardManager no disponible o no es una función');
+                            console.error('❌ Tipo de DashboardManager:', typeof window.DashboardManager);
+                            console.error('❌ Contenido de window.DashboardManager:', window.DashboardManager);
+                        }
+                    };
+                    
+                    // Intentar inicializar inmediatamente
+                    initializeDashboard();
+                    
+                    // Si falla, reintentar después de un delay
+                    setTimeout(initializeDashboard, 500);
+                    setTimeout(initializeDashboard, 1000);
+                    setTimeout(initializeDashboard, 2000);
                 } else {
                     setTimeout(checkSupabase, 100);
                 }
@@ -355,11 +410,6 @@
             setTimeout(checkSupabase, 500);
         });
     </script>
-    
-    <!-- ===== SCRIPTS DE COMPATIBILIDAD ===== -->
-    <script src="js/mobile-compatibility.js"></script>
-    <script src="js/navigation-utils.js"></script>
-    <script src="js/notifications.js"></script>
     
     <!-- ===== CHART.JS PARA GRÁFICOS ===== -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -387,7 +437,7 @@
                     };
                     document.head.appendChild(script);
                 }
-            }, 1000);
+            }, 2000);
         });
     </script>
 </body>

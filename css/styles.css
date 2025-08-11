@@ -2393,7 +2393,7 @@ body {
 /* Responsive para salas */
 @media (max-width: 768px) {
     .salas-grid-minimal {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
     }
     
@@ -3012,7 +3012,7 @@ body {
     }
     
     .estaciones-grid-minimal {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
     
     .btn-group {
@@ -7632,4 +7632,109 @@ canvas {
     0% { transform: scale(1); }
     50% { transform: scale(1.1); }
     100% { transform: scale(1); }
+}
+
+/* Estilos para indicadores de stock */
+.stock-bajo {
+    color: var(--warning-color) !important;
+    font-weight: 600;
+}
+
+.stock-bajo i {
+    color: var(--warning-color) !important;
+}
+
+.stock-agotado {
+    color: var(--danger-color) !important;
+    font-weight: 600;
+}
+
+.stock-agotado i {
+    color: var(--danger-color) !important;
+}
+
+/* Animación para stock bajo */
+@keyframes stockBajoPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.stock-bajo {
+    animation: stockBajoPulse 2s ease-in-out infinite;
+}
+
+/* Estilos para productos agotados en el modal de salas */
+.producto-fila-compacta.stock-agotado {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.producto-fila-compacta.stock-agotado .cantidad-input-mini {
+    background-color: var(--light-color);
+    color: var(--text-muted);
+}
+
+.producto-fila-compacta.stock-agotado .btn-mini {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Indicador visual para stock bajo en el modal */
+.producto-fila-compacta .stock-compacto.stock-bajo::after {
+    content: "⚠️";
+    margin-left: 4px;
+    font-size: 0.8em;
+}
+
+/* Estilos para la tabla de movimientos mejorada */
+#tablaMovimientos .table th {
+    background-color: var(--light-color);
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+#tablaMovimientos .table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+#tablaMovimientos .table tbody tr:hover {
+    background-color: var(--light-color);
+    transition: background-color 0.2s ease;
+}
+
+/* Estilos para información de trazabilidad */
+.info-trazabilidad {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+}
+
+.info-precios {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Responsive para la tabla de movimientos */
+@media (max-width: 768px) {
+    #tablaMovimientos .table th:nth-child(5),
+    #tablaMovimientos .table th:nth-child(6) {
+        display: none;
+    }
+    
+    #tablaMovimientos .table td:nth-child(5),
+    #tablaMovimientos .table td:nth-child(6) {
+        display: none;
+    }
+}
+
+@media (max-width: 576px) {
+    #tablaMovimientos .table th:nth-child(4) {
+        display: none;
+    }
+    
+    #tablaMovimientos .table td:nth-child(4) {
+        display: none;
+    }
 }

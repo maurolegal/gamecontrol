@@ -807,15 +807,132 @@ class GestorStock {
             id: generarId(),
             fecha: new Date().toISOString(),
             productoId: datos.productoId,
+            productoNombre: datos.productoNombre || 'Producto',
             tipo: datos.tipo,
             cantidad: datos.cantidad,
+            precioUnitario: datos.precioUnitario || 0,
+            precioTotal: datos.precioTotal || 0,
             observaciones: datos.observaciones || '',
-            usuario: datos.usuario || 'Usuario actual'
+            usuario: datos.usuario || 'Usuario actual',
+            // Información adicional para trazabilidad
+            sesionId: datos.sesionId || null,
+            salaId: datos.salaId || null,
+            estacion: datos.estacion || null,
+            cliente: datos.cliente || null,
+            // Metadatos del producto
+            categoria: datos.categoria || null,
+            stockAnterior: datos.stockAnterior || 0,
+            stockNuevo: datos.stockNuevo || 0
         };
 
         this.movimientos.unshift(movimiento);
         guardarMovimientos(this.movimientos);
         this.cargarMovimientos();
+        
+        // Disparar evento para notificar cambios
+        window.dispatchEvent(new CustomEvent('movimientoRegistrado', {
+            detail: movimiento
+        }));
+    }
+
+    /**
+     * Registra una venta desde el sistema de salas con información completa de trazabilidad
+     * @param {Object} datosVenta - Datos completos de la venta
+     * @returns {boolean} true si la venta fue exitosa
+     */
+    registrarVentaDesdeSalas(datosVenta) {
+        const {
+            productoId,
+            cantidad,
+            precioUnitario,
+            sesionId,
+            salaId,
+            estacion,
+            cliente,
+            productoNombre
+        } = datosVenta;
+
+        const producto = this.productos.find(p => p.id === productoId);
+        
+        if (!producto) {
+            console.error(`Producto no encontrado: ${productoId}`);
+            return false;
+        }
+
+        if (producto.stock < cantidad) {
+            console.warn(`Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}, Solicitado: ${cantidad}`);
+            return false;
+        }
+
+        const stockAnterior = producto.stock;
+        const precioTotal = cantidad * precioUnitario;
+
+        // Reducir stock
+        producto.stock -= cantidad;
+        
+        // Registrar movimiento con trazabilidad completa
+        this.registrarMovimiento({
+            tipo: 'venta',
+            productoId: producto.id,
+            productoNombre: producto.nombre,
+            cantidad: cantidad,
+            precioUnitario: precioUnitario,
+            precioTotal: precioTotal,
+            motivo: `Venta en sesión de gaming - ${cliente || 'Cliente'}`,
+            usuario: 'Sistema de Salas',
+            sesionId: sesionId,
+            salaId: salaId,
+            estacion: estacion,
+            cliente: cliente,
+            categoria: producto.categoria,
+            stockAnterior: stockAnterior,
+            stockNuevo: producto.stock
+        });
+
+        // Guardar cambios
+        guardarProductos(this.productos);
+        
+        // Actualizar interfaz si estamos en la página de stock
+        if (window.location.pathname.includes('stock.html')) {
+            this.cargarProductos();
+            this.actualizarEstadisticas();
+        }
+
+        // Verificar si el stock está bajo después de la venta
+        if (producto.stock <= producto.stockMinimo && producto.stock > 0) {
+            // Mostrar notificación de stock bajo
+            if (typeof mostrarNotificacion === 'function') {
+                mostrarNotificacion(
+                    `⚠️ Stock bajo: ${producto.nombre} (${producto.stock} unidades restantes)`, 
+                    'warning'
+                );
+            }
+        } else if (producto.stock === 0) {
+            // Mostrar notificación de producto agotado
+            if (typeof mostrarNotificacion === 'function') {
+                mostrarNotificacion(
+                    `🚫 Producto agotado: ${producto.nombre}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Disparar evento para notificar cambios
+        window.dispatchEvent(new CustomEvent('stockActualizado', {
+            detail: {
+                productoId: productoId,
+                nuevoStock: producto.stock,
+                cantidadVendida: cantidad,
+                stockBajo: producto.stock <= producto.stockMinimo,
+                agotado: producto.stock === 0,
+                ventaDesdeSalas: true,
+                sesionId: sesionId,
+                salaId: salaId
+            }
+        }));
+
+        console.log(`Venta desde salas procesada: ${cantidad}x ${producto.nombre}. Stock restante: ${producto.stock}`);
+        return true;
     }
 
     cargarMovimientos() {
@@ -827,7 +944,7 @@ class GestorStock {
         if (movimientosRecientes.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center py-4">
+                    <td colspan="8" class="text-center py-4">
                         <i class="fas fa-history fa-2x text-muted mb-2"></i>
                         <p class="text-muted mb-0">No hay movimientos registrados</p>
                     </td>
@@ -849,18 +966,58 @@ class GestorStock {
             
             const info = tipoInfo[movimiento.tipo] || { icono: 'fas fa-question', clase: 'text-muted', texto: movimiento.tipo };
             
+            // Información de trazabilidad para ventas desde salas
+            let infoTrazabilidad = '';
+            if (movimiento.tipo === 'venta' && movimiento.sesionId) {
+                infoTrazabilidad = `
+                    <div class="small text-muted">
+                        <i class="fas fa-gamepad me-1"></i>
+                        ${movimiento.salaId ? `Sala: ${movimiento.salaId}` : ''}
+                        ${movimiento.estacion ? `• Est: ${movimiento.estacion}` : ''}
+                        ${movimiento.cliente ? `• Cliente: ${movimiento.cliente}` : ''}
+                    </div>
+                `;
+            }
+            
+            // Información de precios para ventas
+            let infoPrecios = '';
+            if (movimiento.tipo === 'venta' && movimiento.precioTotal > 0) {
+                infoPrecios = `
+                    <div class="small text-success">
+                        <i class="fas fa-dollar-sign me-1"></i>
+                        ${formatearMoneda(movimiento.precioTotal)}
+                    </div>
+                `;
+            }
+            
             return `
                 <tr>
                     <td>${formatearFecha(movimiento.fecha)}</td>
-                    <td>${nombreProducto}</td>
+                    <td>
+                        <div>
+                            <strong>${nombreProducto}</strong>
+                            ${infoTrazabilidad}
+                        </div>
+                    </td>
                     <td>
                         <span class="${info.clase}">
                             <i class="${info.icono} me-1"></i>${info.texto}
                         </span>
                     </td>
                     <td class="fw-bold">${movimiento.cantidad}</td>
-                    <td>${movimiento.usuario}</td>
-                    <td>${movimiento.observaciones}</td>
+                    <td>
+                        <div>
+                            ${movimiento.usuario}
+                            ${infoPrecios}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="small">
+                            ${movimiento.stockAnterior > 0 ? `Antes: ${movimiento.stockAnterior}` : ''}
+                            ${movimiento.stockNuevo > 0 ? `<br>Después: ${movimiento.stockNuevo}` : ''}
+                        </div>
+                    </td>
+                    <td>${movimiento.observaciones || '-'}</td>
                 </tr>
             `;
         }).join('');
@@ -1381,23 +1538,90 @@ class GestorStock {
 
     // === EVENTOS ===
     configurarEventos() {
-        // Formulario nuevo producto
-        const form = document.getElementById('formNuevoProducto');
-        if (form) {
-            form.addEventListener('submit', (e) => {
+        // Eventos del formulario de nuevo producto
+        const formNuevoProducto = document.getElementById('formNuevoProducto');
+        if (formNuevoProducto) {
+            formNuevoProducto.addEventListener('submit', (e) => {
                 e.preventDefault();
-                this.agregarProducto(new FormData(form));
+                const formData = new FormData(formNuevoProducto);
+                this.agregarProducto(formData);
             });
         }
 
-        // Filtros
-        ['categoriaFiltro', 'estadoFiltro', 'buscarProducto'].forEach(id => {
-            const elemento = document.getElementById(id);
-            if (elemento) {
-                elemento.addEventListener('change', () => this.aplicarFiltros());
-                elemento.addEventListener('input', () => this.aplicarFiltros());
+        // Eventos de filtros
+        const categoriaFiltro = document.getElementById('categoriaFiltro');
+        const estadoFiltro = document.getElementById('estadoFiltro');
+        const buscarProducto = document.getElementById('buscarProducto');
+
+        if (categoriaFiltro) {
+            categoriaFiltro.addEventListener('change', () => this.aplicarFiltros());
+        }
+        if (estadoFiltro) {
+            estadoFiltro.addEventListener('change', () => this.aplicarFiltros());
+        }
+        if (buscarProducto) {
+            buscarProducto.addEventListener('input', () => this.aplicarFiltros());
+        }
+
+        // Escuchar eventos de stock actualizado desde salas
+        window.addEventListener('stockActualizado', (event) => {
+            console.log('🔄 Stock actualizado desde salas:', event.detail);
+            this.sincronizarStockEnTiempoReal(event.detail);
+        });
+
+        // Escuchar eventos de movimientos registrados
+        window.addEventListener('movimientoRegistrado', (event) => {
+            console.log('📝 Movimiento registrado:', event.detail);
+            // Actualizar la interfaz si es necesario
+            if (window.location.pathname.includes('stock.html')) {
+                this.cargarMovimientos();
+                this.actualizarEstadisticas();
             }
         });
+    }
+
+    /**
+     * Sincroniza el stock en tiempo real cuando se actualiza desde las salas
+     * @param {Object} datosStock - Datos del stock actualizado
+     */
+    sincronizarStockEnTiempoReal(datosStock) {
+        const { productoId, nuevoStock, cantidadVendida, stockBajo, agotado, ventaDesdeSalas } = datosStock;
+        
+        if (!ventaDesdeSalas) return; // Solo procesar ventas desde salas
+        
+        // Actualizar la interfaz si estamos en la página de stock
+        if (window.location.pathname.includes('stock.html')) {
+            // Actualizar la tabla de productos
+            this.cargarProductos();
+            
+            // Actualizar estadísticas
+            this.actualizarEstadisticas();
+            
+            // Mostrar notificación de sincronización
+            if (typeof mostrarNotificacion === 'function') {
+                mostrarNotificacion(
+                    `🔄 Stock sincronizado: ${cantidadVendida} unidades vendidas`, 
+                    'info'
+                );
+            }
+        }
+        
+        // Actualizar el contador de stock en tiempo real si está visible
+        const contadorStock = document.querySelector(`[data-producto-id="${productoId}"] .stock-compacto span`);
+        if (contadorStock) {
+            contadorStock.textContent = nuevoStock;
+            
+            // Actualizar clases CSS para stock bajo/agotado
+            const productoFila = contadorStock.closest('.producto-fila-compacta');
+            if (productoFila) {
+                productoFila.classList.remove('stock-bajo', 'stock-agotado');
+                if (agotado) {
+                    productoFila.classList.add('stock-agotado');
+                } else if (stockBajo) {
+                    productoFila.classList.add('stock-bajo');
+                }
+            }
+        }
     }
 }
 

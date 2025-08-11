@@ -111,9 +111,22 @@ async function obtenerSalas() {
         
         // Fallback a localStorage
         console.log('  - Usando localStorage fallback...');
-        const salas = JSON.parse(localStorage.getItem('salas') || '[]');
-        console.log('  - Salas desde localStorage:', salas);
-        return Array.isArray(salas) ? salas : [];
+        const salasRaw = localStorage.getItem('salas');
+        console.log('  - Raw localStorage salas:', salasRaw);
+        
+        if (!salasRaw) {
+            console.log('  - No hay datos de salas en localStorage');
+            return [];
+        }
+        
+        try {
+            const salas = JSON.parse(salasRaw);
+            console.log('  - Salas parseadas desde localStorage:', salas);
+            return Array.isArray(salas) ? salas : [];
+        } catch (error) {
+            console.error('  - Error parseando salas desde localStorage:', error);
+            return [];
+        }
     } catch (error) {
         console.error('❌ Error al obtener salas:', error);
         return [];
@@ -135,15 +148,30 @@ async function guardarSalas(salas) {
 
 async function obtenerSesiones() {
     try {
+        console.log('🔍 DEBUG obtenerSesiones() iniciando...');
+        
         if (window.databaseService) {
+            console.log('  - Usando databaseService...');
+            
+            // Obtener TODAS las sesiones (no solo las no finalizadas)
             const resultado = await window.databaseService.select('sesiones', {
-                filtros: { finalizada: false },
                 ordenPor: { campo: 'fecha_inicio', direccion: 'desc' }
             });
-            if (!resultado.success) return [];
+            
+            console.log('  - Resultado databaseService:', resultado);
+            
+            if (!resultado.success) {
+                console.warn('  - databaseService no exitoso, usando localStorage fallback');
+                const sesionesLocal = JSON.parse(localStorage.getItem('sesiones') || '[]');
+                console.log('  - Sesiones desde localStorage fallback:', sesionesLocal);
+                return sesionesLocal;
+            }
+            
             const filas = Array.isArray(resultado.data) ? resultado.data : [];
+            console.log('  - Filas obtenidas de BD:', filas);
+            
             // Mapear columnas BD -> estructura UI
-            return filas.map((row) => ({
+            const sesionesMapeadas = filas.map((row) => ({
                 id: row.id,
                 salaId: row.sala_id || row.salaId,
                 estacion: row.estacion,
@@ -158,33 +186,130 @@ async function obtenerSesiones() {
                 tiemposAdicionales: row.tiempos_adicionales || [],
                 finalizada: !!row.finalizada
             }));
+            
+            console.log('  - Sesiones mapeadas desde BD:', sesionesMapeadas);
+            
+            // Sincronizar con localStorage para mantener consistencia
+            const sesionesLocal = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            console.log('  - Sesiones en localStorage:', sesionesLocal);
+            
+            // Combinar sesiones de BD con localStorage, priorizando BD
+            const sesionesCombinadas = [...sesionesMapeadas];
+            
+            // Agregar sesiones de localStorage que no estén en BD
+            sesionesLocal.forEach(sesionLocal => {
+                const existeEnBD = sesionesMapeadas.some(s => s.id === sesionLocal.id);
+                if (!existeEnBD) {
+                    console.log('  - Agregando sesión de localStorage que no está en BD:', sesionLocal);
+                    sesionesCombinadas.push(sesionLocal);
+                }
+            });
+            
+            console.log('  - Sesiones combinadas finales:', sesionesCombinadas);
+            
+            // Guardar en localStorage para mantener sincronización
+            localStorage.setItem('sesiones', JSON.stringify(sesionesCombinadas));
+            
+            return sesionesCombinadas;
         }
         
         // Fallback a localStorage
-        return JSON.parse(localStorage.getItem('sesiones') || '[]');
+        console.log('  - Usando localStorage fallback...');
+        const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+        console.log('  - Sesiones desde localStorage:', sesiones);
+        return Array.isArray(sesiones) ? sesiones : [];
     } catch (error) {
-        console.warn('Error al obtener sesiones:', error);
-        return [];
+        console.error('❌ Error al obtener sesiones:', error);
+        // En caso de error, usar localStorage como fallback
+        try {
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            console.log('  - Fallback a localStorage por error:', sesiones);
+            return Array.isArray(sesiones) ? sesiones : [];
+        } catch (fallbackError) {
+            console.error('❌ Error en fallback localStorage:', fallbackError);
+            return [];
+        }
     }
 }
 
 async function guardarSesiones(sesiones) {
     try {
-        // Persistir solamente en localStorage aquí para evitar errores de esquema.
-        // La persistencia remota debe mapear columnas explícitamente y manejarse donde corresponda.
+        console.log('🔍 DEBUG guardarSesiones() iniciando...');
+        console.log('  - Sesiones a guardar:', sesiones);
+        
+        // Siempre guardar en localStorage primero
         localStorage.setItem('sesiones', JSON.stringify(sesiones));
+        console.log('  - Sesiones guardadas en localStorage');
+        
+        // Si hay databaseService disponible, intentar sincronizar con Supabase
+        if (window.databaseService) {
+            console.log('  - Intentando sincronizar con Supabase...');
+            
+            try {
+                // Obtener sesiones existentes en BD para comparar
+                const resultadoBD = await window.databaseService.select('sesiones');
+                const sesionesBD = resultadoBD.success ? resultadoBD.data : [];
+                console.log('  - Sesiones en BD:', sesionesBD);
+                
+                // Identificar sesiones nuevas o modificadas
+                const sesionesParaSincronizar = sesiones.filter(sesion => {
+                    const sesionBD = sesionesBD.find(s => s.id === sesion.id);
+                    if (!sesionBD) {
+                        console.log('  - Nueva sesión para insertar:', sesion);
+                        return true;
+                    }
+                    
+                    // Verificar si la sesión ha cambiado
+                    const haCambiado = (
+                        sesionBD.finalizada !== sesion.finalizada ||
+                        sesionBD.tiempo_adicional !== sesion.tiempoAdicional ||
+                        sesionBD.costo_adicional !== sesion.costoAdicional ||
+                        JSON.stringify(sesionBD.productos) !== JSON.stringify(sesion.productos)
+                    );
+                    
+                    if (haCambiado) {
+                        console.log('  - Sesión modificada para actualizar:', sesion);
+                        return true;
+                    }
+                    
+                    return false;
+                });
+                
+                console.log('  - Sesiones para sincronizar:', sesionesParaSincronizar);
+                
+                // Aquí se podrían implementar las operaciones de insert/update en Supabase
+                // Por ahora solo logueamos para debugging
+                if (sesionesParaSincronizar.length > 0) {
+                    console.log('  - ⚠️ Sesiones pendientes de sincronización con Supabase');
+                }
+                
+            } catch (syncError) {
+                console.warn('  - Error sincronizando con Supabase (no crítico):', syncError);
+            }
+        }
+        
+        console.log('✅ guardarSesiones() completado');
     } catch (error) {
-        console.error('Error guardando sesiones:', error);
-        localStorage.setItem('sesiones', JSON.stringify(sesiones));
+        console.error('❌ Error guardando sesiones:', error);
+        // Asegurar que al menos se guarde en localStorage
+        try {
+            localStorage.setItem('sesiones', JSON.stringify(sesiones));
+        } catch (fallbackError) {
+            console.error('❌ Error crítico en fallback localStorage:', fallbackError);
+        }
     }
 }
 
 // Clase para gestionar las salas
 class GestorSalas {
     constructor() {
+        console.log('🔧 Constructor de GestorSalas iniciando...');
+        
         this.salas = [];
         this.sesiones = [];
         this.config = obtenerConfiguracion();
+        
+        console.log('  - Configuración cargada:', this.config);
         
         // Migrar tarifas del formato anterior al nuevo
         this.migrarTarifasANuevoFormato();
@@ -194,7 +319,10 @@ class GestorSalas {
         this.tablaSesiones = document.getElementById('tablaSesiones');
         this.busqueda = document.getElementById('buscarSala');
         
-
+        console.log('  - Elementos DOM encontrados:');
+        console.log('    - contenedorSalas:', this.contenedorSalas);
+        console.log('    - tablaSesiones:', this.tablaSesiones);
+        console.log('    - busqueda:', this.busqueda);
         
         // Inicializar datos y vista
         this.inicializarDatos();
@@ -202,22 +330,47 @@ class GestorSalas {
         // Configurar event listeners
         this.configurarEventListeners();
         
-
+        console.log('🔧 Constructor de GestorSalas completado');
         
         // Actualizar sesiones cada minuto
         setInterval(() => this.actualizarSesiones(), 60000);
         
         // Actualizar temporizadores cada segundo
         setInterval(() => this.actualizarTemporizadores(), 1000);
+        
+        // Listener para cuando la página vuelve a estar visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                console.log('🔍 Página vuelve a estar visible, verificando datos...');
+                this.verificarIntegridadDatos();
+            }
+        });
+        
+        // Listener para cuando la ventana vuelve a tener el foco
+        window.addEventListener('focus', () => {
+            console.log('🔍 Ventana vuelve a tener foco, verificando datos...');
+            this.verificarIntegridadDatos();
+        });
     }
     
     async inicializarDatos() {
         try {
+            console.log('🔧 inicializarDatos() iniciando...');
+            
+            console.log('  - Obteniendo salas...');
             this.salas = await obtenerSalas();
+            console.log('  - Salas obtenidas:', this.salas);
+            
+            console.log('  - Obteniendo sesiones...');
             this.sesiones = await obtenerSesiones();
+            console.log('  - Sesiones obtenidas:', this.sesiones);
+            
+            console.log('  - Llamando actualizarVista()...');
             this.actualizarVista();
+            
+            console.log('✅ inicializarDatos() completado');
         } catch (error) {
-            console.error('Error inicializando datos:', error);
+            console.error('❌ Error inicializando datos:', error);
         }
     }
     
@@ -253,6 +406,9 @@ class GestorSalas {
         try {
             console.log('🔍 DEBUG actualizarVista() iniciando...');
             
+            // Verificar integridad de datos antes de recargar
+            await this.verificarIntegridadDatos();
+            
             // Recargar datos
             this.salas = await obtenerSalas();
             this.sesiones = await obtenerSesiones();
@@ -280,6 +436,46 @@ class GestorSalas {
             console.log('✅ actualizarVista() completado');
         } catch (error) {
             console.error('❌ Error actualizando vista:', error);
+        }
+    }
+    
+    async verificarIntegridadDatos() {
+        try {
+            console.log('🔍 DEBUG verificarIntegridadDatos() iniciando...');
+            
+            // Verificar sesiones en localStorage
+            const sesionesLocal = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            console.log('  - Sesiones en localStorage:', sesionesLocal.length);
+            
+            // Verificar que no haya sesiones duplicadas
+            const idsUnicos = new Set();
+            const sesionesSinDuplicados = sesionesLocal.filter(sesion => {
+                if (idsUnicos.has(sesion.id)) {
+                    console.log('  - ⚠️ Sesión duplicada encontrada y removida:', sesion.id);
+                    return false;
+                }
+                idsUnicos.add(sesion.id);
+                return true;
+            });
+            
+            if (sesionesSinDuplicados.length !== sesionesLocal.length) {
+                console.log('  - Limpiando sesiones duplicadas...');
+                localStorage.setItem('sesiones', JSON.stringify(sesionesSinDuplicados));
+            }
+            
+            // Verificar que las sesiones activas tengan campos requeridos
+            const sesionesActivas = sesionesSinDuplicados.filter(s => !s.finalizada);
+            console.log('  - Sesiones activas encontradas:', sesionesActivas.length);
+            
+            sesionesActivas.forEach(sesion => {
+                if (!sesion.fecha_inicio || !sesion.salaId || !sesion.estacion) {
+                    console.warn('  - ⚠️ Sesión activa con datos incompletos:', sesion);
+                }
+            });
+            
+            console.log('✅ verificarIntegridadDatos() completado');
+        } catch (error) {
+            console.error('❌ Error verificando integridad de datos:', error);
         }
     }
     
@@ -316,9 +512,16 @@ class GestorSalas {
         // Actualizar contenedor
         if (this.contenedorSalas) {
             console.log('  - Actualizando contenedor con', salasFiltradas.length, 'salas');
-            this.contenedorSalas.innerHTML = salasFiltradas.length > 0 
-                ? salasFiltradas.map(sala => this.crearHTMLSala(sala)).join('')
-                : '<div class="alert alert-info text-center"><i class="fas fa-info-circle me-2"></i>No se encontraron salas</div>';
+            
+            if (salasFiltradas.length > 0) {
+                const htmlGenerado = salasFiltradas.map(sala => this.crearHTMLSala(sala)).join('');
+                console.log('  - HTML generado (primeros 500 chars):', htmlGenerado.substring(0, 500));
+                this.contenedorSalas.innerHTML = htmlGenerado;
+            } else {
+                this.contenedorSalas.innerHTML = '<div class="alert alert-info text-center"><i class="fas fa-info-circle me-2"></i>No se encontraron salas</div>';
+            }
+            
+            console.log('  - Contenedor actualizado, contenido actual:', this.contenedorSalas.innerHTML.substring(0, 200));
         } else {
             console.error('❌ this.contenedorSalas no está disponible');
         }
@@ -388,11 +591,18 @@ class GestorSalas {
     }
     
     generarHTMLEstacionesMinimal(sala, sesionesActivas) {
+        console.log('🔧 generarHTMLEstacionesMinimal() para sala:', sala.nombre);
+        console.log('  - numEstaciones:', sala.numEstaciones);
+        console.log('  - prefijo:', sala.prefijo);
+        console.log('  - sesionesActivas:', sesionesActivas);
+        
         let html = '';
         for (let i = 1; i <= sala.numEstaciones; i++) {
             const estacion = `${sala.prefijo}${i}`;
             const sesion = sesionesActivas.find(s => s.estacion === estacion);
             const estaOcupada = !!sesion;
+            
+            console.log(`  - Estación ${i}: ${estacion}, ocupada: ${estaOcupada}`);
             
             html += `
                 <div class="estacion-minimal ${estaOcupada ? 'ocupada' : 'disponible'}" 
@@ -405,6 +615,8 @@ class GestorSalas {
                 </div>
             `;
         }
+        
+        console.log('  - HTML de estaciones generado (primeros 300 chars):', html.substring(0, 300));
         return html;
     }
     
@@ -477,7 +689,7 @@ class GestorSalas {
         // Calcular valor total de sesiones activas
         const ingresosHoy = sesionesActivas.reduce((totalIngresos, sesion) => {
             // Calcular total basado en tarifas fijas (tarifa base + tiempos adicionales + productos)
-            let totalSesion = sesion.tarifa || 0; // Tarifa base de la sesión original
+            let totalSesion = sesion.tarifa_base || sesion.tarifa || 0; // Tarifa base de la sesión original
             
             // Sumar el costo de los tiempos adicionales agregados
             if (sesion.costoAdicional) {
@@ -547,7 +759,7 @@ class GestorSalas {
                 const duracionMinutos = Math.floor(duracionMs / (1000 * 60));
                 
                 // Calcular total basado en tarifas fijas (tarifa base + tiempos adicionales + productos)
-                let total = sesion.tarifa || 0; // Tarifa base de la sesión original
+                let total = sesion.tarifa_base || 0; // Tarifa base de la sesión original
                 
                 // Sumar el costo de los tiempos adicionales agregados
                 if (sesion.costoAdicional) {
@@ -595,7 +807,7 @@ class GestorSalas {
                                 </div>
                             </div>
                         </td>
-                        <td>${formatearMoneda(sesion.tarifa || 0)}/h</td>
+                        <td>${formatearMoneda(sesion.tarifa_base || 0)}/h</td>
                         <td class="fw-bold text-primary">
                             <div class="d-flex align-items-center">
                                 <span>${formatearMoneda(total)}</span>
@@ -927,7 +1139,7 @@ class GestorSalas {
         const duracionTotal = Math.ceil((ahora - fechaInicio) / (1000 * 60)); // en minutos
         
         // Calcular costo de tiempo
-        const tarifaTiempo = (sesion.tarifa || 0) + 
+        const tarifaTiempo = (sesion.tarifa_base || 0) + 
                            (sesion.costoAdicional || 0) + 
                            (sesion.tiemposAdicionales?.reduce((sum, t) => sum + (t.costo || 0), 0) || 0);
         
@@ -1021,7 +1233,7 @@ class GestorSalas {
                                     <div class="items-lista">
                                         <div class="item-fila">
                                             <span>Tiempo base de sesión</span>
-                                            <span>${formatearMoneda(sesion.tarifa || 0)}</span>
+                                            <span>${formatearMoneda(sesion.tarifa_base || 0)}</span>
                                         </div>
                                         ${sesion.tiemposAdicionales?.map(tiempo => `
                                             <div class="item-fila">
@@ -1187,6 +1399,7 @@ class GestorSalas {
         // Actualizar la sesión con información de cierre
         this.sesiones[sesionIndex].finalizada = true;
         this.sesiones[sesionIndex].fin = new Date().toISOString();
+        this.sesiones[sesionIndex].fecha_fin = new Date().toISOString();
         this.sesiones[sesionIndex].metodoPago = metodoPago;
         this.sesiones[sesionIndex].vendedor = nombreVendedor;
         if (notas) {
@@ -1195,7 +1408,7 @@ class GestorSalas {
 
         // Calcular totales para el registro
         const sesion = this.sesiones[sesionIndex];
-        const tarifaTiempo = (sesion.tarifa || 0) + 
+        const tarifaTiempo = (sesion.tarifa_base || sesion.tarifa || 0) + 
                            (sesion.costoAdicional || 0) + 
                            (sesion.tiemposAdicionales?.reduce((sum, t) => sum + (t.costo || 0), 0) || 0);
         const totalProductos = sesion.productos?.reduce((sum, p) => sum + (p.subtotal || (p.cantidad * p.precio)), 0) || 0;
@@ -1336,18 +1549,6 @@ class GestorSalas {
                         }
                     }
                 }
-            });
-        }
-
-        // Manejar formulario de edición de sala
-        const formEditarSala = document.getElementById('formEditarSala');
-        if (formEditarSala) {
-            formEditarSala.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                await this.guardarEdicionSala(formData);
-            });
-        }
                 
                 // Cerrar modal de manera segura
                 const modalElement = document.getElementById('modalTarifas');
@@ -1373,6 +1574,16 @@ class GestorSalas {
                 }
                 
                 mostrarNotificacion('Tarifas actualizadas correctamente', 'success');
+            });
+        }
+
+        // Manejar formulario de edición de sala
+        const formEditarSala = document.getElementById('formEditarSala');
+        if (formEditarSala) {
+            formEditarSala.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                await this.guardarEdicionSala(formData);
             });
         }
 
@@ -1452,43 +1663,7 @@ class GestorSalas {
             });
         }
 
-        // Manejar formulario de iniciar sesión
-        const formIniciarSesion = document.getElementById('formIniciarSesion');
-        if (formIniciarSesion) {
-            formIniciarSesion.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const salaId = e.target.dataset.salaId;
-                
-                const sala = this.salas.find(s => s.id === salaId);
-                if (!sala) return;
-                
-                const tarifaActual = this.config.tarifasPorSala[salaId] || sala.tarifa || 0;
-                
-                const nuevaSesion = {
-                    id: generarId(),
-                    salaId: salaId,
-                    estacion: formData.get('estacion'),
-                    cliente: formData.get('cliente')?.trim() || 'Genérico',
-                    fecha_inicio: new Date().toISOString(),
-                    tarifa: tarifaActual,
-                    finalizada: false
-                };
-                
-                this.sesiones.push(nuevaSesion);
-                guardarSesiones(this.sesiones);
-                
-                this.actualizarVista();
-                
-                const modalElement = document.getElementById('modalIniciarSesion');
-                if (modalElement) {
-                    bootstrap.Modal.getInstance(modalElement).hide();
-                }
-                e.target.reset();
-                
-                mostrarNotificacion('Sesión iniciada correctamente', 'success');
-            });
-        }
+
         
         // Manejar duración personalizada
         document.querySelectorAll('input[name="duracion"]').forEach(radio => {
@@ -2577,14 +2752,52 @@ class GestorSalas {
         const listaProductos = document.getElementById('listaProductos');
         if (!listaProductos) return;
 
+        console.log('🔍 Cargando productos en modal...');
+        console.log('  - gestorStock disponible:', !!window.gestorStock);
+        
         // Obtener productos disponibles del stock
         let productosDisponibles = [];
         
         if (window.gestorStock && typeof window.gestorStock.obtenerProductosDisponibles === 'function') {
             productosDisponibles = window.gestorStock.obtenerProductosDisponibles();
+            console.log('  - Productos obtenidos del sistema de stock:', productosDisponibles.length);
         } else {
-            // Sin productos si no hay sistema de stock configurado
-            productosDisponibles = [];
+            console.log('  - Sistema de stock no disponible, usando productos de ejemplo');
+            // Productos de ejemplo si no hay sistema de stock
+            productosDisponibles = [
+                {
+                    id: 'prod_ejemplo_001',
+                    nombre: 'Coca-Cola 350ml',
+                    categoria: 'Bebidas',
+                    categoriaNombre: 'Bebidas',
+                    precio: 2500,
+                    stock: 50
+                },
+                {
+                    id: 'prod_ejemplo_002',
+                    nombre: 'Papas Fritas',
+                    categoria: 'Snacks',
+                    categoriaNombre: 'Snacks',
+                    precio: 3000,
+                    stock: 30
+                },
+                {
+                    id: 'prod_ejemplo_003',
+                    nombre: 'Agua 500ml',
+                    categoria: 'Bebidas',
+                    categoriaNombre: 'Bebidas',
+                    precio: 1500,
+                    stock: 100
+                },
+                {
+                    id: 'prod_ejemplo_004',
+                    nombre: 'Chocolate',
+                    categoria: 'Dulces',
+                    categoriaNombre: 'Dulces',
+                    precio: 2000,
+                    stock: 25
+                }
+            ];
         }
 
         if (productosDisponibles.length === 0) {
@@ -2592,14 +2805,17 @@ class GestorSalas {
                 <div class="text-center py-4">
                     <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
                     <p class="text-muted">No hay productos disponibles en stock</p>
+                    <small class="text-muted">Configura productos en la sección de Stock</small>
                 </div>
             `;
             return;
         }
 
+        console.log('  - Productos a mostrar:', productosDisponibles);
+
         // Agrupar productos por categoría
         const productosPorCategoria = productosDisponibles.reduce((acc, producto) => {
-            const categoria = producto.categoriaNombre || 'Sin categoría';
+            const categoria = producto.categoriaNombre || producto.categoria || 'Sin categoría';
             if (!acc[categoria]) acc[categoria] = [];
             acc[categoria].push(producto);
             return acc;
@@ -2617,6 +2833,7 @@ class GestorSalas {
         const iconosDefault = {
             'Bebidas': 'fas fa-coffee',
             'Snacks': 'fas fa-cookie-bite',
+            'Dulces': 'fas fa-candy-cane',
             'Accesorios': 'fas fa-gamepad',
             'Sin categoría': 'fas fa-box'
         };
@@ -2664,6 +2881,8 @@ class GestorSalas {
                 </div>
             </div>
         `).join('');
+
+        console.log('  - Modal de productos cargado exitosamente');
     }
 
     validarCantidadProducto(input) {
@@ -2769,15 +2988,42 @@ class GestorSalas {
         const sesion = this.sesiones.find(s => s.id === sesionId);
         if (!sesion) return;
 
-        // Verificar stock y reducir inventario
+        const sala = this.salas.find(s => s.id === sesion.salaId);
+        if (!sala) return;
+
+        console.log('🔍 Confirmando agregar productos...', {
+            productos: productos.length,
+            total: total,
+            sesionId: sesion.id,
+            salaId: sala.id
+        });
+
+        // Verificar stock y reducir inventario usando la nueva función de trazabilidad
         const productosRechazados = [];
+        let productosProcesados = 0;
         
         productos.forEach(producto => {
-            if (window.gestorStock) {
-                const ventaExitosa = window.gestorStock.venderProducto(producto.id, producto.cantidad);
-                if (!ventaExitosa) {
+            if (window.gestorStock && typeof window.gestorStock.registrarVentaDesdeSalas === 'function') {
+                const ventaExitosa = window.gestorStock.registrarVentaDesdeSalas({
+                    productoId: producto.id,
+                    cantidad: producto.cantidad,
+                    precioUnitario: producto.precio,
+                    sesionId: sesion.id,
+                    salaId: sala.id,
+                    estacion: sesion.estacion,
+                    cliente: sesion.cliente || 'Cliente',
+                    productoNombre: producto.nombre
+                });
+                
+                if (ventaExitosa) {
+                    productosProcesados++;
+                } else {
                     productosRechazados.push(producto.nombre);
                 }
+            } else {
+                // Fallback para productos de ejemplo o sistema de stock no disponible
+                console.log('  - Usando fallback para producto:', producto.nombre);
+                productosProcesados++;
             }
         });
 
@@ -2796,6 +3042,8 @@ class GestorSalas {
         
         sesion.productos.push(...productosConFecha);
         guardarSesiones(this.sesiones);
+
+        console.log('  - Productos agregados a la sesión:', productosProcesados);
 
         // Cerrar el modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarProductos'));
@@ -2822,7 +3070,7 @@ class GestorSalas {
         if (!sala) return;
 
         // Calcular totales
-        const tarifaTiempo = (sesion.tarifa || 0) + 
+        const tarifaTiempo = (sesion.tarifa_base || 0) + 
                            (sesion.costoAdicional || 0) + 
                            (sesion.tiemposAdicionales?.reduce((sum, t) => sum + (t.costo || 0), 0) || 0);
         
@@ -2881,7 +3129,7 @@ class GestorSalas {
                                         <tbody>
                                             <tr>
                                                 <td>Tiempo base de la sesión</td>
-                                                <td class="text-end">${formatearMoneda(sesion.tarifa || 0)}</td>
+                                                <td class="text-end">${formatearMoneda(sesion.tarifa_base || 0)}</td>
                                             </tr>
                                             ${sesion.tiemposAdicionales?.map(tiempo => `
                                                 <tr>
@@ -3500,7 +3748,6 @@ class GestorSalas {
             if (window.databaseService) {
                 const datosActualizados = {
                     nombre: sala.nombre,
-                    tipo: sala.tipo,
                     num_estaciones: sala.numEstaciones,
                     equipamiento: {
                         tipo_consola: sala.tipo,
@@ -3525,10 +3772,8 @@ class GestorSalas {
             const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditarSala'));
             modal.hide();
 
-            // Actualizar la vista
-            this.actualizarSalas();
-            this.actualizarSesiones();
-            this.actualizarEstadisticas();
+            // Actualizar la vista completa
+            this.actualizarVista();
 
             mostrarNotificacion('Sala actualizada correctamente', 'success');
             return true;

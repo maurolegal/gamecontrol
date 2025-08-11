@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard - Integración de Datos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-database text-primary"></i>
+            Test Dashboard - Integración de Datos
+        </h1>
+
+        <!-- Estado de la Conexión -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-plug me-2"></i>Estado de la Conexión</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="estadoConexion" class="alert alert-info">
+                            <i class="fas fa-spinner fa-spin me-2"></i>
+                            Verificando conexión...
+                        </div>
+                        <button class="btn btn-primary" onclick="verificarConexion()">
+                            <i class="fas fa-sync me-2"></i>Verificar Conexión
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test de Carga de Datos -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-download me-2"></i>Test de Carga de Datos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="resultadoCarga"></div>
+                        <div class="mt-3">
+                            <button class="btn btn-success me-2" onclick="testCargarDatos()">
+                                <i class="fas fa-download me-2"></i>Cargar Datos
+                            </button>
+                            <button class="btn btn-info me-2" onclick="testCargarTabla('sesiones')">
+                                <i class="fas fa-users me-2"></i>Test Sesiones
+                            </button>
+                            <button class="btn btn-warning me-2" onclick="testCargarTabla('productos')">
+                                <i class="fas fa-boxes me-2"></i>Test Productos
+                            </button>
+                            <button class="btn btn-secondary me-2" onclick="testCargarTabla('salas')">
+                                <i class="fas fa-door-open me-2"></i>Test Salas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-chart-bar me-2"></i>Test de Métricas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="resultadoMetricas"></div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary me-2" onclick="testCalcularMetricas()">
+                                <i class="fas fa-calculator me-2"></i>Calcular Métricas
+                            </button>
+                            <button class="btn btn-success me-2" onclick="testActualizarMetricas()">
+                                <i class="fas fa-sync me-2"></i>Actualizar Métricas
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Datos Cargados -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-table me-2"></i>Resumen de Datos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="resumenDatos"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i>Alertas del Sistema</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="alertasSistema"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Log Detallado -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-terminal me-2"></i>Log Detallado</h5>
+                        <button class="btn btn-sm btn-outline-secondary float-end" onclick="limpiarLog()">
+                            <i class="fas fa-trash me-1"></i>Limpiar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="logDetallado" style="max-height: 400px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/stock.js"></script>
+    <script src="js/salas.js"></script>
+    <script src="js/ventas.js"></script>
+    <script src="js/gastos.js"></script>
+    <script src="js/reportes.js"></script>
+    <script src="js/usuarios.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/dashboard.js"></script>
+
+    <script>
+        // Función para agregar logs
+        function agregarLog(mensaje, tipo = 'info') {
+            const logContainer = document.getElementById('logDetallado');
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = tipo === 'error' ? '❌' : tipo === 'success' ? '✅' : tipo === 'warning' ? '⚠️' : 'ℹ️';
+            const color = tipo === 'error' ? 'text-danger' : tipo === 'success' ? 'text-success' : tipo === 'warning' ? 'text-warning' : 'text-info';
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `mb-1 ${color}`;
+            logEntry.innerHTML = `<small>[${timestamp}]</small> ${icon} ${mensaje}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // Función para limpiar log
+        function limpiarLog() {
+            document.getElementById('logDetallado').innerHTML = '';
+        }
+
+        // Verificar conexión
+        async function verificarConexion() {
+            agregarLog('Verificando conexión a Supabase...', 'info');
+            
+            try {
+                if (!window.databaseService) {
+                    throw new Error('Database service no disponible');
+                }
+
+                await window.databaseService.verificarConexionObligatoria();
+                
+                document.getElementById('estadoConexion').className = 'alert alert-success';
+                document.getElementById('estadoConexion').innerHTML = '<i class="fas fa-check-circle me-2"></i>Conexión exitosa a Supabase';
+                
+                agregarLog('Conexión verificada correctamente', 'success');
+                
+                // Verificar tablas disponibles
+                await verificarTablasDisponibles();
+                
+            } catch (error) {
+                document.getElementById('estadoConexion').className = 'alert alert-danger';
+                document.getElementById('estadoConexion').innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>Error de conexión: ${error.message}`;
+                agregarLog(`Error de conexión: ${error.message}`, 'error');
+            }
+        }
+
+        // Verificar tablas disponibles
+        async function verificarTablasDisponibles() {
+            agregarLog('Verificando tablas disponibles...', 'info');
+            
+            const tablas = ['sesiones', 'productos', 'salas', 'gastos', 'configuracion'];
+            
+            for (const tabla of tablas) {
+                try {
+                    const resultado = await window.databaseService.select(tabla, { limite: 1 });
+                    if (resultado.success) {
+                        agregarLog(`✅ Tabla ${tabla}: ${resultado.data.length} registros disponibles`, 'success');
+                    } else {
+                        agregarLog(`⚠️ Tabla ${tabla}: ${resultado.message}`, 'warning');
+                    }
+                } catch (error) {
+                    agregarLog(`❌ Error verificando tabla ${tabla}: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Test de carga de datos
+        async function testCargarDatos() {
+            agregarLog('Iniciando test de carga de datos...', 'info');
+            
+            if (!window.databaseService) {
+                agregarLog('Database service no disponible', 'error');
+                return;
+            }
+
+            try {
+                // Cargar datos de cada tabla
+                const [sesiones, productos, salas, gastos, config] = await Promise.all([
+                    window.databaseService.select('sesiones', { limite: 10 }),
+                    window.databaseService.select('productos', { filtros: { activo: true } }),
+                    window.databaseService.select('salas', { filtros: { activa: true } }),
+                    window.databaseService.select('gastos', { limite: 10 }),
+                    window.databaseService.obtenerConfiguracion()
+                ]);
+
+                // Mostrar resultados
+                let html = '<div class="table-responsive"><table class="table table-sm">';
+                html += '<thead><tr><th>Tabla</th><th>Estado</th><th>Registros</th></tr></thead><tbody>';
+                
+                const resultados = [
+                    { nombre: 'Sesiones', resultado: sesiones },
+                    { nombre: 'Productos', resultado: productos },
+                    { nombre: 'Salas', resultado: salas },
+                    { nombre: 'Gastos', resultado: gastos },
+                    { nombre: 'Configuración', resultado: { success: true, data: config } }
+                ];
+
+                resultados.forEach(({ nombre, resultado }) => {
+                    const estado = resultado.success ? '✅' : '❌';
+                    const registros = resultado.success ? resultado.data.length : 'Error';
+                    html += `<tr><td>${nombre}</td><td>${estado}</td><td>${registros}</td></tr>`;
+                });
+
+                html += '</tbody></table></div>';
+                
+                document.getElementById('resultadoCarga').innerHTML = html;
+                agregarLog('Test de carga de datos completado', 'success');
+                
+                // Mostrar resumen
+                mostrarResumenDatos(resultados);
+                
+            } catch (error) {
+                agregarLog(`Error en test de carga: ${error.message}`, 'error');
+                document.getElementById('resultadoCarga').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Test de carga de tabla específica
+        async function testCargarTabla(tabla) {
+            agregarLog(`Test de carga de tabla ${tabla}...`, 'info');
+            
+            try {
+                const resultado = await window.databaseService.select(tabla, { limite: 5 });
+                
+                if (resultado.success) {
+                    agregarLog(`✅ Tabla ${tabla} cargada: ${resultado.data.length} registros`, 'success');
+                    
+                    // Mostrar primeros registros
+                    let html = `<h6>Primeros 5 registros de ${tabla}:</h6>`;
+                    html += '<div class="table-responsive"><table class="table table-sm table-striped">';
+                    
+                    if (resultado.data.length > 0) {
+                        const campos = Object.keys(resultado.data[0]);
+                        html += '<thead><tr>' + campos.map(campo => `<th>${campo}</th>`).join('') + '</tr></thead>';
+                        html += '<tbody>';
+                        
+                        resultado.data.forEach(registro => {
+                            html += '<tr>' + campos.map(campo => `<td>${registro[campo] || '-'}</td>`).join('') + '</tr>';
+                        });
+                        
+                        html += '</tbody>';
+                    } else {
+                        html += '<tbody><tr><td colspan="100%" class="text-center">No hay registros</td></tr></tbody>';
+                    }
+                    
+                    html += '</table></div>';
+                    
+                    document.getElementById('resultadoCarga').innerHTML = html;
+                } else {
+                    agregarLog(`❌ Error cargando tabla ${tabla}: ${resultado.message}`, 'error');
+                }
+                
+            } catch (error) {
+                agregarLog(`Error en test de tabla ${tabla}: ${error.message}`, 'error');
+            }
+        }
+
+        // Test de cálculo de métricas
+        function testCalcularMetricas() {
+            agregarLog('Test de cálculo de métricas...', 'info');
+            
+            if (!window.DashboardManager) {
+                agregarLog('DashboardManager no disponible', 'error');
+                return;
+            }
+
+            try {
+                const dashboard = new window.DashboardManager();
+                const metricasHoy = dashboard.calcularMetricasHoy();
+                
+                let html = '<div class="table-responsive"><table class="table table-sm">';
+                html += '<thead><tr><th>Métrica</th><th>Valor</th></tr></thead><tbody>';
+                
+                Object.entries(metricasHoy).forEach(([metrica, valor]) => {
+                    html += `<tr><td><strong>${metrica}</strong></td><td>${valor}</td></tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                
+                document.getElementById('resultadoMetricas').innerHTML = html;
+                agregarLog('Métricas calculadas correctamente', 'success');
+                
+            } catch (error) {
+                agregarLog(`Error calculando métricas: ${error.message}`, 'error');
+                document.getElementById('resultadoMetricas').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Test de actualización de métricas
+        async function testActualizarMetricas() {
+            agregarLog('Test de actualización de métricas...', 'info');
+            
+            if (!window.dashboardManager) {
+                agregarLog('Dashboard no inicializado', 'warning');
+                return;
+            }
+
+            try {
+                await window.dashboardManager.actualizarMetricas();
+                agregarLog('Métricas actualizadas correctamente', 'success');
+                
+                // Verificar que se actualizaron los elementos del DOM
+                const elementos = ['ingresosDia', 'clientesActivos', 'ocupacionSalas'];
+                let html = '<h6>Elementos actualizados:</h6><ul>';
+                
+                elementos.forEach(id => {
+                    const elemento = document.getElementById(id);
+                    if (elemento) {
+                        html += `<li>✅ ${id}: ${elemento.textContent}</li>`;
+                    } else {
+                        html += `<li>❌ ${id}: No encontrado</li>`;
+                    }
+                });
+                
+                html += '</ul>';
+                document.getElementById('resultadoMetricas').innerHTML = html;
+                
+            } catch (error) {
+                agregarLog(`Error actualizando métricas: ${error.message}`, 'error');
+            }
+        }
+
+        // Mostrar resumen de datos
+        function mostrarResumenDatos(resultados) {
+            let html = '<div class="row">';
+            
+            resultados.forEach(({ nombre, resultado }) => {
+                const total = resultado.success ? resultado.data.length : 0;
+                const color = resultado.success ? 'success' : 'danger';
+                const icon = resultado.success ? 'check-circle' : 'exclamation-triangle';
+                
+                html += `
+                    <div class="col-md-4 mb-2">
+                        <div class="card border-${color}">
+                            <div class="card-body text-center">
+                                <i class="fas fa-${icon} text-${color} fa-2x mb-2"></i>
+                                <h6>${nombre}</h6>
+                                <h4 class="text-${color}">${total}</h4>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('resumenDatos').innerHTML = html;
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            agregarLog('Página de test cargada', 'info');
+            
+            // Verificar conexión automáticamente
+            setTimeout(verificarConexion, 1000);
+        });
+    </script>
+</body>
+</html>
