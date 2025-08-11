@@ -84,7 +84,45 @@ async function obtenerSalas() {
                 return [];
             }
             
-            const filas = Array.isArray(resultado.data) ? resultado.data : [];
+            let filas = Array.isArray(resultado.data) ? resultado.data : [];
+
+            // Si no hay sesiones en BD pero existen en local (escenario inicial), migrar una sola vez
+            try {
+                const migrado = localStorage.getItem('sesiones_migradas_supabase') === '1';
+                const sesionesLocal = JSON.parse(localStorage.getItem('sesiones') || '[]');
+                if (filas.length === 0 && sesionesLocal.length > 0 && !migrado) {
+                    console.log('📤 Migrando sesiones locales a Supabase (una sola vez)...');
+                    for (const s of sesionesLocal) {
+                        const payload = {
+                            sala_id: s.salaId,
+                            usuario_id: (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.id) || null,
+                            estacion: s.estacion,
+                            cliente: s.cliente,
+                            fecha_inicio: s.fecha_inicio || s.inicio || new Date().toISOString(),
+                            fecha_fin: s.fecha_fin || s.fin || null,
+                            tiempo_contratado: s.tiempoOriginal || s.tiempo || 60,
+                            tiempo_adicional: s.tiempoAdicional || 0,
+                            tarifa_base: s.tarifa || s.tarifa_base || 0,
+                            costo_adicional: s.costoAdicional || 0,
+                            total_tiempo: s.totalTiempo || 0,
+                            total_productos: s.totalProductos || 0,
+                            total_general: s.totalGeneral || 0,
+                            descuento: s.descuento || 0,
+                            metodo_pago: s.metodoPago || 'efectivo',
+                            estado: s.finalizada ? 'finalizada' : (s.estado || 'activa'),
+                            finalizada: !!s.finalizada,
+                            productos: s.productos || [],
+                            tiempos_adicionales: s.tiemposAdicionales || [],
+                            notas: s.notas || null,
+                            vendedor: s.vendedor || null
+                        };
+                        try { await window.databaseService.insert('sesiones', payload); } catch (_) {}
+                    }
+                    localStorage.setItem('sesiones_migradas_supabase', '1');
+                    const refresco = await window.databaseService.select('sesiones', { ordenPor: { campo: 'fecha_inicio', direccion: 'desc' } });
+                    filas = refresco && refresco.success ? (refresco.data || []) : [];
+                }
+            } catch (migErr) { console.warn('⚠️ Migración sesiones fallida:', migErr?.message || migErr); }
             console.log('  - Filas obtenidas:', filas);
             
             // Mapear columnas de BD -> formato de UI
@@ -251,37 +289,71 @@ async function guardarSesiones(sesiones) {
                 const sesionesBD = resultadoBD.success ? resultadoBD.data : [];
                 console.log('  - Sesiones en BD:', sesionesBD);
                 
-                // Identificar sesiones nuevas o modificadas
-                const sesionesParaSincronizar = sesiones.filter(sesion => {
-                    const sesionBD = sesionesBD.find(s => s.id === sesion.id);
-                    if (!sesionBD) {
-                        console.log('  - Nueva sesión para insertar:', sesion);
-                        return true;
-                    }
-                    
-                    // Verificar si la sesión ha cambiado
-                    const haCambiado = (
-                        sesionBD.finalizada !== sesion.finalizada ||
-                        sesionBD.tiempo_adicional !== sesion.tiempoAdicional ||
-                        sesionBD.costo_adicional !== sesion.costoAdicional ||
-                        JSON.stringify(sesionBD.productos) !== JSON.stringify(sesion.productos)
-                    );
-                    
-                    if (haCambiado) {
-                        console.log('  - Sesión modificada para actualizar:', sesion);
-                        return true;
-                    }
-                    
-                    return false;
+                // Helper: mapear sesión UI -> payload BD
+                const mapSesionToPayload = (s) => ({
+                    sala_id: s.salaId,
+                    usuario_id: (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.id) || null,
+                    estacion: s.estacion,
+                    cliente: s.cliente,
+                    fecha_inicio: s.fecha_inicio || s.inicio || new Date().toISOString(),
+                    fecha_fin: s.fecha_fin || s.fin || null,
+                    tiempo_contratado: s.tiempoOriginal || s.tiempo || 60,
+                    tiempo_adicional: s.tiempoAdicional || 0,
+                    tarifa_base: s.tarifa || s.tarifa_base || 0,
+                    costo_adicional: s.costoAdicional || 0,
+                    total_tiempo: s.totalTiempo || 0,
+                    total_productos: s.totalProductos || 0,
+                    total_general: s.totalGeneral || 0,
+                    descuento: s.descuento || 0,
+                    metodo_pago: s.metodoPago || 'efectivo',
+                    estado: s.finalizada ? 'finalizada' : (s.estado || 'activa'),
+                    finalizada: !!s.finalizada,
+                    productos: s.productos || [],
+                    tiempos_adicionales: s.tiemposAdicionales || [],
+                    notas: s.notas || null,
+                    vendedor: s.vendedor || null
                 });
                 
-                console.log('  - Sesiones para sincronizar:', sesionesParaSincronizar);
-                
-                // Aquí se podrían implementar las operaciones de insert/update en Supabase
-                // Por ahora solo logueamos para debugging
-                if (sesionesParaSincronizar.length > 0) {
-                    console.log('  - ⚠️ Sesiones pendientes de sincronización con Supabase');
+                // Insertar nuevas y actualizar modificadas
+                for (let i = 0; i < sesiones.length; i++) {
+                    const sesion = sesiones[i];
+                    const sesionBD = sesionesBD.find(s => s.id === sesion.id);
+                    const payload = mapSesionToPayload(sesion);
+                    
+                    if (!sesionBD) {
+                        // Insert
+                        try {
+                            const res = await window.databaseService.insert('sesiones', payload);
+                            if (res && res.success && res.data && res.data.id) {
+                                // Reemplazar id local por id remoto
+                                sesiones[i].id = res.data.id;
+                                console.log('  - Insertada sesión en Supabase:', res.data.id);
+                            }
+                        } catch (e) {
+                            console.warn('⚠️ No se pudo insertar sesión en Supabase:', e?.message || e);
+                        }
+                    } else {
+                        // Detectar cambios relevantes
+                        const haCambiado = (
+                            !!sesion.finalizada !== !!sesionBD.finalizada ||
+                            Number(sesion.tiempoAdicional || 0) !== Number(sesionBD.tiempo_adicional || 0) ||
+                            Number(sesion.costoAdicional || 0) !== Number(sesionBD.costo_adicional || 0) ||
+                            Number(sesion.totalGeneral || 0) !== Number(sesionBD.total_general || 0) ||
+                            JSON.stringify(sesion.productos || []) !== JSON.stringify(sesionBD.productos || [])
+                        );
+                        if (haCambiado) {
+                            try {
+                                await window.databaseService.update('sesiones', sesion.id, payload);
+                                console.log('  - Actualizada sesión en Supabase:', sesion.id);
+                            } catch (e) {
+                                console.warn('⚠️ No se pudo actualizar sesión en Supabase:', e?.message || e);
+                            }
+                        }
+                    }
                 }
+                
+                // Repersistir local por si ids cambiaron a los remotos
+                localStorage.setItem('sesiones', JSON.stringify(sesiones));
                 
             } catch (syncError) {
                 console.warn('  - Error sincronizando con Supabase (no crítico):', syncError);
