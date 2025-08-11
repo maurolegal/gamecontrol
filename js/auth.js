@@ -367,7 +367,14 @@ class SupabaseAuthSystem {
 
         if (permisoRequerido && !permisos[permisoRequerido]) {
             alert('No tienes permisos para acceder a esta página.\n\nContacta al administrador si necesitas acceso.');
-            window.location.href = 'index.html';
+            try {
+                const indexPath = (window.navigationUtils && window.navigationUtils.getIndexPath)
+                    ? window.navigationUtils.getIndexPath()
+                    : (window.location.pathname.includes('/pages/') ? '../index.html' : 'index.html');
+                window.location.href = indexPath;
+            } catch (_) {
+                window.location.href = 'index.html';
+            }
         }
     }
 
@@ -435,7 +442,14 @@ class SupabaseAuthSystem {
         
         // Usar setTimeout para evitar problemas de timing
         setTimeout(() => {
-            window.location.href = 'login.html';
+            try {
+                const loginPath = (window.navigationUtils && window.navigationUtils.getLoginPath)
+                    ? window.navigationUtils.getLoginPath()
+                    : (window.location.pathname.includes('/pages/') ? '../login.html' : 'login.html');
+                window.location.href = loginPath;
+            } catch (e) {
+                window.location.href = 'login.html';
+            }
         }, 100);
     }
 

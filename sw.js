@@ -46,6 +46,8 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
 
+  // Si se solicita una ruta que parece HTML y falla, devolver login/index según carpeta
+  const isDocument = request.headers.get('accept')?.includes('text/html');
   // Siempre intentar red desde la red con cache: 'reload' para saltar caches del navegador
   event.respondWith(
     (async () => {
@@ -57,8 +59,17 @@ self.addEventListener('fetch', (event) => {
         const cached = await caches.match(request, { ignoreSearch: true });
         if (cached) return cached;
         // fallback a la home si no existe
-        const offline = await caches.match('./index.html');
-        return offline || new Response('Offline', { status: 503, statusText: 'Offline' });
+        if (isDocument) {
+          // Resolver ruta correcta según profundidad
+          const url = new URL(request.url);
+          const inPages = url.pathname.includes('/pages/');
+          const loginPath = inPages ? '../login.html' : './login.html';
+          const indexPath = inPages ? '../index.html' : './index.html';
+          const loginResp = await caches.match(loginPath);
+          const indexResp = await caches.match(indexPath);
+          return loginResp || indexResp || new Response('Offline', { status: 503, statusText: 'Offline' });
+        }
+        return new Response('Offline', { status: 503, statusText: 'Offline' });
       }
     })()
   );

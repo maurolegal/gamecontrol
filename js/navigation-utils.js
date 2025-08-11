@@ -205,7 +205,9 @@ class NavigationUtils {
             return true;
         } else if (!this.isLoginPage && !hasSession) {
             console.log('ℹ️ Sin sesión activa, redirigiendo al login');
-            this.navigateTo('login');
+            // Evitar 404 de GitHub Pages resolviendo ruta relativa correcta
+            const loginPath = this.getLoginPath();
+            window.location.replace(loginPath);
             return true;
         }
 
