@@ -494,6 +494,34 @@ function optimizarResponsivo() {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Inicializando sistema GameControl (Solo Supabase)...');
     
+    // Registro de Service Worker para forzar actualizaciones
+    try {
+        if ('serviceWorker' in navigator) {
+            const swUrl = (location.pathname.includes('/pages/') ? '../' : './') + 'sw.js';
+            const reg = await navigator.serviceWorker.register(swUrl, { scope: './' });
+            console.log('🧩 Service Worker registrado:', reg.scope);
+
+            // Forzar toma de control cuando haya nueva versión
+            if (reg.waiting) {
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                // Recarga suave al activar una nueva versión
+                console.log('♻️ Nueva versión activa, recargando...');
+                window.location.reload();
+            });
+
+            // Escuchar mensajes del SW (p. ej., al activar)
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event?.data?.type === 'SW_ACTIVATED') {
+                    console.log(`✅ SW activado (${event.data.version})`);
+                }
+            });
+        }
+    } catch (swError) {
+        console.warn('SW no disponible:', swError);
+    }
+
     try {
         // Esperar a que Supabase esté disponible
         let attempts = 0;
