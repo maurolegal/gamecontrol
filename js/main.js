@@ -576,8 +576,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Cargar configuración
         await obtenerConfiguracion();
         
-        // Inicializar salas por defecto si es necesario
-        await inicializarSalasDefault();
+        // NO crear salas por defecto si el sistema ha sido reseteado o en producción
+        const sistemaReseteado = localStorage.getItem('config_produccion') || localStorage.getItem('sistemaLimpio') || localStorage.getItem('sesiones_migradas_supabase');
+        if (!sistemaReseteado) {
+            await inicializarSalasDefault();
+        } else {
+            console.log('🧹 Sistema limpio/producción: no se crearán salas de ejemplo');
+        }
         
         // Inicializar componentes de UI
         inicializarMenuMovil();

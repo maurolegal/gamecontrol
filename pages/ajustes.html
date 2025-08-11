@@ -428,6 +428,9 @@
                         try { await client.from('configuracion').delete().neq('clave','sistema.nombre'); } catch (_) {}
                     }
 
+                    // Marcar sistema limpio para no crear datos demo
+                    try { localStorage.setItem('sistemaLimpio', '1'); } catch (_) {}
+
                     alert('✅ Sistema reseteado. Se recargará al login.');
                     // Volver al login resolviendo ruta correcta
                     const loginPath = (window.navigationUtils && window.navigationUtils.getLoginPath)
