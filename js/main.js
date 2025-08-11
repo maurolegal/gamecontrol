@@ -419,15 +419,17 @@ function inicializarMenuMovil() {
     }
 
     function abrirMenu() {
+        if (!sidebar) return;
         sidebar.classList.add('show');
-        overlay.classList.add('show');
+        if (overlay) overlay.classList.add('show');
         document.body.classList.add('menu-open');
         toggleButtons.forEach(btn => btn.setAttribute('aria-expanded', 'true'));
     }
 
     function cerrarMenu() {
+        if (!sidebar) return;
         sidebar.classList.remove('show');
-        overlay.classList.remove('show');
+        if (overlay) overlay.classList.remove('show');
         document.body.classList.remove('menu-open');
         toggleButtons.forEach(btn => btn.setAttribute('aria-expanded', 'false'));
     }
@@ -436,18 +438,22 @@ function inicializarMenuMovil() {
     const clickNs = 'menuToggleHandler';
     toggleButtons.forEach(btn => {
         if (btn[clickNs]) return;
-        btn.addEventListener('click', (e) => {
+        const handler = (e) => {
             e.preventDefault();
             if (sidebar.classList.contains('show')) {
                 cerrarMenu();
             } else {
                 abrirMenu();
             }
-        });
+        };
+        btn.addEventListener('click', handler, { passive: true });
+        btn.addEventListener('touchstart', handler, { passive: true });
         btn[clickNs] = true;
     });
 
-    overlay.addEventListener('click', cerrarMenu);
+    if (overlay) {
+        overlay.addEventListener('click', cerrarMenu, { passive: true });
+    }
 
     // Cerrar menú al hacer clic en un enlace (móvil)
     sidebar.querySelectorAll('.nav-link').forEach(link => {
