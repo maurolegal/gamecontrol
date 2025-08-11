@@ -2761,7 +2761,45 @@ class GestorSalas {
         if (window.gestorStock && typeof window.gestorStock.obtenerProductosDisponibles === 'function') {
             productosDisponibles = window.gestorStock.obtenerProductosDisponibles();
             console.log('  - Productos obtenidos del sistema de stock:', productosDisponibles.length);
-        } else {
+        }
+
+        // Si siguen vacíos y tenemos Supabase, intentar cargar directo
+        if (productosDisponibles.length === 0 && window.databaseService && window.databaseService.select) {
+            console.log('  - Intentando cargar productos desde Supabase...');
+            try {
+                // Nota: esta función no es async por firma actual; usar then()
+                window.databaseService.select('productos', {
+                    filtros: { activo: true },
+                    ordenPor: { campo: 'nombre', direccion: 'asc' }
+                }).then(res => {
+                    const remotos = res && res.success ? (res.data || []) : [];
+                    const list = remotos
+                        .filter(r => Number(r.stock) > 0)
+                        .map(r => ({
+                            id: r.id,
+                            nombre: r.nombre,
+                            precio: Number(r.precio) || 0,
+                            stock: Number(r.stock) || 0,
+                            categoria: r.categoria || 'General',
+                            categoriaNombre: r.categoria || 'General'
+                        }));
+                    if (list.length > 0) {
+                        this.renderizarProductosEnModal(list);
+                    } else {
+                        // Fallback a ejemplo si aún vacío
+                        this.renderizarProductosEnModal([]);
+                    }
+                }).catch(() => {
+                    this.renderizarProductosEnModal([]);
+                });
+                // Retornar para evitar render inicial vacío antes del then
+                return;
+            } catch (_) {
+                // Continuar a fallback
+            }
+        }
+
+        if (productosDisponibles.length === 0) {
             console.log('  - Sistema de stock no disponible, usando productos de ejemplo');
             // Productos de ejemplo si no hay sistema de stock
             productosDisponibles = [
@@ -2799,6 +2837,14 @@ class GestorSalas {
                 }
             ];
         }
+
+        // Render inmediato con productos disponibles/locales
+        this.renderizarProductosEnModal(productosDisponibles);
+    }
+
+    renderizarProductosEnModal(productosDisponibles) {
+        const listaProductos = document.getElementById('listaProductos');
+        if (!listaProductos) return;
 
         if (productosDisponibles.length === 0) {
             listaProductos.innerHTML = `

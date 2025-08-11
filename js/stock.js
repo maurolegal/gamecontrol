@@ -51,6 +51,83 @@ class GestorStock {
         this.cargarMovimientos();
         this.actualizarEstadisticas();
         this.actualizarVistaPrevia();
+        // Intentar sincronizar con Supabase en segundo plano
+        this.cargarDesdeSupabase();
+    }
+
+    async cargarDesdeSupabase() {
+        try {
+            if (!window.databaseService) {
+                console.log('ℹ️ DatabaseService no disponible, usando datos locales de stock');
+                return;
+            }
+            const resultado = await window.databaseService.select('productos', {
+                ordenPor: { campo: 'nombre', direccion: 'asc' }
+            });
+            const productosRemotos = resultado && resultado.success ? (resultado.data || []) : [];
+
+            // Si no hay productos remotos pero hay locales, subir una sola vez (migración)
+            const locales = obtenerProductos();
+            const migracionHecha = localStorage.getItem('productos_stock_migrados') === '1';
+            if (productosRemotos.length === 0 && locales.length > 0 && !migracionHecha) {
+                console.log('📤 Migrando productos locales a Supabase (una sola vez)...');
+                for (const p of locales) {
+                    try {
+                        const payload = {
+                            codigo: p.codigo || null,
+                            nombre: p.nombre,
+                            descripcion: p.descripcion || null,
+                            categoria: p.categoria || 'General',
+                            precio: Number(p.precio) || 0,
+                            costo: Number(p.costo) || 0,
+                            stock: Number(p.stock) || 0,
+                            stock_minimo: Number(p.stockMinimo) || 0,
+                            activo: true
+                        };
+                        await window.databaseService.insert('productos', payload);
+                    } catch (e) {
+                        console.warn('⚠️ No se pudo migrar un producto:', e?.message || e);
+                    }
+                }
+                localStorage.setItem('productos_stock_migrados', '1');
+                // Reconsultar
+                const refresco = await window.databaseService.select('productos', {
+                    ordenPor: { campo: 'nombre', direccion: 'asc' }
+                });
+                this.productos = (refresco && refresco.success ? refresco.data : []).map(r => ({
+                    id: r.id,
+                    nombre: r.nombre,
+                    categoria: r.categoria,
+                    costo: Number(r.costo) || 0,
+                    precio: Number(r.precio) || 0,
+                    stock: Number(r.stock) || 0,
+                    stockMinimo: Number(r.stock_minimo) || 0,
+                    descripcion: r.descripcion || ''
+                }));
+                guardarProductos(this.productos);
+                this.cargarProductos();
+                this.actualizarEstadisticas();
+                return;
+            }
+
+            // Cargar productos remotos en memoria y cache local
+            this.productos = productosRemotos.map(r => ({
+                id: r.id,
+                nombre: r.nombre,
+                categoria: r.categoria,
+                costo: Number(r.costo) || 0,
+                precio: Number(r.precio) || 0,
+                stock: Number(r.stock) || 0,
+                stockMinimo: Number(r.stock_minimo) || 0,
+                descripcion: r.descripcion || ''
+            }));
+            guardarProductos(this.productos);
+            this.cargarProductos();
+            this.actualizarEstadisticas();
+            console.log(`✅ Stock sincronizado desde Supabase: ${this.productos.length} productos`);
+        } catch (error) {
+            console.warn('⚠️ Error cargando productos desde Supabase, continuando con cache local:', error?.message || error);
+        }
     }
 
     // === GESTIÓN DE CATEGORÍAS (igual que gastos) ===
@@ -649,27 +726,74 @@ class GestorStock {
             fechaCreacion: new Date().toISOString()
         };
 
-        this.productos.push(nuevoProducto);
-        guardarProductos(this.productos);
+        // Persistir primero en Supabase para obtener un id global
+        const insertarRemoto = async () => {
+            if (!window.databaseService) return null;
+            const payload = {
+                codigo: null,
+                nombre: nuevoProducto.nombre,
+                descripcion: nuevoProducto.descripcion || null,
+                categoria: nuevoProducto.categoria || 'General',
+                precio: Number(nuevoProducto.precio) || 0,
+                costo: Number(nuevoProducto.costo) || 0,
+                stock: Number(nuevoProducto.stock) || 0,
+                stock_minimo: Number(nuevoProducto.stockMinimo) || 0,
+                activo: true
+            };
+            try {
+                const res = await window.databaseService.insert('productos', payload);
+                if (res && res.success && res.data && res.data.id) {
+                    return res.data.id;
+                }
+            } catch (e) {
+                console.warn('⚠️ No se pudo insertar producto en Supabase, se usará cache local:', e?.message || e);
+            }
+            return null;
+        };
 
-        // Registrar movimiento
-        this.registrarMovimiento({
-            productoId: nuevoProducto.id,
-            tipo: 'entrada',
-            cantidad: nuevoProducto.stock,
-            observaciones: 'Producto creado',
-            usuario: 'Usuario actual'
-        });
+        (async () => {
+            const remoteId = await insertarRemoto();
+            if (remoteId) nuevoProducto.id = remoteId;
 
-        this.cargarProductos();
-        this.actualizarEstadisticas();
-        
-        // Limpiar formulario
-        document.getElementById('formNuevoProducto').reset();
-        this.limpiarCalculoCosto();
-        this.actualizarCalculosGanancia();
-        
-        alert('Producto agregado exitosamente');
+            this.productos.push(nuevoProducto);
+            guardarProductos(this.productos);
+            
+            // Registrar movimiento también en Supabase si es posible
+            try {
+                if (window.databaseService) {
+                    const movPayload = {
+                        producto_id: nuevoProducto.id,
+                        tipo: 'entrada',
+                        cantidad: Number(nuevoProducto.stock) || 0,
+                        stock_anterior: 0,
+                        stock_nuevo: Number(nuevoProducto.stock) || 0,
+                        costo_unitario: Number(nuevoProducto.costo) || 0,
+                        valor_total: (Number(nuevoProducto.costo) || 0) * (Number(nuevoProducto.stock) || 0),
+                        motivo: 'Producto creado'
+                    };
+                    await window.databaseService.insert('movimientos_stock', movPayload);
+                }
+            } catch (_) {}
+
+            // Registrar movimiento local
+            this.registrarMovimiento({
+                productoId: nuevoProducto.id,
+                tipo: 'entrada',
+                cantidad: nuevoProducto.stock,
+                observaciones: 'Producto creado',
+                usuario: 'Usuario actual'
+            });
+
+            this.cargarProductos();
+            this.actualizarEstadisticas();
+            
+            // Limpiar formulario
+            document.getElementById('formNuevoProducto').reset();
+            this.limpiarCalculoCosto();
+            this.actualizarCalculosGanancia();
+            
+            alert('Producto agregado exitosamente');
+        })();
     }
 
     ajustarStock(productoId) {
@@ -689,6 +813,17 @@ class GestorStock {
         producto.stock = nuevaCantidad;
         
         guardarProductos(this.productos);
+
+        // Actualizar en Supabase si es posible
+        (async () => {
+            try {
+                if (window.databaseService) {
+                    await window.databaseService.update('productos', producto.id, {
+                        stock: Number(producto.stock)
+                    });
+                }
+            } catch (_) {}
+        })();
 
         // Registrar movimiento
         this.registrarMovimiento({
@@ -750,6 +885,24 @@ class GestorStock {
         producto.descripcion = formData.get('descripcion') || '';
 
         guardarProductos(this.productos);
+
+        // Actualizar en Supabase si es posible
+        (async () => {
+            try {
+                if (window.databaseService) {
+                    await window.databaseService.update('productos', producto.id, {
+                        nombre: producto.nombre,
+                        descripcion: producto.descripcion || null,
+                        categoria: producto.categoria || 'General',
+                        precio: Number(producto.precio) || 0,
+                        costo: Number(producto.costo) || 0,
+                        stock: Number(producto.stock) || 0,
+                        stock_minimo: Number(producto.stockMinimo) || 0,
+                        activo: true
+                    });
+                }
+            } catch (_) {}
+        })();
 
         // Si cambió el stock, registrar movimiento
         if (stockAnterior !== producto.stock) {
