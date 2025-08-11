@@ -476,6 +476,7 @@ body {
     .main-content {
         margin-left: 0;
         width: 100%;
+        padding: 0.75rem; /* más compacto en móvil */
         transition: margin-left 0.3s ease;
     }
 
@@ -674,6 +675,13 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 1.25rem;
     margin-top: 1.5rem;
+}
+
+/* Forzar layout móvil de una sola columna en pantallas pequeñas también en grids legacy */
+@media (max-width: 576px) {
+    .salas-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+    .estaciones-grid { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+    .sala-card { padding: 1rem; }
 }
 
 .estacion-item {
@@ -2390,16 +2398,29 @@ body {
     font-size: 0.75rem;
 }
 
-/* Responsive para salas */
-@media (max-width: 768px) {
+/* Responsive para salas - versión móvil profesional */
+/* Teléfonos (hasta 576px): UNA sola columna para máxima legibilidad */
+@media (max-width: 576px) {
+    .salas-grid-minimal {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    .sala-card-minimal { padding: 1rem; }
+    .sala-title-minimal { font-size: 1.1rem; }
+    .sala-stats-minimal { gap: 0.75rem; }
+    .estaciones-grid-minimal { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; }
+    .estacion-minimal { padding: 0.75rem; }
+    .btn-iniciar-minimal { font-size: 0.8rem; padding: 0.45rem; }
+    .main-content { padding: 1rem; }
+}
+
+/* Tablets pequeñas (577px a 992px): DOS columnas */
+@media (min-width: 577px) and (max-width: 992px) {
     .salas-grid-minimal {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
     }
-    
-    .duracion-selector .duracion-botones {
-        grid-template-columns: repeat(3, 1fr);
-    }
+    .estaciones-grid-minimal { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* Animaciones sutiles */
