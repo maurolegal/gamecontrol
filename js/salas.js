@@ -398,6 +398,8 @@ class GestorSalas {
         
         // Inicializar datos y vista
         this.inicializarDatos();
+        // Configurar actualizaciones en tiempo real de sesiones (cross-dispositivo)
+        this.configurarRealtimeSesiones();
         
         // Configurar event listeners
         this.configurarEventListeners();
@@ -443,6 +445,34 @@ class GestorSalas {
             console.log('✅ inicializarDatos() completado');
         } catch (error) {
             console.error('❌ Error inicializando datos:', error);
+        }
+    }
+
+    async configurarRealtimeSesiones() {
+        try {
+            if (this._sesionesRT) {
+                return; // ya suscrito
+            }
+            if (!window.supabaseConfig || !window.supabaseConfig.getSupabaseClient) {
+                // reintentar cuando supabase esté listo
+                setTimeout(() => this.configurarRealtimeSesiones(), 400);
+                return;
+            }
+            const client = await window.supabaseConfig.getSupabaseClient();
+            if (!client || !client.channel) return;
+            this._sesionesRT = client
+                .channel('sesiones-rt')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'sesiones' }, async (_payload) => {
+                    try {
+                        const nuevas = await obtenerSesiones();
+                        this.sesiones = nuevas;
+                        this.actualizarVista();
+                    } catch (_) {}
+                })
+                .subscribe();
+            console.log('✅ Suscripción en tiempo real a sesiones configurada');
+        } catch (err) {
+            console.warn('⚠️ No se pudo configurar realtime de sesiones:', err?.message || err);
         }
     }
     
