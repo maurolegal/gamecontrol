@@ -1,0 +1,252 @@
+# ===================================================================
+# .gitignore - Sistema GameControl
+# Archivos y directorios que no deben incluirse en el repositorio
+# ===================================================================
+
+# ===================================================================
+# ARCHIVOS DE CONFIGURACIÓN SENSIBLES
+# ===================================================================
+
+# Credenciales y configuración privada
+config/credentials.json
+config/database.json
+config/api-keys.json
+.env
+.env.local
+.env.production
+
+# Archivos de configuración específicos del usuario
+user-config.json
+local-settings.json
+
+# ===================================================================
+# DATOS TEMPORALES Y LOGS
+# ===================================================================
+
+# Logs del sistema
+logs/
+*.log
+npm-debug.log*
+debug.log
+error.log
+
+# Archivos temporales
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Cache de aplicaciones
+.cache/
+cache/
+
+# Archivos de respaldo automático
+backup/
+*.backup
+*.bak
+
+# ===================================================================
+# ARCHIVOS DEL SISTEMA OPERATIVO
+# ===================================================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Linux
+*~
+.directory
+
+# ===================================================================
+# EDITORES E IDEs
+# ===================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ===================================================================
+# DEPENDENCIAS Y LIBRERÍAS
+# ===================================================================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+
+# PHP
+vendor/
+composer.lock
+
+# ===================================================================
+# ARCHIVOS DE BUILD Y DISTRIBUCIÓN
+# ===================================================================
+
+# Build outputs
+build/
+dist/
+out/
+
+# Archivos minificados
+*.min.js
+*.min.css
+
+# Source maps
+*.map
+
+# ===================================================================
+# BASES DE DATOS Y ALMACENAMIENTO
+# ===================================================================
+
+# Bases de datos locales
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos de dump de BD
+*.sql.gz
+*.dump
+
+# Archivos de migración específicos
+migrations/backup/
+
+# ===================================================================
+# DOCUMENTACIÓN GENERADA
+# ===================================================================
+
+# Documentación auto-generada
+docs/generated/
+api-docs/
+
+# ===================================================================
+# ARCHIVOS DE TESTING
+# ===================================================================
+
+# Coverage reports
+coverage/
+*.lcov
+.nyc_output
+
+# Test results
+test-results/
+*.xml
+
+# ===================================================================
+# ARCHIVOS ESPECÍFICOS DEL PROYECTO
+# ===================================================================
+
+# Datos de prueba sensibles
+data/test-real/
+data/production/
+
+# Respaldos de datos locales
+localStorage-backup.json
+data-export.json
+
+# Archivos de configuración de servidor
+server-config.json
+nginx.conf
+
+# Certificados SSL
+*.pem
+*.key
+*.crt
+
+# ===================================================================
+# ARCHIVOS DE DEPLOYMENT
+# ===================================================================
+
+# Docker
+.dockerignore
+
+# Archivos de despliegue específicos
+deploy/
+deployment/
+
+# Variables de entorno de producción
+.env.production.local
+.env.staging
+
+# ===================================================================
+# ARCHIVOS MISCELÁNEOS
+# ===================================================================
+
+# Archivos de bloqueo
+*.lock
+
+# Archivos ZIP y comprimidos temporales
+*.zip
+*.rar
+*.tar.gz
+temp-export.*
+
+# Archivos de sesión
+.sessions/
+
+# ===================================================================
+# PERMITIR ARCHIVOS ESPECÍFICOS IMPORTANTES
+# ===================================================================
+
+# Asegurar que estos archivos SÍ se incluyan
+!README.md
+!.gitignore
+!package.json
+!composer.json
+!requirements.txt
+
+# Configuración de ejemplo (sin datos reales)
+!config/example-config.json
+!.env.example
+
+# ===================================================================
+# NOTAS ADICIONALES
+# ===================================================================
+# Este .gitignore está configurado para el sistema GameControl
+# Se excluyen archivos sensibles, temporales y específicos del entorno
+# Para añadir excepciones, usar: !nombre-archivo
+# =================================================================== 

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sesiones Persistentes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Test de Persistencia de Sesiones</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Crear Sesión de Prueba</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-primary" onclick="crearSesionPrueba()">Crear Sesión Activa</button>
+                        <button class="btn btn-success" onclick="crearSesionFinalizada()">Crear Sesión Finalizada</button>
+                        <button class="btn btn-info" onclick="verSesiones()">Ver Todas las Sesiones</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Navegación de Prueba</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning" onclick="simularNavegacion()">Simular Navegación</button>
+                        <button class="btn btn-secondary" onclick="limpiarDatos()">Limpiar Datos</button>
+                        <button class="btn btn-danger" onclick="irASalas()">Ir a Página de Salas</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Estado de las Sesiones</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="estadoSesiones"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Log de Eventos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="logEventos" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function logEvento(mensaje) {
+            const logDiv = document.getElementById('logEventos');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${mensaje}<br>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function crearSesionPrueba() {
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            const nuevaSesion = {
+                id: 'test_' + Date.now(),
+                salaId: '1',
+                estacion: 'EST1',
+                cliente: 'Cliente de Prueba',
+                fecha_inicio: new Date().toISOString(),
+                tarifa_base: 5,
+                tiempo_contratado: 60,
+                finalizada: false
+            };
+            
+            sesiones.push(nuevaSesion);
+            localStorage.setItem('sesiones', JSON.stringify(sesiones));
+            
+            logEvento(`✅ Sesión activa creada: ${nuevaSesion.id}`);
+            mostrarEstadoSesiones();
+        }
+        
+        function crearSesionFinalizada() {
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            const nuevaSesion = {
+                id: 'test_finalizada_' + Date.now(),
+                salaId: '2',
+                estacion: 'PS51',
+                cliente: 'Cliente Finalizado',
+                fecha_inicio: new Date(Date.now() - 3600000).toISOString(), // 1 hora atrás
+                fecha_fin: new Date().toISOString(),
+                tarifa_base: 6,
+                tiempo_contratado: 60,
+                finalizada: true
+            };
+            
+            sesiones.push(nuevaSesion);
+            localStorage.setItem('sesiones', JSON.stringify(sesiones));
+            
+            logEvento(`✅ Sesión finalizada creada: ${nuevaSesion.id}`);
+            mostrarEstadoSesiones();
+        }
+        
+        function verSesiones() {
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            logEvento(`📊 Total sesiones: ${sesiones.length}`);
+            logEvento(`📊 Sesiones activas: ${sesiones.filter(s => !s.finalizada).length}`);
+            logEvento(`📊 Sesiones finalizadas: ${sesiones.filter(s => s.finalizada).length}`);
+            
+            sesiones.forEach(sesion => {
+                const estado = sesion.finalizada ? '❌ Finalizada' : '✅ Activa';
+                logEvento(`  - ${sesion.id}: ${sesion.cliente} (${estado})`);
+            });
+        }
+        
+        function simularNavegacion() {
+            logEvento('🔄 Simulando navegación entre páginas...');
+            
+            // Simular pérdida de foco
+            logEvento('  - Ventana pierde foco');
+            
+            // Simular regreso
+            setTimeout(() => {
+                logEvento('  - Ventana vuelve a tener foco');
+                verificarIntegridadDatos();
+            }, 1000);
+        }
+        
+        function limpiarDatos() {
+            localStorage.removeItem('sesiones');
+            logEvento('🗑️ Datos de sesiones eliminados');
+            mostrarEstadoSesiones();
+        }
+        
+        function irASalas() {
+            logEvento('🚀 Redirigiendo a página de salas...');
+            setTimeout(() => {
+                window.location.href = 'pages/salas.html';
+            }, 1000);
+        }
+        
+        function verificarIntegridadDatos() {
+            logEvento('🔍 Verificando integridad de datos...');
+            
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            const sesionesActivas = sesiones.filter(s => !s.finalizada);
+            
+            logEvento(`  - Sesiones totales: ${sesiones.length}`);
+            logEvento(`  - Sesiones activas: ${sesionesActivas.length}`);
+            
+            // Verificar que no haya sesiones duplicadas
+            const idsUnicos = new Set();
+            const sesionesSinDuplicados = sesiones.filter(sesion => {
+                if (idsUnicos.has(sesion.id)) {
+                    logEvento(`  - ⚠️ Sesión duplicada encontrada: ${sesion.id}`);
+                    return false;
+                }
+                idsUnicos.add(sesion.id);
+                return true;
+            });
+            
+            if (sesionesSinDuplicados.length !== sesiones.length) {
+                logEvento('  - Limpiando sesiones duplicadas...');
+                localStorage.setItem('sesiones', JSON.stringify(sesionesSinDuplicados));
+            }
+            
+            logEvento('✅ Verificación de integridad completada');
+        }
+        
+        function mostrarEstadoSesiones() {
+            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            const sesionesActivas = sesiones.filter(s => !s.finalizada);
+            const sesionesFinalizadas = sesiones.filter(s => s.finalizada);
+            
+            const estadoDiv = document.getElementById('estadoSesiones');
+            estadoDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="alert alert-info">
+                            <strong>Total:</strong> ${sesiones.length}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-success">
+                            <strong>Activas:</strong> ${sesionesActivas.length}
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-secondary">
+                            <strong>Finalizadas:</strong> ${sesionesFinalizadas.length}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Event listeners para simular navegación
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                logEvento('👁️ Página vuelve a estar visible');
+                verificarIntegridadDatos();
+            } else {
+                logEvento('👁️ Página se oculta');
+            }
+        });
+        
+        window.addEventListener('focus', () => {
+            logEvento('🎯 Ventana vuelve a tener foco');
+            verificarIntegridadDatos();
+        });
+        
+        window.addEventListener('blur', () => {
+            logEvento('🎯 Ventana pierde foco');
+        });
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            logEvento('🚀 Página cargada');
+            mostrarEstadoSesiones();
+            verificarIntegridadDatos();
+        });
+    </script>
+</body>
+</html>

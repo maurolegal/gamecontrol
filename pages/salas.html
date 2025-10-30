@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Gestión de Salas - GameControl</title>
+    <script>
+        (function(){
+            try {
+                var t = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', t);
+            } catch(e) {}
+        })();
+    </script>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <!-- Mobile Responsive CSS -->
+    <link rel="stylesheet" href="../css/mobile-responsive-pro.css">
+    
+    <!-- Librería Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Estilos móviles corporativos para Salas -->
+    <link rel="stylesheet" href="../css/salas-mobile-corporate.css">
+</head>
+<body class="salas-page salas-corporate">
+    <!-- Menú hamburguesa para móvil -->
+    <button class="menu-toggle d-md-none" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay para menú móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 col-lg-2 d-md-block sidebar" id="sidebar">
+                <div class="logo">
+                    <h4><i class="fas fa-gamepad me-2"></i>GameControl</h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="salas.html">
+                            <i class="fas fa-door-open"></i> Salas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ventas.html">
+                            <i class="fas fa-cash-register"></i> Ventas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="gastos.html">
+                            <i class="fas fa-file-invoice-dollar"></i> Gastos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock.html">
+                            <i class="fas fa-boxes"></i> Stock
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reportes.html">
+                            <i class="fas fa-chart-bar"></i> Reportes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">
+                            <i class="fas fa-users"></i> Usuarios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ajustes.html">
+                            <i class="fas fa-cog"></i> Ajustes
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <div>
+                        <h3>Gestión de Salas</h3>
+                        <p class="text-muted mb-0">Control y administración de salas gaming</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Perfil de Usuario -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-info d-none d-md-flex flex-column text-end">
+                                <span class="fw-semibold mb-0 user-name" style="font-size: 0.9rem;">Cargando...</span>
+                                <small class="text-muted user-role">--</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle d-flex align-items-center px-3" type="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">--</div>
+                                    <span class="d-md-none user-name">Cargando...</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="user-email">--</span>
+                                        </small>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estadísticas Rápidas -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="dashboard-card text-center">
+                            <div class="card-icon bg-primary bg-opacity-10 text-primary mx-auto">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                            <h6 class="text-muted mb-1">Total Salas</h6>
+                            <h3 class="mb-0" id="totalSalas">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card text-center">
+                            <div class="card-icon bg-success bg-opacity-10 text-success mx-auto">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <h6 class="text-muted mb-1">Disponibles</h6>
+                            <h3 class="mb-0 text-success" id="salasDisponibles">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card text-center">
+                            <div class="card-icon bg-warning bg-opacity-10 text-warning mx-auto">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h6 class="text-muted mb-1">En Uso</h6>
+                            <h3 class="mb-0 text-warning" id="salasOcupadas">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card text-center">
+                            <div class="card-icon bg-info bg-opacity-10 text-info mx-auto">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <h6 class="text-muted mb-1">Sesiones Activas</h6>
+                            <h3 class="mb-0 text-info" id="ingresosHoy">$0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Control -->
+                <div class="module-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5><i class="fas fa-gamepad me-2"></i>Salas Gaming</h5>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-outline-primary" id="btnTarifas" data-bs-toggle="modal" data-bs-target="#modalTarifas">
+                                <i class="fas fa-dollar-sign d-md-inline d-none me-2"></i>
+                                <span class="d-md-inline d-none">Tarifas</span>
+                                <i class="fas fa-dollar-sign d-md-none"></i>
+                            </button>
+                            <button class="btn btn-primary" id="btnNuevaSala" data-bs-toggle="modal" data-bs-target="#modalNuevaSala">
+                                <i class="fas fa-plus d-md-inline d-none me-2"></i>
+                                <span class="d-md-inline d-none">Nueva Sala</span>
+                                <i class="fas fa-plus d-md-none"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filtros Compactos -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="buscarSala" placeholder="Buscar por nombre o tipo...">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="tipoSala" id="todas" value="todas" checked>
+                                <label class="btn btn-outline-primary" for="todas">Todas</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="playstation" value="playstation">
+                                <label class="btn btn-outline-primary" for="playstation">PlayStation</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="xbox" value="xbox">
+                                <label class="btn btn-outline-primary" for="xbox">Xbox</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="nintendo" value="nintendo">
+                                <label class="btn btn-outline-primary" for="nintendo">Nintendo</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="pc" value="pc">
+                                <label class="btn btn-outline-primary" for="pc">PC</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid de Salas Minimalista -->
+                    <div class="salas-grid-minimal" id="contenedorSalas">
+                        <!-- Las salas se generarán dinámicamente aquí -->
+                    </div>
+                </div>
+
+                <!-- Sesiones Activas -->
+                <div class="module-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-clock me-2"></i>Sesiones Activas</h5>
+                        <span class="badge bg-primary" id="contadorSesiones">0 activas</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" id="tablaSesiones">
+                            <thead>
+                                <tr>
+                                    <th>Sala</th>
+                                    <th>Estación</th>
+                                    <th>Cliente</th>
+                                    <th>Tiempo</th>
+                                    <th>Tarifa</th>
+                                    <th>Total</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Las sesiones se generarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                        <div class="text-center py-4 d-none" id="noSesiones">
+                            <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No hay sesiones activas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Sala -->
+    <div class="modal fade" id="modalNuevaSala" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nueva Sala</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formNuevaSala">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Nombre de la Sala</label>
+                                <input type="text" class="form-control" name="nombre" placeholder="Ej: Sala PlayStation 1" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Tipo</label>
+                                <select class="form-select" name="tipo" required>
+                                    <option value="">Seleccionar tipo</option>
+                                    <option value="playstation">PlayStation</option>
+                                    <option value="xbox">Xbox</option>
+                                    <option value="nintendo">Nintendo</option>
+                                    <option value="pc">PC Gaming</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Estaciones</label>
+                                <input type="number" class="form-control" name="estaciones" min="1" max="20" value="4" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Prefijo</label>
+                                <input type="text" class="form-control" name="prefijo" placeholder="PS, XB, PC..." maxlength="3" required>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Tarifa por Hora</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="tarifa" min="0" step="500" placeholder="5000" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Crear Sala
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Iniciar Sesión -->
+    <div class="modal fade" id="modalIniciarSesion" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content modal-compact">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-play me-2"></i>Iniciar Sesión</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formIniciarSesion">
+                    <div class="modal-body">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-12">
+                                <label class="form-label">Cliente</label>
+                                <input type="text" class="form-control" name="cliente" placeholder="Nombre del cliente (opcional)">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Estación</label>
+                                <select class="form-select" name="estacion" id="selectEstacion" required>
+                                    <!-- Las estaciones se cargarán dinámicamente -->
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label class="form-label mb-0">Duración</label>
+                                    <small class="text-muted">elige una opción o define minutos</small>
+                                </div>
+                                <div id="opcionesTiempo">
+                                    <!-- Las opciones de tiempo se generarán dinámicamente -->
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Tiempo personalizado (opcional)</label>
+                                <div class="input-group input-group-sm compact">
+                                    <input type="number" class="form-control" name="tiempoPersonalizado" placeholder="Ej: 45" min="15" max="480">
+                                    <span class="input-group-text">min</span>
+                                </div>
+                                <small class="form-text text-muted">Tarifa proporcional basada en la configuración de la sala</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-between">
+                        <div class="costo-resumen d-flex align-items-center gap-2">
+                            <small class="text-muted d-flex align-items-center gap-1"><i class="fas fa-calculator"></i> Costo total:</small>
+                            <span id="costoEstimado" class="fw-bold">$0</span>
+                        </div>
+                        <div class="d-flex gap-2 w-auto">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-play me-2"></i>Iniciar Sesión
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configurar Tarifas -->
+    <div class="modal fade" id="modalTarifas" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-dollar-sign me-2"></i>Configurar Tarifas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formTarifas">
+                    <div class="modal-body">
+                        <div id="contenedorTarifas">
+                            <!-- Las tarifas se generarán dinámicamente -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- ===== SUPABASE SDK (CARGAR PRIMERO) ===== -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/database-service.js"></script>
+    
+    <!-- ===== SCRIPTS DE AUTENTICACIÓN ===== -->
+    <script src="../js/auth.js"></script>
+    
+    <!-- Utilidades de Navegación -->
+    <script src="../js/navigation-utils.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../js/notifications.js"></script>
+    <script src="../js/theme-ux.js"></script>
+    <script src="../js/stock.js"></script>
+    <script src="../js/salas.js"></script>
+    
+    <!-- Funcionalidad Móvil (Debe ir DESPUÉS de salas.js) -->
+    <script src="../js/main.js"></script>
+    
+    <!-- Modal Editar Sala -->
+    <div class="modal fade" id="modalEditarSala" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Sala</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarSala">
+                    <div class="modal-body">
+                        <input type="hidden" id="editarSalaId" name="salaId">
+                        
+                        <div class="mb-3">
+                            <label for="editarNombre" class="form-label">Nombre de la Sala</label>
+                            <input type="text" class="form-control" id="editarNombre" name="nombre" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editarTipo" class="form-label">Tipo de Consola</label>
+                            <select class="form-select" id="editarTipo" name="tipo" required>
+                                <option value="playstation">PlayStation</option>
+                                <option value="xbox">Xbox</option>
+                                <option value="pc">PC Gaming</option>
+                                <option value="nintendo">Nintendo</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editarNumEstaciones" class="form-label">Número de Estaciones</label>
+                            <input type="number" class="form-control" id="editarNumEstaciones" name="numEstaciones" min="1" max="20" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editarPrefijo" class="form-label">Prefijo de Estaciones</label>
+                            <input type="text" class="form-control" id="editarPrefijo" name="prefijo" placeholder="Ej: EST" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editarTarifa" class="form-label">Tarifa Base por Hora</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="editarTarifa" name="tarifa" min="0" step="0.50" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== VERIFICACIÓN DE AUTENTICACIÓN FINAL ===== -->
+    <script>
+        // Verificación final que usa navigation-utils
+        window.addEventListener('load', function() {
+            console.log('🔍 Verificación final de autenticación en salas.html...');
+            
+            // Esperar a que navigation-utils esté disponible
+            setTimeout(function() {
+                if (window.navigationUtils && window.navigationUtils.checkAndRedirectIfNeeded) {
+                    console.log('ℹ️ Usando navigation-utils para verificación de autenticación');
+                    window.navigationUtils.checkAndRedirectIfNeeded();
+                } else {
+                    console.log('⚠️ navigation-utils no disponible, verificando manualmente');
+                    const sesionLocal = localStorage.getItem('sesionActual');
+                    if (!sesionLocal) {
+                        console.log('❌ No hay sesión, redirigiendo al login...');
+                        window.location.href = '../login.html';
+                    }
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

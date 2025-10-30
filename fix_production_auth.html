@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Fix Autenticación Producción - GameControl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .fix-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .step-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            margin-bottom: 20px;
+        }
+        .step-card:hover {
+            transform: translateY(-2px);
+        }
+        .fix-button {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            border-radius: 25px;
+            padding: 12px 30px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        .fix-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .warning-button {
+            background: linear-gradient(45deg, #ffc107, #fd7e14);
+        }
+        .danger-button {
+            background: linear-gradient(45deg, #dc3545, #e83e8c);
+        }
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="fix-container p-4">
+                    <div class="text-center mb-4">
+                        <h1 class="display-4 text-primary">
+                            <i class="fas fa-wrench me-3"></i>Fix Autenticación Producción
+                        </h1>
+                        <p class="lead text-muted">Solución automática para problemas de login en producción</p>
+                    </div>
+
+                    <!-- Pasos de Solución -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card step-card">
+                                <div class="card-header bg-primary text-white">
+                                    <h5><i class="fas fa-list-ol me-2"></i>Pasos de Solución</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <button class="btn fix-button w-100 mb-3" onclick="step1_CheckEnvironment()">
+                                                <i class="fas fa-globe me-2"></i>1. Verificar Entorno
+                                            </button>
+                                            <button class="btn fix-button w-100 mb-3" onclick="step2_CheckSupabaseConfig()">
+                                                <i class="fas fa-cog me-2"></i>2. Verificar Configuración
+                                            </button>
+                                            <button class="btn fix-button w-100 mb-3" onclick="step3_CheckUserExists()">
+                                                <i class="fas fa-user me-2"></i>3. Verificar Usuario
+                                            </button>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button class="btn fix-button w-100 mb-3" onclick="step4_FixSupabaseAuth()">
+                                                <i class="fas fa-key me-2"></i>4. Arreglar Supabase Auth
+                                            </button>
+                                            <button class="btn fix-button w-100 mb-3" onclick="step5_TestLogin()">
+                                                <i class="fas fa-sign-in-alt me-2"></i>5. Test Login
+                                            </button>
+                                            <button class="btn warning-button w-100 mb-3" onclick="step6_ResetUser()">
+                                                <i class="fas fa-redo me-2"></i>6. Reset Usuario (Peligroso)
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logs -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card step-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-terminal me-2"></i>Logs de Reparación</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="fixLogs" class="log-container p-3">
+                                        <div class="info">🔧 Iniciando herramienta de reparación...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+
+    <script>
+        // Variables globales
+        let supabaseClient = null;
+        
+        // Configuración
+        const CONFIG = {
+            url: 'https://stjbtxrrdofuxhigxfcy.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amJ0eHJyZG9mdXhoaWd4ZmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MTgwNzUsImV4cCI6MjA3NzM5NDA3NX0.vhz6v2pRepUH7g-ucSJKtWonmAeWYqwhrTxG_ypVElo',
+            testUser: {
+                email: 'maurochica23@gmail.com',
+                password: 'kennia23'
+            }
+        };
+
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('fixLogs');
+            const time = new Date().toLocaleTimeString();
+            
+            const log = document.createElement('div');
+            log.className = type;
+            log.innerHTML = `[${time}] ${message}`;
+            
+            container.appendChild(log);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Paso 1: Verificar entorno
+        async function step1_CheckEnvironment() {
+            addLog('🌐 Verificando entorno de producción...', 'info');
+            
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            
+            if (hostname === 'maurolegal.github.io') {
+                addLog('✅ Entorno de producción detectado (GitHub Pages)', 'success');
+                addLog(`🔗 URL: ${protocol}//${hostname}`, 'info');
+                
+                // Verificar si es HTTPS
+                if (protocol === 'https:') {
+                    addLog('✅ HTTPS detectado (requerido para Supabase)', 'success');
+                } else {
+                    addLog('⚠️ HTTP detectado - Supabase requiere HTTPS', 'warning');
+                }
+                
+                return true;
+            } else {
+                addLog('⚠️ No es entorno de producción', 'warning');
+                addLog(`🔗 URL actual: ${protocol}//${hostname}`, 'info');
+                return false;
+            }
+        }
+
+        // Paso 2: Verificar configuración de Supabase
+        async function step2_CheckSupabaseConfig() {
+            addLog('🔧 Verificando configuración de Supabase...', 'info');
+            
+            try {
+                // Inicializar Supabase
+                supabaseClient = createClient(CONFIG.url, CONFIG.anonKey);
+                addLog('✅ Cliente Supabase creado', 'success');
+                
+                // Test de conexión
+                const { data, error } = await supabaseClient
+                    .from('configuracion')
+                    .select('clave')
+                    .limit(1);
+                
+                if (error) {
+                    addLog(`❌ Error de conexión: ${error.message}`, 'error');
+                    return false;
+                }
+                
+                addLog('✅ Conexión a Supabase exitosa', 'success');
+                addLog(`🔗 URL Supabase: ${CONFIG.url}`, 'info');
+                
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error crítico: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Paso 3: Verificar si el usuario existe
+        async function step3_CheckUserExists() {
+            addLog('👤 Verificando usuario en base de datos...', 'info');
+            
+            try {
+                const { data: usuario, error } = await supabaseClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', CONFIG.testUser.email)
+                    .eq('estado', 'activo')
+                    .single();
+                
+                if (error) {
+                    addLog(`❌ Error buscando usuario: ${error.message}`, 'error');
+                    return false;
+                }
+                
+                if (!usuario) {
+                    addLog('❌ Usuario no encontrado en la base de datos', 'error');
+                    addLog('💡 Necesitas crear el usuario primero', 'info');
+                    return false;
+                }
+                
+                addLog(`✅ Usuario encontrado: ${usuario.nombre}`, 'success');
+                addLog(`📧 Email: ${usuario.email}`, 'info');
+                addLog(`🔑 Hash de contraseña: ${usuario.password_hash ? 'Presente' : 'Ausente'}`, 'info');
+                
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error verificando usuario: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Paso 4: Arreglar Supabase Auth
+        async function step4_FixSupabaseAuth() {
+            addLog('🔐 Arreglando autenticación de Supabase...', 'info');
+            
+            try {
+                // Intentar login en Supabase Auth
+                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                    email: CONFIG.testUser.email,
+                    password: CONFIG.testUser.password
+                });
+                
+                if (authError) {
+                    addLog(`⚠️ Error en Supabase Auth: ${authError.message}`, 'warning');
+                    addLog('💡 Intentando registrar usuario en Supabase Auth...', 'info');
+                    
+                    // Intentar registrar en Supabase Auth
+                    const { data: signUpData, error: signUpError } = await supabaseClient.auth.signUp({
+                        email: CONFIG.testUser.email,
+                        password: CONFIG.testUser.password
+                    });
+                    
+                    if (signUpError) {
+                        if (signUpError.message.includes('already registered')) {
+                            addLog('✅ Usuario ya registrado en Supabase Auth', 'success');
+                        } else {
+                            addLog(`❌ Error registrando en Supabase Auth: ${signUpError.message}`, 'error');
+                            return false;
+                        }
+                    } else {
+                        addLog('✅ Usuario registrado exitosamente en Supabase Auth', 'success');
+                    }
+                } else {
+                    addLog('✅ Login exitoso en Supabase Auth', 'success');
+                }
+                
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error en Supabase Auth: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Paso 5: Test de login completo
+        async function step5_TestLogin() {
+            addLog('🧪 Realizando test de login completo...', 'info');
+            
+            try {
+                // 1. Verificar usuario en base de datos
+                const { data: usuario, error: userError } = await supabaseClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', CONFIG.testUser.email)
+                    .eq('estado', 'activo')
+                    .single();
+                
+                if (userError || !usuario) {
+                    addLog('❌ Usuario no encontrado en base de datos', 'error');
+                    return false;
+                }
+                
+                addLog('✅ Usuario verificado en base de datos', 'success');
+                
+                // 2. Verificar contraseña
+                const { data: passwordValid, error: passError } = await supabaseClient
+                    .rpc('verificar_password', {
+                        password: CONFIG.testUser.password,
+                        hash: usuario.password_hash
+                    });
+                
+                if (passError) {
+                    addLog(`❌ Error verificando contraseña: ${passError.message}`, 'error');
+                    return false;
+                }
+                
+                if (!passwordValid) {
+                    addLog('❌ Contraseña incorrecta', 'error');
+                    return false;
+                }
+                
+                addLog('✅ Contraseña verificada correctamente', 'success');
+                
+                // 3. Login en Supabase Auth
+                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                    email: CONFIG.testUser.email,
+                    password: CONFIG.testUser.password
+                });
+                
+                if (authError) {
+                    addLog(`❌ Error en login de Supabase Auth: ${authError.message}`, 'error');
+                    return false;
+                }
+                
+                addLog('✅ Login exitoso en Supabase Auth', 'success');
+                addLog('🎉 Test de login completado exitosamente', 'success');
+                
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error en test de login: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Paso 6: Reset usuario (peligroso)
+        async function step6_ResetUser() {
+            if (!confirm('⚠️ ADVERTENCIA: Esto eliminará y recreará el usuario. ¿Continuar?')) {
+                addLog('❌ Operación cancelada por el usuario', 'warning');
+                return;
+            }
+            
+            addLog('🔄 Reseteando usuario (operación peligrosa)...', 'warning');
+            
+            try {
+                // 1. Eliminar usuario de Supabase Auth
+                const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(
+                    CONFIG.testUser.email
+                );
+                
+                if (deleteError) {
+                    addLog(`⚠️ No se pudo eliminar de Supabase Auth: ${deleteError.message}`, 'warning');
+                } else {
+                    addLog('✅ Usuario eliminado de Supabase Auth', 'success');
+                }
+                
+                // 2. Recrear usuario en base de datos
+                const { error: insertError } = await supabaseClient
+                    .from('usuarios')
+                    .upsert({
+                        email: CONFIG.testUser.email,
+                        nombre: 'Mauro Chica',
+                        password_hash: await hashPassword(CONFIG.testUser.password),
+                        rol: 'admin',
+                        estado: 'activo',
+                        ultimo_acceso: new Date().toISOString()
+                    });
+                
+                if (insertError) {
+                    addLog(`❌ Error recreando usuario: ${insertError.message}`, 'error');
+                    return false;
+                }
+                
+                addLog('✅ Usuario recreado en base de datos', 'success');
+                
+                // 3. Registrar en Supabase Auth
+                const { error: signUpError } = await supabaseClient.auth.signUp({
+                    email: CONFIG.testUser.email,
+                    password: CONFIG.testUser.password
+                });
+                
+                if (signUpError) {
+                    addLog(`❌ Error registrando en Supabase Auth: ${signUpError.message}`, 'error');
+                } else {
+                    addLog('✅ Usuario registrado en Supabase Auth', 'success');
+                }
+                
+                addLog('🎉 Reset de usuario completado', 'success');
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error en reset de usuario: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Función para hashear contraseña
+        async function hashPassword(password) {
+            // Simulación de hash - en producción usarías una función real
+            return btoa(password + '_hash');
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', async () => {
+            addLog('🚀 Iniciando herramienta de reparación de autenticación...', 'info');
+            addLog('💡 Usa los botones en orden para diagnosticar y arreglar problemas', 'info');
+        });
+    </script>
+</body>
+</html>

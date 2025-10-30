@@ -1,0 +1,5 @@
+[33m37d5659[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m  Implementación profesional de responsividad móvil completa
+[33m296dedf[m Add: Complete SQL solution for Supabase authentication fix
+[33mecba6bb[m Fix: Complete authentication system overhaul and Supabase configurator
+[33m0b9b871[m Fix: Enhanced authentication debug system and credential verification tools
+[33m6ce6e2b[m Fix login form floating labels and push all changes to GitHub

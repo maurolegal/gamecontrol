@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard Charts Fixed</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .test-section {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-chart-line text-primary"></i>
+            Test Dashboard Charts Fixed
+        </h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h5><i class="fas fa-chart-line me-2"></i>Test de Gráfico de Ingresos</h5>
+                    <div class="chart-container">
+                        <canvas id="ingresoChart"></canvas>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="testChartCreation()">
+                        <i class="fas fa-play me-2"></i>Test Crear Gráfico
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="testChartRecreation()">
+                        <i class="fas fa-redo me-2"></i>Test Recrear Gráfico
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h5><i class="fas fa-chart-pie me-2"></i>Test de Gráfico de Distribución</h5>
+                    <div class="chart-container">
+                        <canvas id="distribucionSalasChart"></canvas>
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="testChartCreation()">
+                        <i class="fas fa-play me-2"></i>Test Crear Gráfico
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="testChartRecreation()">
+                        <i class="fas fa-redo me-2"></i>Test Recrear Gráfico
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="test-section">
+                    <h5><i class="fas fa-cogs me-2"></i>Test de Dashboard Manager</h5>
+                    <div class="btn-group mb-3" role="group">
+                        <button class="btn btn-success" onclick="testDashboardManager()">
+                            <i class="fas fa-play me-2"></i>Test Dashboard Manager
+                        </button>
+                        <button class="btn btn-info" onclick="testSingletonPattern()">
+                            <i class="fas fa-link me-2"></i>Test Patrón Singleton
+                        </button>
+                        <button class="btn btn-warning" onclick="testChartCleanup()">
+                            <i class="fas fa-broom me-2"></i>Test Limpieza de Gráficos
+                        </button>
+                        <button class="btn btn-danger" onclick="testMultipleInitializations()">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Test Múltiples Inicializaciones
+                        </button>
+                    </div>
+                    
+                    <div class="log-container" id="testLog">
+                        <div class="text-muted">Log de pruebas aparecerá aquí...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Script de prueba -->
+    <script>
+        let testDashboard = null;
+        let testCharts = {};
+        
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry text-${type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'muted'}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // También mostrar en consola
+            console.log(`[TEST] ${message}`);
+        }
+        
+        function testChartCreation() {
+            log('🧪 Iniciando test de creación de gráficos...', 'info');
+            
+            try {
+                // Test gráfico de ingresos
+                const ctxIngresos = document.getElementById('ingresoChart');
+                if (ctxIngresos) {
+                    // Limpiar gráfico existente si existe
+                    if (testCharts.ingresos) {
+                        testCharts.ingresos.destroy();
+                        testCharts.ingresos = null;
+                    }
+                    
+                    // Crear nuevo gráfico
+                    testCharts.ingresos = new Chart(ctxIngresos, {
+                        type: 'line',
+                        data: {
+                            labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+                            datasets: [{
+                                label: 'Ingresos Test',
+                                data: [1200, 1900, 3000, 5000, 2000, 3000, 4000],
+                                borderColor: 'rgb(54, 162, 235)',
+                                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                    
+                    log('✅ Gráfico de ingresos creado correctamente', 'success');
+                }
+                
+                // Test gráfico de distribución
+                const ctxDistribucion = document.getElementById('distribucionSalasChart');
+                if (ctxDistribucion) {
+                    // Limpiar gráfico existente si existe
+                    if (testCharts.distribucion) {
+                        testCharts.distribucion.destroy();
+                        testCharts.distribucion = null;
+                    }
+                    
+                    // Crear nuevo gráfico
+                    testCharts.distribucion = new Chart(ctxDistribucion, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Sala 1', 'Sala 2', 'Sala 3'],
+                            datasets: [{
+                                data: [300, 200, 100],
+                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                    
+                    log('✅ Gráfico de distribución creado correctamente', 'success');
+                }
+                
+                log('🎉 Test de creación de gráficos completado exitosamente', 'success');
+                
+            } catch (error) {
+                log(`❌ Error en test de creación de gráficos: ${error.message}`, 'error');
+            }
+        }
+        
+        function testChartRecreation() {
+            log('🔄 Iniciando test de recreación de gráficos...', 'info');
+            
+            try {
+                // Destruir gráficos existentes
+                Object.values(testCharts).forEach(chart => {
+                    if (chart) {
+                        chart.destroy();
+                    }
+                });
+                testCharts = {};
+                
+                log('🧹 Gráficos existentes destruidos', 'info');
+                
+                // Recrear gráficos
+                setTimeout(() => {
+                    testChartCreation();
+                }, 100);
+                
+            } catch (error) {
+                log(`❌ Error en test de recreación: ${error.message}`, 'error');
+            }
+        }
+        
+        function testChartCleanup() {
+            log('🧹 Iniciando test de limpieza de gráficos...', 'info');
+            
+            try {
+                let chartsDestroyed = 0;
+                
+                Object.values(testCharts).forEach(chart => {
+                    if (chart) {
+                        chart.destroy();
+                        chartsDestroyed++;
+                    }
+                });
+                
+                testCharts = {};
+                
+                log(`✅ ${chartsDestroyed} gráficos destruidos y limpiados correctamente`, 'success');
+                
+            } catch (error) {
+                log(`❌ Error en test de limpieza: ${error.message}`, 'error');
+            }
+        }
+        
+        function testDashboardManager() {
+            log('📊 Iniciando test de Dashboard Manager...', 'info');
+            
+            try {
+                if (window.DashboardManager) {
+                    log('✅ Clase DashboardManager disponible', 'success');
+                    
+                    if (window.dashboardManagerInstance) {
+                        log('✅ Instancia dashboardManagerInstance disponible', 'success');
+                    } else {
+                        log('⚠️ Instancia dashboardManagerInstance no disponible', 'warning');
+                    }
+                    
+                    if (window.getDashboardManager) {
+                        log('✅ Función getDashboardManager disponible', 'success');
+                    } else {
+                        log('⚠️ Función getDashboardManager no disponible', 'warning');
+                    }
+                    
+                } else {
+                    log('❌ Clase DashboardManager no disponible', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error en test de Dashboard Manager: ${error.message}`, 'error');
+            }
+        }
+        
+        function testSingletonPattern() {
+            log('🔗 Iniciando test de patrón singleton...', 'info');
+            
+            try {
+                if (window.DashboardManager) {
+                    // Crear primera instancia
+                    const instance1 = new window.DashboardManager();
+                    log('✅ Primera instancia creada', 'success');
+                    
+                    // Intentar crear segunda instancia
+                    const instance2 = new window.DashboardManager();
+                    log('✅ Segunda instancia creada (debería ser la misma)', 'success');
+                    
+                    // Verificar si son la misma instancia
+                    if (instance1 === instance2) {
+                        log('✅ Patrón singleton funcionando: ambas instancias son iguales', 'success');
+                    } else {
+                        log('⚠️ Patrón singleton no funcionando: instancias diferentes', 'warning');
+                    }
+                    
+                    // Verificar instancia global
+                    if (window.dashboardManagerInstance === instance1) {
+                        log('✅ Instancia global correctamente asignada', 'success');
+                    } else {
+                        log('⚠️ Instancia global no asignada correctamente', 'warning');
+                    }
+                    
+                } else {
+                    log('❌ DashboardManager no disponible para test', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error en test de singleton: ${error.message}`, 'error');
+            }
+        }
+        
+        function testMultipleInitializations() {
+            log('⚠️ Iniciando test de múltiples inicializaciones...', 'warning');
+            
+            try {
+                if (window.DashboardManager) {
+                    // Intentar crear múltiples instancias
+                    const instances = [];
+                    for (let i = 0; i < 3; i++) {
+                        try {
+                            const instance = new window.DashboardManager();
+                            instances.push(instance);
+                            log(`✅ Instancia ${i + 1} creada`, 'success');
+                        } catch (error) {
+                            log(`❌ Error creando instancia ${i + 1}: ${error.message}`, 'error');
+                        }
+                    }
+                    
+                    // Verificar que todas las instancias sean la misma
+                    const firstInstance = instances[0];
+                    const allSame = instances.every(instance => instance === firstInstance);
+                    
+                    if (allSame) {
+                        log('✅ Todas las instancias son iguales (singleton funcionando)', 'success');
+                    } else {
+                        log('⚠️ Las instancias no son todas iguales (singleton no funcionando)', 'warning');
+                    }
+                    
+                } else {
+                    log('❌ DashboardManager no disponible para test', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error en test de múltiples inicializaciones: ${error.message}`, 'error');
+            }
+        }
+        
+        // Inicialización automática
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🚀 Página cargada, iniciando tests automáticos...', 'info');
+            
+            // Esperar un poco y ejecutar tests básicos
+            setTimeout(() => {
+                testDashboardManager();
+                testChartCreation();
+            }, 1000);
+        });
+        
+        // Interceptar errores de Chart.js
+        window.addEventListener('error', (event) => {
+            if (event.error && event.error.message && event.error.message.includes('Canvas is already in use')) {
+                log('❌ Error de Chart.js detectado: Canvas ya en uso', 'error');
+            }
+        });
+        
+        // Interceptar errores no capturados
+        window.addEventListener('unhandledrejection', (event) => {
+            log(`❌ Promesa rechazada no manejada: ${event.reason}`, 'error');
+        });
+    </script>
+</body>
+</html>

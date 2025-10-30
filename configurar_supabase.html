@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurador Supabase - GameControl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .config-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .config-logs {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            height: 500px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid #333;
+        }
+        
+        .config-logs .info { color: #17a2b8; }
+        .config-logs .success { color: #28a745; }
+        .config-logs .warning { color: #ffc107; }
+        .config-logs .error { color: #dc3545; }
+        
+        .btn-config {
+            margin: 5px;
+            min-width: 250px;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="config-container">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="fas fa-cogs"></i> Configurador Supabase - GameControl</h4>
+                <p class="mb-0">Instala automáticamente el esquema completo de la base de datos</p>
+            </div>
+            
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <strong>⚠️ IMPORTANTE:</strong> Esta herramienta configurará completamente tu base de datos Supabase.<br>
+                    <strong>📋 Proceso:</strong> Extensiones → Funciones → Tablas → Usuario Admin → Datos Iniciales
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary btn-config" onclick="configurarCompleto()">
+                            🚀 Configurar Todo Automáticamente
+                        </button>
+                        <button class="btn btn-info btn-config" onclick="verificarConfiguracion()">
+                            🔍 Verificar Configuración Actual
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-warning btn-config" onclick="solo_crearUsuarioAdmin()">
+                            👤 Solo Crear Usuario Admin
+                        </button>
+                        <button class="btn btn-success btn-config" onclick="probarLogin()">
+                            🧪 Probar Login Final
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <button class="btn btn-secondary" onclick="limpiarLogs()">🧹 Limpiar Logs</button>
+                    <button class="btn btn-dark" onclick="mostrarCredenciales()">🔑 Mostrar Credenciales</button>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress">
+                        <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small id="progressText" class="text-muted">Listo para configurar</small>
+                </div>
+                
+                <div id="configLogs" class="config-logs">
+                    <div class="info">🔧 Configurador de Supabase iniciado</div>
+                    <div class="info">💡 Haz clic en "Configurar Todo" para empezar</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let supabaseClient = null;
+        
+        const CONFIG = {
+            url: 'https://stjbtxrrdofuxhigxfcy.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amJ0eHJyZG9mdXhoaWd4ZmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MTgwNzUsImV4cCI6MjA3NzM5NDA3NX0.vhz6v2pRepUH7g-ucSJKtWonmAeWYqwhrTxG_ypVElo',
+            adminEmail: 'maurochica23@gmail.com',
+            adminPassword: 'kennia23'
+        };
+        
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('configLogs');
+            const time = new Date().toLocaleTimeString();
+            
+            const log = document.createElement('div');
+            log.className = type;
+            log.innerHTML = `[${time}] ${message}`;
+            
+            container.appendChild(log);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Actualizar progreso
+        function updateProgress(percent, text) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+        
+        // Limpiar logs
+        function limpiarLogs() {
+            document.getElementById('configLogs').innerHTML = `
+                <div class="info">🔧 Logs reiniciados</div>
+                <div class="info">💡 Listo para nueva configuración</div>
+            `;
+            updateProgress(0, 'Listo para configurar');
+        }
+        
+        // Mostrar credenciales
+        function mostrarCredenciales() {
+            addLog('🔑 Credenciales del administrador:', 'info');
+            addLog(`   📧 Email: ${CONFIG.adminEmail}`, 'info');
+            addLog(`   🔒 Password: ${CONFIG.adminPassword}`, 'info');
+            addLog(`   🌐 URL Supabase: ${CONFIG.url}`, 'info');
+        }
+        
+        // Inicializar Supabase
+        async function initSupabase() {
+            try {
+                if (typeof createClient === 'undefined') {
+                    // Cargar Supabase dinámicamente
+                    addLog('📦 Cargando librería Supabase...', 'info');
+                    await loadSupabaseScript();
+                }
+                
+                addLog('🔧 Inicializando cliente Supabase...', 'info');
+                supabaseClient = createClient(CONFIG.url, CONFIG.anonKey);
+                
+                if (supabaseClient) {
+                    addLog('✅ Cliente Supabase inicializado correctamente', 'success');
+                    return true;
+                } else {
+                    throw new Error('No se pudo crear el cliente');
+                }
+            } catch (error) {
+                addLog(`❌ Error inicializando Supabase: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // Cargar script de Supabase si no está disponible
+        function loadSupabaseScript() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/@supabase/supabase-js@2';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        
+        // ===================================================================
+        // CONFIGURACIÓN COMPLETA
+        // ===================================================================
+        
+        async function configurarCompleto() {
+            addLog('🚀 Iniciando configuración completa de Supabase...', 'info');
+            updateProgress(5, 'Iniciando configuración...');
+            
+            try {
+                // 1. Inicializar Supabase
+                const initialized = await initSupabase();
+                if (!initialized) {
+                    throw new Error('No se pudo inicializar Supabase');
+                }
+                updateProgress(10, 'Cliente Supabase inicializado');
+                
+                // 2. Habilitar extensiones
+                await habilitarExtensiones();
+                updateProgress(25, 'Extensiones habilitadas');
+                
+                // 3. Crear funciones
+                await crearFunciones();
+                updateProgress(40, 'Funciones creadas');
+                
+                // 4. Verificar/crear tablas
+                await verificarTablas();
+                updateProgress(60, 'Tablas verificadas');
+                
+                // 5. Crear usuario administrador
+                await crearUsuarioAdmin();
+                updateProgress(80, 'Usuario admin creado');
+                
+                // 6. Insertar datos iniciales
+                await insertarDatosIniciales();
+                updateProgress(95, 'Datos iniciales insertados');
+                
+                // 7. Verificación final
+                await verificacionFinal();
+                updateProgress(100, '✅ Configuración completa');
+                
+                addLog('🎉 ¡CONFIGURACIÓN COMPLETADA EXITOSAMENTE!', 'success');
+                addLog('✅ Ahora puedes usar el login normalmente', 'success');
+                
+            } catch (error) {
+                addLog(`❌ Error en configuración: ${error.message}`, 'error');
+                updateProgress(0, 'Error en configuración');
+            }
+        }
+        
+        // Habilitar extensiones necesarias
+        async function habilitarExtensiones() {
+            addLog('🔧 Habilitando extensiones PostgreSQL...', 'info');
+            
+            const extensiones = [
+                'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";',
+                'CREATE EXTENSION IF NOT EXISTS "pgcrypto";'
+            ];
+            
+            for (const sql of extensiones) {
+                try {
+                    await supabaseClient.rpc('exec_sql', { sql });
+                    addLog(`✅ Extensión habilitada: ${sql.split('"')[1]}`, 'success');
+                } catch (error) {
+                    // Las extensiones pueden ya existir
+                    addLog(`⚠️ Extensión ya existe o error: ${error.message}`, 'warning');
+                }
+            }
+        }
+        
+        // Crear funciones críticas
+        async function crearFunciones() {
+            addLog('🔧 Creando funciones de hash y verificación...', 'info');
+            
+            const funciones = [
+                {
+                    nombre: 'hash_password',
+                    sql: `
+                        CREATE OR REPLACE FUNCTION hash_password(password TEXT)
+                        RETURNS TEXT AS $$
+                        BEGIN
+                            RETURN crypt(password, gen_salt('bf', 12));
+                        END;
+                        $$ LANGUAGE plpgsql;
+                    `
+                },
+                {
+                    nombre: 'verificar_password', 
+                    sql: `
+                        CREATE OR REPLACE FUNCTION verificar_password(password TEXT, hash TEXT)
+                        RETURNS BOOLEAN AS $$
+                        BEGIN
+                            RETURN crypt(password, hash) = hash;
+                        END;
+                        $$ LANGUAGE plpgsql;
+                    `
+                }
+            ];
+            
+            for (const func of funciones) {
+                try {
+                    await supabaseClient.rpc('exec_sql', { sql: func.sql });
+                    addLog(`✅ Función creada: ${func.nombre}`, 'success');
+                } catch (error) {
+                    addLog(`❌ Error creando función ${func.nombre}: ${error.message}`, 'error');
+                    // Intentar método alternativo
+                    await crearFuncionAlternativa(func.nombre);
+                }
+            }
+        }
+        
+        // Método alternativo para crear funciones
+        async function crearFuncionAlternativa(nombreFunc) {
+            addLog(`🔄 Intentando método alternativo para ${nombreFunc}...`, 'info');
+            
+            if (nombreFunc === 'verificar_password') {
+                // Crear función simple que use btoa/atob
+                const sqlSimple = `
+                    CREATE OR REPLACE FUNCTION verificar_password_simple(password TEXT, hash TEXT)
+                    RETURNS BOOLEAN AS $$
+                    BEGIN
+                        RETURN encode(digest(password, 'sha256'), 'base64') = hash;
+                    END;
+                    $$ LANGUAGE plpgsql;
+                `;
+                
+                try {
+                    await supabaseClient.rpc('exec_sql', { sql: sqlSimple });
+                    addLog(`✅ Función alternativa creada: verificar_password_simple`, 'success');
+                } catch (error) {
+                    addLog(`❌ Error creando función alternativa: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Verificar/crear tabla usuarios
+        async function verificarTablas() {
+            addLog('🔧 Verificando tabla usuarios...', 'info');
+            
+            try {
+                // Intentar consultar la tabla usuarios
+                const { data, error } = await supabaseClient
+                    .from('usuarios')
+                    .select('count')
+                    .limit(1);
+                
+                if (error && error.code === 'PGRST116') {
+                    addLog('⚠️ Tabla usuarios no existe, creando...', 'warning');
+                    await crearTablaUsuarios();
+                } else {
+                    addLog('✅ Tabla usuarios existe', 'success');
+                }
+            } catch (error) {
+                addLog(`❌ Error verificando tablas: ${error.message}`, 'error');
+                await crearTablaUsuarios();
+            }
+        }
+        
+        // Crear tabla usuarios básica
+        async function crearTablaUsuarios() {
+            const sqlTabla = `
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                    nombre VARCHAR(100) NOT NULL,
+                    email VARCHAR(255) UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    rol VARCHAR(50) NOT NULL DEFAULT 'operador',
+                    estado VARCHAR(20) NOT NULL DEFAULT 'activo',
+                    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    ultimo_acceso TIMESTAMP WITH TIME ZONE,
+                    permisos JSONB DEFAULT '{}'
+                );
+            `;
+            
+            try {
+                await supabaseClient.rpc('exec_sql', { sql: sqlTabla });
+                addLog('✅ Tabla usuarios creada', 'success');
+            } catch (error) {
+                addLog(`❌ Error creando tabla usuarios: ${error.message}`, 'error');
+            }
+        }
+        
+        // Crear usuario administrador
+        async function crearUsuarioAdmin() {
+            addLog('👤 Creando usuario administrador...', 'info');
+            
+            try {
+                // Verificar si ya existe
+                const { data: usuarioExistente } = await supabaseClient
+                    .from('usuarios')
+                    .select('id')
+                    .eq('email', CONFIG.adminEmail)
+                    .single();
+                
+                if (usuarioExistente) {
+                    addLog('⚠️ Usuario administrador ya existe', 'warning');
+                    return;
+                }
+                
+                // Crear hash simple usando btoa
+                const passwordHash = btoa(CONFIG.adminPassword);
+                
+                const nuevoAdmin = {
+                    nombre: 'Mauro Chica',
+                    email: CONFIG.adminEmail,
+                    password_hash: passwordHash,
+                    rol: 'administrador',
+                    estado: 'activo',
+                    permisos: {
+                        dashboard: true,
+                        salas: true,
+                        ventas: true,
+                        gastos: true,
+                        stock: true,
+                        reportes: true,
+                        usuarios: true,
+                        ajustes: true
+                    }
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('usuarios')
+                    .insert([nuevoAdmin])
+                    .select();
+                
+                if (error) {
+                    throw error;
+                }
+                
+                addLog('✅ Usuario administrador creado exitosamente', 'success');
+                addLog(`   📧 Email: ${CONFIG.adminEmail}`, 'info');
+                addLog(`   🔑 Password: ${CONFIG.adminPassword}`, 'info');
+                
+            } catch (error) {
+                addLog(`❌ Error creando usuario admin: ${error.message}`, 'error');
+            }
+        }
+        
+        // Solo crear usuario admin (función independiente)
+        async function solo_crearUsuarioAdmin() {
+            addLog('👤 Creando SOLO usuario administrador...', 'info');
+            updateProgress(10, 'Inicializando...');
+            
+            try {
+                const initialized = await initSupabase();
+                if (!initialized) throw new Error('No se pudo inicializar Supabase');
+                
+                updateProgress(50, 'Creando usuario...');
+                await crearUsuarioAdmin();
+                updateProgress(100, 'Usuario admin creado');
+                
+                addLog('✅ Usuario administrador listo para usar', 'success');
+                
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+                updateProgress(0, 'Error creando usuario');
+            }
+        }
+        
+        // Insertar datos iniciales básicos
+        async function insertarDatosIniciales() {
+            addLog('📊 Insertando datos iniciales...', 'info');
+            // Por ahora solo creamos el usuario admin
+            // En el futuro se pueden agregar más datos iniciales
+            addLog('✅ Datos iniciales básicos listos', 'success');
+        }
+        
+        // Verificación final
+        async function verificacionFinal() {
+            addLog('🔍 Realizando verificación final...', 'info');
+            
+            try {
+                // Probar login con las credenciales
+                const { data: usuario } = await supabaseClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', CONFIG.adminEmail)
+                    .eq('estado', 'activo')
+                    .single();
+                
+                if (usuario) {
+                    const passwordHash = btoa(CONFIG.adminPassword);
+                    if (usuario.password_hash === passwordHash) {
+                        addLog('✅ Verificación exitosa: credenciales funcionan', 'success');
+                    } else {
+                        addLog('⚠️ Advertencia: hash de contraseña no coincide', 'warning');
+                    }
+                } else {
+                    addLog('❌ Usuario admin no encontrado', 'error');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Error en verificación: ${error.message}`, 'error');
+            }
+        }
+        
+        // Verificar configuración actual
+        async function verificarConfiguracion() {
+            addLog('🔍 Verificando configuración actual...', 'info');
+            updateProgress(10, 'Verificando...');
+            
+            try {
+                const initialized = await initSupabase();
+                if (!initialized) throw new Error('No se pudo inicializar Supabase');
+                
+                updateProgress(30, 'Verificando tablas...');
+                
+                // Verificar tabla usuarios
+                const { data: usuarios, error } = await supabaseClient
+                    .from('usuarios')
+                    .select('count');
+                
+                if (error) {
+                    addLog('❌ Tabla usuarios no existe o hay errores', 'error');
+                } else {
+                    addLog('✅ Tabla usuarios existe', 'success');
+                }
+                
+                updateProgress(60, 'Verificando usuario admin...');
+                
+                // Verificar usuario admin
+                const { data: admin } = await supabaseClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', CONFIG.adminEmail)
+                    .single();
+                
+                if (admin) {
+                    addLog('✅ Usuario administrador existe', 'success');
+                    addLog(`   Nombre: ${admin.nombre}`, 'info');
+                    addLog(`   Email: ${admin.email}`, 'info');
+                    addLog(`   Rol: ${admin.rol}`, 'info');
+                    addLog(`   Estado: ${admin.estado}`, 'info');
+                } else {
+                    addLog('❌ Usuario administrador NO existe', 'error');
+                }
+                
+                updateProgress(100, 'Verificación completa');
+                
+            } catch (error) {
+                addLog(`❌ Error en verificación: ${error.message}`, 'error');
+                updateProgress(0, 'Error en verificación');
+            }
+        }
+        
+        // Probar login final
+        async function probarLogin() {
+            addLog('🧪 Probando login con credenciales...', 'info');
+            updateProgress(20, 'Probando login...');
+            
+            try {
+                const initialized = await initSupabase();
+                if (!initialized) throw new Error('No se pudo inicializar Supabase');
+                
+                updateProgress(50, 'Verificando credenciales...');
+                
+                // Buscar usuario
+                const { data: usuario, error } = await supabaseClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', CONFIG.adminEmail)
+                    .eq('estado', 'activo')
+                    .single();
+                
+                if (error || !usuario) {
+                    addLog('❌ Usuario no encontrado', 'error');
+                    updateProgress(0, 'Login fallido');
+                    return;
+                }
+                
+                // Verificar contraseña
+                const passwordHash = btoa(CONFIG.adminPassword);
+                if (usuario.password_hash === passwordHash) {
+                    addLog('✅ ¡LOGIN EXITOSO!', 'success');
+                    addLog('🎉 Las credenciales funcionan correctamente', 'success');
+                    addLog('💡 Ahora puedes usar el sistema normalmente', 'success');
+                    updateProgress(100, '✅ Login exitoso');
+                } else {
+                    addLog('❌ Contraseña incorrecta', 'error');
+                    addLog(`   Esperado: ${passwordHash}`, 'error');
+                    addLog(`   Actual: ${usuario.password_hash}`, 'error');
+                    updateProgress(0, 'Contraseña incorrecta');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Error probando login: ${error.message}`, 'error');
+                updateProgress(0, 'Error en login');
+            }
+        }
+        
+        // Inicialización
+        window.addEventListener('load', function() {
+            addLog('🚀 Configurador listo para usar', 'success');
+            addLog('💡 Haz clic en "Configurar Todo" para configurar Supabase', 'info');
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Gestión de Gastos - Sistema Gestión Salas Videojuegos</title>
+    <script>
+        (function(){
+            try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    
+    <!-- Librería Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <script src="../js/main.js"></script>
+    <script src="../js/theme-ux.js"></script>
+</head>
+<body>
+    <!-- Menú hamburguesa para móvil -->
+    <button class="menu-toggle d-md-none" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay para menú móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 col-lg-2 d-md-block sidebar" id="sidebar">
+                <div class="logo">
+                    <h4><i class="fas fa-gamepad me-2"></i> <span>GameControl</span></h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">
+                            <i class="fas fa-home"></i> <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="salas.html">
+                            <i class="fas fa-door-open"></i> <span>Salas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ventas.html">
+                            <i class="fas fa-cash-register"></i> <span>Ventas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="gastos.html">
+                            <i class="fas fa-file-invoice-dollar"></i> <span>Gastos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock.html">
+                            <i class="fas fa-boxes"></i> <span>Stock</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reportes.html">
+                            <i class="fas fa-chart-bar"></i> <span>Reportes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">
+                            <i class="fas fa-users"></i> <span>Usuarios</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ajustes.html">
+                            <i class="fas fa-cog"></i> <span>Ajustes</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <div>
+                        <h3>Gestión de Gastos</h3>
+                        <p class="mb-0 text-muted">Control y seguimiento de gastos operativos</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Perfil de Usuario -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-info d-none d-md-flex flex-column text-end">
+                                <span class="fw-semibold mb-0 user-name" style="font-size: 0.9rem;">Cargando...</span>
+                                <small class="text-muted user-role">--</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle d-flex align-items-center px-3" type="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">--</div>
+                                    <span class="d-md-none user-name">Cargando...</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="user-email">--</span>
+                                        </small>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen de Gastos -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-danger bg-opacity-10 text-danger">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <h5 class="card-title">Gastos del Mes</h5>
+                            <h2 class="mb-0">$3,250.00</h2>
+                            <p class="text-danger mb-0"><i class="fas fa-arrow-up"></i> 5% más que el mes anterior</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="fas fa-tools"></i>
+                            </div>
+                            <h5 class="card-title">Mantenimiento</h5>
+                            <h2 class="mb-0">$850.00</h2>
+                            <p class="text-muted mb-0">26% del total</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-info bg-opacity-10 text-info">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                            <h5 class="card-title">Suministros</h5>
+                            <h2 class="mb-0">$1,200.00</h2>
+                            <p class="text-muted mb-0">37% del total</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-success bg-opacity-10 text-success">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                            <h5 class="card-title">Servicios</h5>
+                            <h2 class="mb-0">$1,200.00</h2>
+                            <p class="text-muted mb-0">37% del total</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sistema de Filtros Avanzado -->
+                <div class="module-container mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-filter me-2"></i>Filtros de Gastos</h5>
+                        <button class="btn btn-outline-secondary btn-sm" id="limpiarFiltros">
+                            <i class="fas fa-times me-1"></i>Limpiar Filtros
+                        </button>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <!-- Filtros de Período -->
+                        <div class="col-md-6 col-lg-2">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-alt me-1"></i>Período
+                            </label>
+                            <select class="form-select" id="filtroPeriodo">
+                                <option value="hoy">Hoy</option>
+                                <option value="ayer">Ayer</option>
+                                <option value="semana">Esta Semana</option>
+                                <option value="mes" selected>Este Mes</option>
+                                <option value="año">Este Año</option>
+                                <option value="rango">Rango Personalizado</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Rango de Fechas (se muestra cuando se selecciona "rango") -->
+                        <div class="col-md-6 col-lg-3" id="rangoFechas" style="display: none;">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-week me-1"></i>Rango de Fechas
+                            </label>
+                            <div class="d-flex gap-2">
+                                <input type="date" class="form-control" id="fechaInicio" placeholder="Desde">
+                                <input type="date" class="form-control" id="fechaFin" placeholder="Hasta">
+                            </div>
+                        </div>
+                        
+                        <!-- Filtro por Categoría -->
+                        <div class="col-md-6 col-lg-2">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-tags me-1"></i>Categoría
+                            </label>
+                            <select class="form-select" id="filtroCategoria">
+                                <option value="">Todas las categorías</option>
+                                <option value="suministros">Suministros</option>
+                                <option value="mantenimiento">Mantenimiento</option>
+                                <option value="servicios">Servicios</option>
+                                <option value="nomina">Nómina</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Filtro por Proveedor -->
+                        <div class="col-md-6 col-lg-2">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-truck me-1"></i>Proveedor
+                            </label>
+                            <select class="form-select" id="filtroProveedor">
+                                <option value="">Todos los proveedores</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Filtro por Monto -->
+                        <div class="col-md-6 col-lg-2">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-dollar-sign me-1"></i>Monto
+                            </label>
+                            <select class="form-select" id="filtroMonto">
+                                <option value="">Todos los montos</option>
+                                <option value="0-50">$0 - $50</option>
+                                <option value="50-200">$50 - $200</option>
+                                <option value="200-500">$200 - $500</option>
+                                <option value="500+">$500+</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Botón Aplicar Filtros -->
+                        <div class="col-md-12 col-lg-1 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" id="aplicarFiltros">
+                                <i class="fas fa-search me-1"></i>Filtrar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Resumen de Filtros Aplicados -->
+                    <div class="mt-3" id="resumenFiltros">
+                        <div class="d-flex flex-wrap gap-2" id="tagsResumen">
+                            <!-- Los tags de filtros se generarán dinámicamente aquí -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registro de Gastos -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5><i class="fas fa-plus-circle me-2"></i>Registrar Nuevo Gasto</h5>
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalGestionarCategorias">
+                                    <i class="fas fa-tags me-1"></i>Gestionar Categorías
+                                </button>
+                            </div>
+                            <div class="form-container">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label-custom">Fecha</label>
+                                        <input type="date" class="form-control" id="fechaGasto">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label-custom">Categoría</label>
+                                        <select class="form-select" id="categoriaGasto">
+                                            <option value="suministros">Suministros</option>
+                                            <option value="mantenimiento">Mantenimiento</option>
+                                            <option value="servicios">Servicios</option>
+                                            <option value="nomina">Nómina</option>
+                                            <option value="otros">Otros</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label-custom">Descripción</label>
+                                        <input type="text" class="form-control" id="descripcionGasto" placeholder="Descripción del gasto">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label-custom">Proveedor</label>
+                                        <input type="text" class="form-control" id="proveedorGasto" placeholder="Nombre del proveedor">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label-custom">Monto</label>
+                                        <input type="number" class="form-control" id="montoGasto" placeholder="0.00" step="0.01">
+                                    </div>
+                                    <div class="col-md-12 mb-3">
+                                        <label class="form-label-custom">Comprobante</label>
+                                        <input type="file" class="form-control" id="comprobanteGasto">
+                                    </div>
+                                    <div class="col-md-12">
+                                        <button class="btn btn-primary-custom w-100" id="btnRegistrarGasto">
+                                            <i class="fas fa-save me-2"></i> Registrar Gasto
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <h5><i class="fas fa-chart-pie me-2"></i>Resumen por Categoría</h5>
+                            <div id="resumenCategorias">
+                                <!-- Se generará dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historial de Gastos -->
+                <div class="module-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-history me-2"></i>Historial de Gastos</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover">
+                            <thead>
+                                <tr>
+                                    <th># Gasto</th>
+                                    <th>Fecha</th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th>Proveedor</th>
+                                    <th>Monto</th>
+                                    <th>Registrado por</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaGastosBody">
+                                <!-- Los gastos se generarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div id="infoGastos">
+                            Mostrando 0 registros
+                        </div>
+                        <nav>
+                            <ul class="pagination mb-0">
+                                <li class="page-item disabled"><a class="page-link" href="#">Anterior</a></li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Gasto - Desglose de Productos -->
+    <div class="modal fade" id="modalEditarGasto" tabindex="-1" aria-labelledby="modalEditarGastoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalEditarGastoLabel">
+                        <i class="fas fa-edit me-2"></i>Desglosar Gasto en Productos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalEditarGastoBody">
+                    <!-- Información del Gasto -->
+                    <div class="row mb-4">
+                                                 <div class="col-md-6">
+                             <div class="card border-info info-gasto-editar">
+                                 <div class="card-header">
+                                     <h6 class="mb-0">
+                                         <i class="fas fa-receipt me-2"></i>Información del Gasto
+                                     </h6>
+                                 </div>
+                                 <div class="card-body" id="infoGastoEditar">
+                                     <!-- Se llenará dinámicamente -->
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="col-md-6">
+                             <div class="card border-success resumen-distribucion">
+                                 <div class="card-header">
+                                     <h6 class="mb-0">
+                                         <i class="fas fa-calculator me-2"></i>Resumen de Distribución
+                                     </h6>
+                                 </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Total del Gasto:</span>
+                                        <span class="fw-bold" id="totalGastoOriginal">$0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Total Distribuido:</span>
+                                        <span class="fw-bold text-primary" id="totalDistribuido">$0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Diferencia:</span>
+                                        <span class="fw-bold" id="diferencia">$0</span>
+                                    </div>
+                                    <div class="progress mt-2" style="height: 10px;">
+                                        <div class="progress-bar" id="progressDistribucion" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                                         <!-- Búsqueda de Productos -->
+                     <div class="card border-warning mb-4 busqueda-productos">
+                         <div class="card-header">
+                             <h6 class="mb-0">
+                                 <i class="fas fa-search me-2"></i>Buscar y Agregar Productos
+                             </h6>
+                         </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Buscar Producto</label>
+                                    <input type="text" class="form-control" id="buscarProducto" placeholder="Buscar por nombre o código...">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Cantidad</label>
+                                    <input type="number" class="form-control" id="cantidadProducto" min="1" value="1">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Precio Unitario</label>
+                                    <input type="number" class="form-control" id="precioUnitario" step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-success" id="btnAgregarProducto">
+                                    <i class="fas fa-plus me-1"></i>Agregar Producto
+                                </button>
+                                <button class="btn btn-outline-primary ms-2" id="btnCrearProducto">
+                                    <i class="fas fa-plus-circle me-1"></i>Crear Nuevo Producto
+                                </button>
+                            </div>
+                            <!-- Sugerencias de productos -->
+                            <div class="mt-3" id="sugerenciasProductos" style="display: none;">
+                                <div class="list-group">
+                                    <!-- Se llenarán dinámicamente -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                                         <!-- Lista de Productos Agregados -->
+                     <div class="card border-primary productos-distribuidos">
+                         <div class="card-header">
+                             <h6 class="mb-0">
+                                 <i class="fas fa-list me-2"></i>Productos Distribuidos
+                             </h6>
+                         </div>
+                         <div class="card-body">
+                             <div class="table-responsive tabla-productos-distribuidos">
+                                 <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio Unit.</th>
+                                            <th>Subtotal</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaProductosDistribuidos">
+                                        <tr id="filaVacia">
+                                            <td colspan="5" class="text-center text-muted">
+                                                No hay productos agregados
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="btnGuardarDistribucion">
+                        <i class="fas fa-save me-1"></i>Guardar y Actualizar Stock
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Crear Nuevo Producto -->
+    <div class="modal fade" id="modalNuevoProducto" tabindex="-1" aria-labelledby="modalNuevoProductoLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="modalNuevoProductoLabel">
+                        <i class="fas fa-plus-circle me-2"></i>Crear Nuevo Producto
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Nombre del Producto</label>
+                            <input type="text" class="form-control" id="nombreNuevoProducto" placeholder="Ej: Coca Cola 600ml">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Categoría</label>
+                            <select class="form-select" id="categoriaNuevoProducto">
+                                <option value="bebidas">Bebidas</option>
+                                <option value="snacks">Snacks</option>
+                                <option value="comida">Comida</option>
+                                <option value="dulces">Dulces</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Código (Opcional)</label>
+                            <input type="text" class="form-control" id="codigoNuevoProducto" placeholder="Ej: CC600">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Precio de Venta</label>
+                            <input type="number" class="form-control" id="precioVentaNuevoProducto" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Stock Mínimo</label>
+                            <input type="number" class="form-control" id="stockMinimoNuevoProducto" value="5">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="btnCrearNuevoProducto">
+                        <i class="fas fa-save me-1"></i>Crear Producto
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestionar Categorías -->
+    <div class="modal fade" id="modalGestionarCategorias" tabindex="-1" aria-labelledby="modalGestionarCategoriasLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalGestionarCategoriasLabel">
+                        <i class="fas fa-tags me-2"></i>Gestionar Categorías de Gastos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Crear Nueva Categoría -->
+                    <div class="card border-success mb-4">
+                        <div class="card-header bg-success bg-opacity-10">
+                            <h6 class="mb-0 text-success">
+                                <i class="fas fa-plus-circle me-2"></i>Crear Nueva Categoría
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Nombre de la Categoría</label>
+                                    <input type="text" class="form-control" id="nombreNuevaCategoria" placeholder="Ej: Marketing Digital">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Color</label>
+                                    <select class="form-select" id="colorNuevaCategoria">
+                                        <option value="primary">🔵 Azul</option>
+                                        <option value="success">🟢 Verde</option>
+                                        <option value="warning">🟡 Amarillo</option>
+                                        <option value="danger">🔴 Rojo</option>
+                                        <option value="info">🔷 Cian</option>
+                                        <option value="secondary">⚫ Gris</option>
+                                        <option value="dark">⚫ Negro</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Icono</label>
+                                    <select class="form-select" id="iconoNuevaCategoria">
+                                        <option value="fas fa-shopping-cart">🛒 Compras</option>
+                                        <option value="fas fa-tools">🔧 Herramientas</option>
+                                        <option value="fas fa-wifi">📶 Internet</option>
+                                        <option value="fas fa-bolt">⚡ Electricidad</option>
+                                        <option value="fas fa-car">🚗 Transporte</option>
+                                        <option value="fas fa-home">🏠 Hogar</option>
+                                        <option value="fas fa-utensils">🍽️ Comida</option>
+                                        <option value="fas fa-laptop">💻 Tecnología</option>
+                                        <option value="fas fa-paint-brush">🎨 Marketing</option>
+                                        <option value="fas fa-file-invoice">📄 Documentos</option>
+                                        <option value="fas fa-users">👥 Personal</option>
+                                        <option value="fas fa-box">📦 Inventario</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button class="btn btn-success w-100" id="btnCrearCategoria">
+                                        <i class="fas fa-plus me-1"></i>Crear
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Vista previa de la categoría -->
+                            <div class="mt-3">
+                                <label class="form-label fw-semibold">Vista Previa:</label>
+                                <div id="vistaPrevia">
+                                    <span class="badge bg-primary fs-6">
+                                        <i class="fas fa-shopping-cart me-1"></i>Nombre de Categoría
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Categorías Existentes -->
+                    <div class="card border-info">
+                        <div class="card-header bg-info bg-opacity-10">
+                            <h6 class="mb-0 text-info">
+                                <i class="fas fa-list me-2"></i>Categorías Existentes
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Categoría</th>
+                                            <th>Nombre</th>
+                                            <th>Color</th>
+                                            <th>Icono</th>
+                                            <th>Gastos</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaCategorias">
+                                        <!-- Se llenará dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btnLimpiarTodasCategorias">
+                        <i class="fas fa-trash-alt me-1"></i>Eliminar Todas las Categorías
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Categoría -->
+    <div class="modal fade" id="modalEditarCategoria" tabindex="-1" aria-labelledby="modalEditarCategoriaLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="modalEditarCategoriaLabel">
+                        <i class="fas fa-edit me-2"></i>Editar Categoría
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Nombre de la Categoría</label>
+                            <input type="text" class="form-control" id="nombreEditarCategoria" placeholder="Ej: Marketing Digital">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Color</label>
+                            <select class="form-select" id="colorEditarCategoria">
+                                <option value="primary">🔵 Azul</option>
+                                <option value="success">🟢 Verde</option>
+                                <option value="warning">🟡 Amarillo</option>
+                                <option value="danger">🔴 Rojo</option>
+                                <option value="info">🔷 Cian</option>
+                                <option value="secondary">⚫ Gris</option>
+                                <option value="dark">⚫ Negro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Icono</label>
+                            <select class="form-select" id="iconoEditarCategoria">
+                                <option value="fas fa-shopping-cart">🛒 Compras</option>
+                                <option value="fas fa-tools">🔧 Herramientas</option>
+                                <option value="fas fa-wifi">📶 Internet</option>
+                                <option value="fas fa-bolt">⚡ Electricidad</option>
+                                <option value="fas fa-car">🚗 Transporte</option>
+                                <option value="fas fa-home">🏠 Hogar</option>
+                                <option value="fas fa-utensils">🍽️ Comida</option>
+                                <option value="fas fa-laptop">💻 Tecnología</option>
+                                <option value="fas fa-paint-brush">🎨 Marketing</option>
+                                <option value="fas fa-file-invoice">📄 Documentos</option>
+                                <option value="fas fa-users">👥 Personal</option>
+                                <option value="fas fa-box">📦 Inventario</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Estado</label>
+                            <select class="form-select" id="estadoEditarCategoria">
+                                <option value="activa">✅ Activa</option>
+                                <option value="inactiva">❌ Inactiva</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Vista Previa:</label>
+                            <div id="vistaPreviaEditar">
+                                <span class="badge bg-primary fs-6">
+                                    <i class="fas fa-shopping-cart me-1"></i>Nombre de Categoría
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" id="btnGuardarCategoria">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Configuración Supabase -->
+    <script src="../js/supabase-config.js"></script>
+    
+    <!-- Utilidades de Navegación (Debe ir PRIMERO) -->
+    <script src="../js/navigation-utils.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/notifications.js"></script>
+    <script src="../js/gastos.js"></script>
+</body>
+</html> 

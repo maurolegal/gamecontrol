@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar Acceso Administrador - GameControl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .verification-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 800px;
+        }
+        
+        .status-card {
+            border: none;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .status-card.success {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            border-left: 5px solid #28a745;
+        }
+        
+        .status-card.error {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            border-left: 5px solid #dc3545;
+        }
+        
+        .status-card.warning {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border-left: 5px solid #ffc107;
+        }
+        
+        .status-card.info {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            border-left: 5px solid #17a2b8;
+        }
+        
+        .status-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+        
+        .btn-verify {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-verify:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            color: white;
+        }
+        
+        .credentials-display {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            border-radius: 10px;
+            padding: 1rem;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="verification-container">
+            <div class="text-center mb-4">
+                <h1 class="h2 fw-bold text-primary">
+                    <i class="fas fa-shield-check me-2"></i>
+                    Verificación de Acceso Administrador
+                </h1>
+                <p class="text-muted">GameControl - Sistema de Gestión Gaming</p>
+            </div>
+            
+            <!-- Credenciales a verificar -->
+            <div class="card status-card info">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-shield status-icon text-info"></i>
+                        <div>
+                            <h5 class="card-title mb-1">Credenciales del Administrador</h5>
+                            <div class="credentials-display">
+                                <strong>Email:</strong> maurochica23@gmail.com<br>
+                                <strong>Contraseña:</strong> kennia23
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estado del sistema -->
+            <div id="systemStatus" class="card status-card info">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-cogs status-icon text-info"></i>
+                        <div>
+                            <h5 class="card-title mb-1">Estado del Sistema</h5>
+                            <p class="card-text mb-0">Verificando componentes...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resultado de la verificación -->
+            <div id="verificationResult" class="card status-card info" style="display: none;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-check-circle status-icon text-success"></i>
+                        <div>
+                            <h5 class="card-title mb-1">Resultado de la Verificación</h5>
+                            <p class="card-text mb-0" id="resultText">Verificando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="text-center mb-4">
+                <button class="btn btn-verify me-2" onclick="ejecutarVerificacionCompleta()">
+                    <i class="fas fa-play me-2"></i>Ejecutar Verificación Completa
+                </button>
+                <button class="btn btn-outline-secondary" onclick="limpiarLogs()">
+                    <i class="fas fa-trash me-2"></i>Limpiar Logs
+                </button>
+            </div>
+            
+            <!-- Barra de progreso -->
+            <div class="progress mb-3" style="height: 8px;">
+                <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+            </div>
+            
+            <!-- Logs de verificación -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-terminal me-2"></i>Logs de Verificación
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div id="logContainer" class="log-container">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Los logs aparecerán aquí cuando ejecutes la verificación
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Información adicional -->
+            <div class="mt-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card status-card info">
+                            <div class="card-body">
+                                <h6><i class="fas fa-info-circle me-2"></i>Información</h6>
+                                <small class="text-muted">
+                                    Esta herramienta verifica que las credenciales del administrador 
+                                    funcionen correctamente con el sistema de autenticación.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card status-card warning">
+                            <div class="card-body">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Importante</h6>
+                                <small class="text-muted">
+                                    Asegúrate de tener conexión a internet para que Supabase funcione correctamente.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts necesarios -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Scripts del sistema -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="verificar_credenciales.js"></script>
+    
+    <script>
+        // Variables globales
+        let verificationInProgress = false;
+        let progressValue = 0;
+        
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Función para limpiar logs
+        function limpiarLogs() {
+            const logContainer = document.getElementById('logContainer');
+            logContainer.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Los logs aparecerán aquí cuando ejecutes la verificación
+                </div>
+            `;
+        }
+        
+        // Función para actualizar progreso
+        function updateProgress(value) {
+            progressValue = value;
+            const progressBar = document.getElementById('progressBar');
+            progressBar.style.width = `${value}%`;
+        }
+        
+        // Función para actualizar estado del sistema
+        function updateSystemStatus(status, message) {
+            const statusCard = document.getElementById('systemStatus');
+            const statusText = statusCard.querySelector('.card-text');
+            const statusIcon = statusCard.querySelector('.status-icon');
+            
+            statusCard.className = `card status-card ${status}`;
+            statusText.textContent = message;
+            
+            const iconMap = {
+                'success': 'fas fa-check-circle text-success',
+                'error': 'fas fa-times-circle text-danger',
+                'warning': 'fas fa-exclamation-triangle text-warning',
+                'info': 'fas fa-cogs text-info'
+            };
+            
+            statusIcon.className = `${iconMap[status]} status-icon`;
+        }
+        
+        // Función para mostrar resultado
+        function showResult(success, message) {
+            const resultCard = document.getElementById('verificationResult');
+            const resultText = document.getElementById('resultText');
+            const resultIcon = resultCard.querySelector('.status-icon');
+            
+            resultCard.style.display = 'block';
+            resultCard.className = `card status-card ${success ? 'success' : 'error'}`;
+            resultText.textContent = message;
+            
+            resultIcon.className = `fas ${success ? 'fa-check-circle text-success' : 'fa-times-circle text-danger'} status-icon`;
+        }
+        
+        // Override de console.log para capturar logs
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addLog(args.join(' '), 'info');
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addLog(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addLog(args.join(' '), 'warning');
+        };
+        
+        // Función principal de verificación
+        async function ejecutarVerificacionCompleta() {
+            if (verificationInProgress) {
+                addLog('⚠️ Verificación ya en progreso...', 'warning');
+                return;
+            }
+            
+            verificationInProgress = true;
+            updateProgress(0);
+            limpiarLogs();
+            
+            addLog('🚀 Iniciando verificación completa de credenciales...', 'info');
+            updateSystemStatus('info', 'Verificando componentes del sistema...');
+            
+            try {
+                // Paso 1: Verificar componentes básicos
+                updateProgress(20);
+                addLog('📊 Verificando estado del sistema...', 'info');
+                
+                const componentes = {
+                    'Supabase Config': !!window.supabaseConfig,
+                    'Supabase Client': !!(window.supabaseConfig && window.supabaseConfig.getSupabaseClient),
+                    'Database Service': !!window.databaseService,
+                    'Auth System': !!window.authSystem
+                };
+                
+                let componentesOk = 0;
+                Object.entries(componentes).forEach(([componente, disponible]) => {
+                    if (disponible) {
+                        addLog(`✅ ${componente}: Disponible`, 'info');
+                        componentesOk++;
+                    } else {
+                        addLog(`❌ ${componente}: No disponible`, 'error');
+                    }
+                });
+                
+                if (componentesOk < 2) {
+                    updateSystemStatus('error', 'Componentes críticos no disponibles');
+                    showResult(false, 'El sistema no está completamente inicializado');
+                    return;
+                }
+                
+                updateSystemStatus('info', 'Componentes verificados, probando credenciales...');
+                
+                // Paso 2: Verificar credenciales
+                updateProgress(50);
+                addLog('🔐 Verificando credenciales del administrador...', 'info');
+                
+                const credencialesOk = await verificarCredenciales();
+                
+                if (!credencialesOk) {
+                    updateProgress(100);
+                    updateSystemStatus('error', 'Error en las credenciales');
+                    showResult(false, 'Las credenciales no funcionan correctamente');
+                    return;
+                }
+                
+                // Paso 3: Verificar sistema de autenticación
+                updateProgress(80);
+                addLog('🔍 Verificando sistema de autenticación...', 'info');
+                
+                const sistemaOk = await verificarSistemaAutenticacion();
+                
+                if (!sistemaOk) {
+                    updateProgress(100);
+                    updateSystemStatus('error', 'Error en el sistema de autenticación');
+                    showResult(false, 'El sistema de autenticación no funciona correctamente');
+                    return;
+                }
+                
+                // Éxito
+                updateProgress(100);
+                updateSystemStatus('success', 'Sistema completamente operativo');
+                showResult(true, 'Todas las credenciales funcionan correctamente');
+                
+                addLog('🎉 VERIFICACIÓN COMPLETADA EXITOSAMENTE', 'info');
+                addLog('✅ El administrador puede iniciar sesión sin problemas', 'info');
+                
+            } catch (error) {
+                updateProgress(100);
+                updateSystemStatus('error', 'Error durante la verificación');
+                showResult(false, 'Error inesperado durante la verificación');
+                addLog(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                verificationInProgress = false;
+            }
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            addLog('📋 Página de verificación cargada', 'info');
+            addLog('💡 Usa el botón "Ejecutar Verificación Completa" para comenzar', 'info');
+            
+            // Verificar estado inicial
+            setTimeout(() => {
+                updateSystemStatus('info', 'Sistema listo para verificación');
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

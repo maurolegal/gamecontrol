@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard Funcional - GameControl</title>
+    <script>
+        (function(){
+            try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+        })();
+    </script>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <style>
+        .test-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-result {
+            background: white;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            border-left: 4px solid #007bff;
+        }
+        .test-success {
+            border-left-color: #28a745;
+        }
+        .test-warning {
+            border-left-color: #ffc107;
+        }
+        .test-error {
+            border-left-color: #dc3545;
+        }
+        .log-container {
+            background: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+        }
+    [data-theme="dark"] .test-section { background: var(--light-color); color: var(--text-color); }
+    [data-theme="dark"] .test-result { background: var(--card-bg); color: var(--text-color); border-left-color: var(--primary-color); }
+    [data-theme="dark"] .log-container { background: var(--light-color); color: var(--text-color); }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            Test Dashboard Funcional
+        </h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h5><i class="fas fa-cogs me-2"></i>Estado del Sistema</h5>
+                    <div id="estadoSistema">
+                        <p class="text-muted">Verificando estado del sistema...</p>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="verificarSistema()">
+                        <i class="fas fa-sync me-2"></i>Verificar Sistema
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h5><i class="fas fa-database me-2"></i>Test de Conexión</h5>
+                    <div id="testConexion">
+                        <p class="text-muted">Haz clic en el botón para probar la conexión</p>
+                    </div>
+                    
+                    <button class="btn btn-success" onclick="testConexion()">
+                        <i class="fas fa-plug me-2"></i>Probar Conexión
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h5><i class="fas fa-chart-bar me-2"></i>Test de Dashboard</h5>
+                    <div id="testDashboard">
+                        <p class="text-muted">Prueba las funciones del dashboard</p>
+                    </div>
+                    
+                    <button class="btn btn-info" onclick="testDashboard()">
+                        <i class="fas fa-play me-2"></i>Probar Dashboard
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="test-section">
+                    <h5><i class="fas fa-link me-2"></i>Test de Integración</h5>
+                    <div id="testIntegracion">
+                        <p class="text-muted">Prueba la integración entre módulos</p>
+                    </div>
+                    
+                    <button class="btn btn-warning" onclick="testIntegracion()">
+                        <i class="fas fa-network-wired me-2"></i>Probar Integración
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="test-section">
+                    <h5><i class="fas fa-terminal me-2"></i>Log de Sistema</h5>
+                    <div id="logSistema" class="log-container">
+                        <small class="text-muted">Los logs aparecerán aquí...</small>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="limpiarLog()">
+                            <i class="fas fa-trash me-2"></i>Limpiar Log
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="exportarLog()">
+                            <i class="fas fa-download me-2"></i>Exportar Log
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Librería Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Scripts del sistema -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/theme-ux.js"></script>
+    <script src="js/navigation-utils.js"></script>
+    <script src="js/mobile-compatibility.js"></script>
+    <script src="js/stock.js"></script>
+    <script src="js/salas.js"></script>
+    <script src="js/ventas.js"></script>
+    <script src="js/gastos.js"></script>
+    <script src="js/reportes.js"></script>
+    <script src="js/usuarios.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/dashboard.js"></script>
+    
+    <script>
+        // Función para agregar logs
+        function agregarLog(mensaje, tipo = 'info') {
+            const log = document.getElementById('logSistema');
+            const timestamp = new Date().toLocaleTimeString();
+            const clase = tipo === 'error' ? 'text-danger' : tipo === 'success' ? 'text-success' : 'text-info';
+            
+            log.innerHTML += `
+                <div class="${clase}">
+                    <small>[${timestamp}]</small> ${mensaje}
+                </div>
+            `;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Verificar estado del sistema
+        function verificarSistema() {
+            agregarLog('🔍 Verificando estado del sistema...', 'info');
+            
+            const estado = {
+                supabase: !!window.supabaseConfig,
+                databaseService: !!window.databaseService,
+                auth: !!window.authManager,
+                gestorStock: !!window.gestorStock,
+                gestorSalas: !!window.gestorSalas,
+                dashboardManager: !!window.DashboardManager
+            };
+            
+            agregarLog(`✅ Supabase: ${estado.supabase ? 'Disponible' : 'No disponible'}`, estado.supabase ? 'success' : 'error');
+            agregarLog(`✅ DatabaseService: ${estado.databaseService ? 'Disponible' : 'No disponible'}`, estado.databaseService ? 'success' : 'error');
+            agregarLog(`✅ AuthManager: ${estado.auth ? 'Disponible' : 'No disponible'}`, estado.auth ? 'success' : 'error');
+            agregarLog(`✅ GestorStock: ${estado.gestorStock ? 'Disponible' : 'No disponible'}`, estado.gestorStock ? 'success' : 'error');
+            agregarLog(`✅ GestorSalas: ${estado.gestorSalas ? 'Disponible' : 'No disponible'}`, estado.gestorSalas ? 'success' : 'error');
+            agregarLog(`✅ DashboardManager: ${estado.dashboardManager ? 'Disponible' : 'No disponible'}`, estado.dashboardManager ? 'success' : 'error');
+            
+            // Actualizar estado en la UI
+            document.getElementById('estadoSistema').innerHTML = `
+                <div class="test-result ${Object.values(estado).every(v => v) ? 'test-success' : 'test-warning'}">
+                    <h6>Estado del Sistema:</h6>
+                    <ul class="mb-0">
+                        <li>Supabase: <strong>${estado.supabase ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                        <li>DatabaseService: <strong>${estado.databaseService ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                        <li>AuthManager: <strong>${estado.auth ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                        <li>GestorStock: <strong>${estado.gestorStock ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                        <li>GestorSalas: <strong>${estado.gestorSalas ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                        <li>DashboardManager: <strong>${estado.dashboardManager ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                    </ul>
+                </div>
+            `;
+            
+            if (Object.values(estado).every(v => v)) {
+                agregarLog('🎉 Todos los sistemas están funcionando correctamente!', 'success');
+            } else {
+                agregarLog('⚠️ Algunos sistemas no están disponibles', 'error');
+            }
+        }
+
+        // Test de conexión
+        async function testConexion() {
+            agregarLog('🔌 Probando conexión a Supabase...', 'info');
+            
+            try {
+                if (!window.databaseService) {
+                    throw new Error('DatabaseService no disponible');
+                }
+                
+                const resultado = await window.databaseService.verificarConexionObligatoria();
+                agregarLog('✅ Conexión exitosa a Supabase', 'success');
+                
+                document.getElementById('testConexion').innerHTML = `
+                    <div class="test-result test-success">
+                        <h6>Conexión Exitosa</h6>
+                        <p class="mb-0">✅ Conectado a Supabase correctamente</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                agregarLog(`❌ Error de conexión: ${error.message}`, 'error');
+                
+                document.getElementById('testConexion').innerHTML = `
+                    <div class="test-result test-error">
+                        <h6>Error de Conexión</h6>
+                        <p class="mb-0">❌ ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Test del dashboard
+        function testDashboard() {
+            agregarLog('🎯 Probando funciones del dashboard...', 'info');
+            
+            try {
+                if (!window.DashboardManager) {
+                    throw new Error('DashboardManager no disponible');
+                }
+                
+                // Crear instancia del dashboard
+                const dashboard = new window.DashboardManager();
+                agregarLog('✅ Dashboard creado exitosamente', 'success');
+                
+                // Verificar métodos disponibles
+                const metodos = [
+                    'actualizarMetricas',
+                    'actualizarSesionesActivas',
+                    'actualizarEstadoStock',
+                    'actualizarAlertas'
+                ];
+                
+                const metodosDisponibles = metodos.filter(m => typeof dashboard[m] === 'function');
+                agregarLog(`📋 Métodos disponibles: ${metodosDisponibles.length}/${metodos.length}`, 'info');
+                
+                document.getElementById('testDashboard').innerHTML = `
+                    <div class="test-result test-success">
+                        <h6>Dashboard Funcional</h6>
+                        <p class="mb-0">✅ Dashboard creado con ${metodosDisponibles.length} métodos disponibles</p>
+                    </div>
+                `;
+                
+            } catch (error) {
+                agregarLog(`❌ Error en dashboard: ${error.message}`, 'error');
+                
+                document.getElementById('testDashboard').innerHTML = `
+                    <div class="test-result test-error">
+                        <h6>Error en Dashboard</h6>
+                        <p class="mb-0">❌ ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Test de integración
+        function testIntegracion() {
+            agregarLog('🔗 Probando integración entre módulos...', 'info');
+            
+            const integraciones = [];
+            
+            // Test 1: Stock -> Salas
+            if (window.gestorStock && window.gestorSalas) {
+                integraciones.push('Stock ↔ Salas');
+                agregarLog('✅ Integración Stock-Salas disponible', 'success');
+            } else {
+                agregarLog('❌ Integración Stock-Salas no disponible', 'error');
+            }
+            
+            // Test 2: Dashboard -> Módulos
+            if (window.DashboardManager && window.gestorStock && window.gestorSalas) {
+                integraciones.push('Dashboard ↔ Módulos');
+                agregarLog('✅ Integración Dashboard-Módulos disponible', 'success');
+            } else {
+                agregarLog('❌ Integración Dashboard-Módulos no disponible', 'error');
+            }
+            
+            // Test 3: Eventos del sistema
+            if (window.gestorStock && typeof window.gestorStock.configurarEventos === 'function') {
+                integraciones.push('Eventos del Sistema');
+                agregarLog('✅ Sistema de eventos disponible', 'success');
+            } else {
+                agregarLog('❌ Sistema de eventos no disponible', 'error');
+            }
+            
+            document.getElementById('testIntegracion').innerHTML = `
+                <div class="test-result ${integraciones.length >= 2 ? 'test-success' : 'test-warning'}">
+                    <h6>Integración del Sistema</h6>
+                    <p class="mb-0">✅ Integraciones disponibles: ${integraciones.join(', ')}</p>
+                </div>
+            `;
+            
+            agregarLog(`🔗 Total de integraciones: ${integraciones.length}/3`, integraciones.length >= 2 ? 'success' : 'warning');
+        }
+
+        // Limpiar log
+        function limpiarLog() {
+            document.getElementById('logSistema').innerHTML = '<small class="text-muted">Log limpiado...</small>';
+        }
+
+        // Exportar log
+        function exportarLog() {
+            const log = document.getElementById('logSistema').innerText;
+            const blob = new Blob([log], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dashboard_test_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.log`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Configurar eventos de escucha
+        window.addEventListener('load', function() {
+            agregarLog('🚀 Sistema de testing iniciado', 'success');
+            agregarLog('📋 Usa los botones para probar la funcionalidad', 'info');
+            
+            // Verificar sistema automáticamente después de un delay
+            setTimeout(verificarSistema, 2000);
+        });
+
+        // Escuchar eventos del sistema
+        window.addEventListener('stockActualizado', (event) => {
+            agregarLog(`🔄 Stock actualizado: ${event.detail.productoId}`, 'info');
+        });
+        
+        window.addEventListener('movimientoRegistrado', (event) => {
+            agregarLog(`📝 Movimiento registrado: ${event.detail.tipo}`, 'info');
+        });
+        
+        window.addEventListener('sesionActualizada', (event) => {
+            agregarLog(`🎮 Sesión actualizada: ${event.detail.sesionId}`, 'info');
+        });
+    </script>
+</body>
+</html>

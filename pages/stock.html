@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Gestión de Stock - Sistema Gestión Salas Videojuegos</title>
+    <script>
+        (function(){
+            try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Librería Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <script src="../js/main.js"></script>
+    <script src="../js/theme-ux.js"></script>
+</head>
+<body>
+    <!-- Menú hamburguesa para móvil -->
+    <button class="menu-toggle d-md-none" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay para menú móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 col-lg-2 d-md-block sidebar" id="sidebar">
+                <div class="logo">
+                    <h4><i class="fas fa-gamepad me-2"></i> <span>GameControl</span></h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">
+                            <i class="fas fa-home"></i> <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="salas.html">
+                            <i class="fas fa-door-open"></i> <span>Salas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ventas.html">
+                            <i class="fas fa-cash-register"></i> <span>Ventas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="gastos.html">
+                            <i class="fas fa-file-invoice-dollar"></i> <span>Gastos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="stock.html">
+                            <i class="fas fa-boxes"></i> <span>Stock</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reportes.html">
+                            <i class="fas fa-chart-bar"></i> <span>Reportes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">
+                            <i class="fas fa-users"></i> <span>Usuarios</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ajustes.html">
+                            <i class="fas fa-cog"></i> <span>Ajustes</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <div>
+                        <h3>Gestión de Stock</h3>
+                        <p class="mb-0 text-muted">Control de inventario y productos</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Perfil de Usuario -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-info d-none d-md-flex flex-column text-end">
+                                <span class="fw-semibold mb-0 user-name" style="font-size: 0.9rem;">Cargando...</span>
+                                <small class="text-muted user-role">--</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle d-flex align-items-center px-3" type="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">--</div>
+                                    <span class="d-md-none user-name">Cargando...</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="user-email">--</span>
+                                        </small>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen de Stock -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <h5 class="card-title">Total Productos</h5>
+                            <h2 class="mb-0">156</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> 5 nuevos este mes</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h5 class="card-title">Stock Bajo</h5>
+                            <h2 class="mb-0">8</h2>
+                            <p class="text-danger mb-0"><i class="fas fa-arrow-up"></i> 3 más que ayer</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-success bg-opacity-10 text-success">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <h5 class="card-title">Valor Total</h5>
+                            <h2 class="mb-0">$5,850.00</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> $250 más que ayer</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-info bg-opacity-10 text-info">
+                                <i class="fas fa-sync"></i>
+                            </div>
+                            <h5 class="card-title">Rotación</h5>
+                            <h2 class="mb-0">4.2</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> 0.3 más que el mes pasado</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gestión de Productos -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Agregar Nuevo Producto</h5>
+                                <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalGestionarCategorias">
+                                    <i class="fas fa-tags me-2"></i>Gestionar Categorías
+                                </button>
+                            </div>
+                            <div class="form-container">
+                                <form id="formNuevoProducto">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Nombre</label>
+                                            <input type="text" class="form-control" name="nombre" placeholder="Nombre del producto" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Categoría</label>
+                                            <select class="form-select" name="categoria" required>
+                                                <option value="">Seleccionar categoría</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <div class="card border-info">
+                                                <div class="card-header bg-info bg-opacity-10">
+                                                    <h6 class="mb-0 text-info">
+                                                        <i class="fas fa-calculator me-2"></i>Cálculo Automático de Costo
+                                                    </h6>
+                                                    <small class="text-muted">Ej: Si pagaste $100,000 por 50 unidades = $2,000 por unidad</small>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-semibold">Valor Total de Compra</label>
+                                                            <div class="input-group">
+                                                                <span class="input-group-text">$</span>
+                                                                <input type="number" class="form-control" id="valorTotalCompra" placeholder="100000" step="0.01" min="0">
+                                                            </div>
+                                                            <small class="form-text text-muted">Total que pagaste por toda la cantidad</small>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-semibold">Stock a Ingresar</label>
+                                                            <input type="number" class="form-control" id="stockParaCalculo" placeholder="50" min="1">
+                                                            <small class="form-text text-muted">Cantidad de unidades que compraste</small>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <div class="alert alert-success text-center" id="alertCalculoCosto">
+                                                                <strong>Costo por unidad: <span id="costoCalculado">$0</span></strong>
+                                                                <div id="detalleCalculo" class="mt-2 small text-muted">
+                                                                    <!-- Se mostrará el cálculo detallado aquí -->
+                                                                </div>
+                                                                <div id="verificacionCalculo" class="mt-2">
+                                                                    <!-- Se mostrará la verificación aquí -->
+                                                                </div>
+                                                                <small class="text-muted d-block mt-1">Este valor se aplicará automáticamente al campo de costo</small>
+                                                                <br>
+                                                                <button type="button" class="btn btn-sm btn-outline-success mt-2" id="btnAplicarCalculoCosto">
+                                                                    <i class="fas fa-check me-1"></i>Aplicar Cálculo
+                                                                </button>
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary mt-2 ms-2" id="btnLimpiarCalculoCosto">
+                                                                    <i class="fas fa-trash me-1"></i>Limpiar
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Precio de Costo Unitario</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" name="costo" placeholder="0" step="0.01" min="0" required>
+                                            </div>
+                                            <small class="form-text text-muted">Se calcula automáticamente o ingresa manualmente</small>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Precio de Venta</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="number" class="form-control" name="precio" placeholder="0" step="0.01" min="0" required>
+                                            </div>
+                                            <small class="form-text text-muted">Precio al que vendes el producto</small>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <div class="alert alert-light border">
+                                                <div class="row text-center">
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted d-block">Ganancia por unidad</small>
+                                                        <span class="fw-bold text-success" id="gananciaUnidad">$0</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted d-block">Margen de ganancia</small>
+                                                        <span class="fw-bold text-primary" id="margenGanancia">0%</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <small class="text-muted d-block">Ganancia total (stock)</small>
+                                                        <span class="fw-bold text-info" id="gananciaTotal">$0</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label-custom">Stock Inicial</label>
+                                            <input type="number" class="form-control" name="stock" placeholder="0" min="0" required>
+                                            <small class="form-text text-muted">Se sincroniza con el cálculo de arriba</small>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label-custom">Stock Mínimo</label>
+                                            <input type="number" class="form-control" name="stockMinimo" placeholder="5" min="1" required>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label-custom">Valor Total Invertido</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">$</span>
+                                                <input type="text" class="form-control bg-light" id="valorInvertido" readonly>
+                                            </div>
+                                            <small class="form-text text-muted">Costo × Stock</small>
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label-custom">Descripción</label>
+                                            <textarea class="form-control" name="descripcion" rows="2" placeholder="Descripción del producto..."></textarea>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <button type="submit" class="btn btn-primary-custom w-100">
+                                                <i class="fas fa-plus me-2"></i> Agregar Producto
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <h5>Distribución por Categoría</h5>
+                            <canvas id="stockChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventario -->
+                <div class="module-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5>Inventario Actual</h5>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <select class="form-select" id="categoriaFiltro" style="width: auto;">
+                                <option value="">Todas las categorías</option>
+                            </select>
+                            <select class="form-select" id="estadoFiltro" style="width: auto;">
+                                <option value="">Todos los estados</option>
+                                <option value="disponible">Stock normal</option>
+                                <option value="bajo">Stock bajo</option>
+                                <option value="agotado">Sin stock</option>
+                            </select>
+                            <input type="text" class="form-control" id="buscarProducto" placeholder="Buscar producto..." style="width: 200px;">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover" id="tablaProductos">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Categoría</th>
+                                    <th>Costo</th>
+                                    <th>Precio Venta</th>
+                                    <th>Ganancia</th>
+                                    <th>Stock</th>
+                                    <th>Valor Inventario</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Los productos se cargarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            Mostrando 1-10 de 156 productos
+                        </div>
+                        <nav>
+                            <ul class="pagination mb-0">
+                                <li class="page-item disabled"><a class="page-link" href="#">Anterior</a></li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Movimientos de Stock -->
+                <div class="module-container">
+                    <h5>Últimos Movimientos</h5>
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover" id="tablaMovimientos">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Producto</th>
+                                    <th>Tipo</th>
+                                    <th>Cantidad</th>
+                                    <th>Usuario/Precio</th>
+                                    <th>Stock</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Los movimientos se cargarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestionar Categorías -->
+    <div class="modal fade" id="modalGestionarCategorias" tabindex="-1" aria-labelledby="modalGestionarCategoriasLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalGestionarCategoriasLabel">
+                        <i class="fas fa-tags me-2"></i>Gestionar Categorías de Productos
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Crear Nueva Categoría -->
+                    <div class="card border-success mb-4">
+                        <div class="card-header bg-success bg-opacity-10">
+                            <h6 class="mb-0 text-success">
+                                <i class="fas fa-plus-circle me-2"></i>Crear Nueva Categoría
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold">Nombre de la Categoría</label>
+                                    <input type="text" class="form-control" id="nombreNuevaCategoria" placeholder="Ej: Bebidas Energéticas">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Color</label>
+                                    <select class="form-select" id="colorNuevaCategoria">
+                                        <option value="primary">🔵 Azul</option>
+                                        <option value="success">🟢 Verde</option>
+                                        <option value="warning">🟡 Amarillo</option>
+                                        <option value="danger">🔴 Rojo</option>
+                                        <option value="info">🔷 Cian</option>
+                                        <option value="secondary">⚫ Gris</option>
+                                        <option value="dark">⚫ Negro</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold">Icono</label>
+                                    <select class="form-select" id="iconoNuevaCategoria">
+                                        <option value="fas fa-coffee">☕ Bebidas</option>
+                                        <option value="fas fa-cookie">🍪 Snacks</option>
+                                        <option value="fas fa-utensils">🍽️ Comida</option>
+                                        <option value="fas fa-candy-cane">🍭 Dulces</option>
+                                        <option value="fas fa-gamepad">🎮 Gaming</option>
+                                        <option value="fas fa-laptop">💻 Tecnología</option>
+                                        <option value="fas fa-tools">🔧 Accesorios</option>
+                                        <option value="fas fa-box">📦 General</option>
+                                        <option value="fas fa-gift">🎁 Promocional</option>
+                                        <option value="fas fa-star">⭐ Premium</option>
+                                        <option value="fas fa-fire">🔥 Populares</option>
+                                        <option value="fas fa-leaf">🌿 Saludable</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button class="btn btn-success w-100" id="btnCrearCategoria">
+                                        <i class="fas fa-plus me-1"></i>Crear
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- Vista previa de la categoría -->
+                            <div class="mt-3">
+                                <label class="form-label fw-semibold">Vista Previa:</label>
+                                <div id="vistaPrevia">
+                                    <span class="badge bg-primary fs-6">
+                                        <i class="fas fa-coffee me-1"></i>Nombre de Categoría
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Categorías Existentes -->
+                    <div class="card border-info">
+                        <div class="card-header bg-info bg-opacity-10">
+                            <h6 class="mb-0 text-info">
+                                <i class="fas fa-list me-2"></i>Categorías Existentes
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Categoría</th>
+                                            <th>Nombre</th>
+                                            <th>Color</th>
+                                            <th>Icono</th>
+                                            <th>Productos</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaCategorias">
+                                        <!-- Se llenará dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" id="btnLimpiarTodasCategorias">
+                        <i class="fas fa-trash-alt me-1"></i>Eliminar Todas las Categorías
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Categoría -->
+    <div class="modal fade" id="modalEditarCategoria" tabindex="-1" aria-labelledby="modalEditarCategoriaLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="modalEditarCategoriaLabel">
+                        <i class="fas fa-edit me-2"></i>Editar Categoría
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Nombre de la Categoría</label>
+                            <input type="text" class="form-control" id="nombreEditarCategoria" placeholder="Ej: Bebidas Energéticas">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Color</label>
+                            <select class="form-select" id="colorEditarCategoria">
+                                <option value="primary">🔵 Azul</option>
+                                <option value="success">🟢 Verde</option>
+                                <option value="warning">🟡 Amarillo</option>
+                                <option value="danger">🔴 Rojo</option>
+                                <option value="info">🔷 Cian</option>
+                                <option value="secondary">⚫ Gris</option>
+                                <option value="dark">⚫ Negro</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Icono</label>
+                            <select class="form-select" id="iconoEditarCategoria">
+                                <option value="fas fa-coffee">☕ Bebidas</option>
+                                <option value="fas fa-cookie">🍪 Snacks</option>
+                                <option value="fas fa-utensils">🍽️ Comida</option>
+                                <option value="fas fa-candy-cane">🍭 Dulces</option>
+                                <option value="fas fa-gamepad">🎮 Gaming</option>
+                                <option value="fas fa-laptop">💻 Tecnología</option>
+                                <option value="fas fa-tools">🔧 Accesorios</option>
+                                <option value="fas fa-box">📦 General</option>
+                                <option value="fas fa-gift">🎁 Promocional</option>
+                                <option value="fas fa-star">⭐ Premium</option>
+                                <option value="fas fa-fire">🔥 Populares</option>
+                                <option value="fas fa-leaf">🌿 Saludable</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Estado</label>
+                            <select class="form-select" id="estadoEditarCategoria">
+                                <option value="activa">✅ Activa</option>
+                                <option value="inactiva">❌ Inactiva</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Vista Previa:</label>
+                            <div id="vistaPreviaEditar">
+                                <span class="badge bg-primary fs-6">
+                                    <i class="fas fa-coffee me-1"></i>Nombre de Categoría
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" id="btnGuardarCategoria">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Configuración Supabase -->
+    <script src="../js/supabase-config.js"></script>
+    
+    <!-- Utilidades de Navegación (Debe ir PRIMERO) -->
+    <script src="../js/navigation-utils.js"></script>
+    
+    <script src="../js/auth.js"></script>
+    <script src="../js/notifications.js"></script>
+    <script src="../js/stock.js"></script>
+</body>
+</html> 

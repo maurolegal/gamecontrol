@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Debug Autenticación Producción - GameControl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .debug-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        .status-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-2px);
+        }
+        .log-container {
+            background: #1e1e1e;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .test-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            border-radius: 25px;
+            padding: 10px 25px;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="debug-container p-4">
+                    <div class="text-center mb-4">
+                        <h1 class="display-4 text-primary">
+                            <i class="fas fa-bug me-3"></i>Debug Autenticación Producción
+                        </h1>
+                        <p class="lead text-muted">Diagnóstico completo del sistema de autenticación</p>
+                    </div>
+
+                    <!-- Estado del Sistema -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card status-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-globe fa-3x text-primary mb-3"></i>
+                                    <h5>Entorno Actual</h5>
+                                    <p id="environment" class="mb-0">Verificando...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card status-card">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-database fa-3x text-success mb-3"></i>
+                                    <h5>Conexión Supabase</h5>
+                                    <p id="supabaseStatus" class="mb-0">Verificando...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botones de Test -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                                <button class="btn test-button" onclick="testSupabaseConnection()">
+                                    <i class="fas fa-plug me-2"></i>Test Conexión
+                                </button>
+                                <button class="btn test-button" onclick="testUserAuthentication()">
+                                    <i class="fas fa-user-check me-2"></i>Test Usuario
+                                </button>
+                                <button class="btn test-button" onclick="testDatabaseTables()">
+                                    <i class="fas fa-table me-2"></i>Test Tablas
+                                </button>
+                                <button class="btn test-button" onclick="testAuthFlow()">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Test Login
+                                </button>
+                                <button class="btn test-button" onclick="clearLogs()">
+                                    <i class="fas fa-trash me-2"></i>Limpiar Logs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logs -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card status-card">
+                                <div class="card-header">
+                                    <h5><i class="fas fa-terminal me-2"></i>Logs de Diagnóstico</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div id="debugLogs" class="log-container p-3">
+                                        <div class="info">🔧 Iniciando diagnóstico de autenticación...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script>
+        // Variables globales
+        let supabaseClient = null;
+        let authSystem = null;
+
+        // Configuración
+        const CONFIG = {
+            url: 'https://stjbtxrrdofuxhigxfcy.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amJ0eHJyZG9mdXhoaWd4ZmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MTgwNzUsImV4cCI6MjA3NzM5NDA3NX0.vhz6v2pRepUH7g-ucSJKtWonmAeWYqwhrTxG_ypVElo',
+            testUser: {
+                email: 'maurochica23@gmail.com',
+                password: 'kennia23'
+            }
+        };
+
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('debugLogs');
+            const time = new Date().toLocaleTimeString();
+            
+            const log = document.createElement('div');
+            log.className = type;
+            log.innerHTML = `[${time}] ${message}`;
+            
+            container.appendChild(log);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Función para limpiar logs
+        function clearLogs() {
+            document.getElementById('debugLogs').innerHTML = `
+                <div class="info">🔧 Logs limpiados</div>
+                <div class="info">💡 Listo para nuevos tests</div>
+            `;
+        }
+
+        // Verificar entorno
+        function checkEnvironment() {
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            
+            let environment = 'Desarrollo Local';
+            if (hostname === 'maurolegal.github.io') {
+                environment = 'Producción (GitHub Pages)';
+            } else if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
+                environment = 'Desarrollo Local';
+            } else {
+                environment = 'Otro dominio';
+            }
+            
+            document.getElementById('environment').textContent = environment;
+            addLog(`🌐 Entorno detectado: ${environment}`, 'info');
+            addLog(`🔗 URL actual: ${protocol}//${hostname}${window.location.pathname}`, 'info');
+        }
+
+        // Test de conexión a Supabase
+        async function testSupabaseConnection() {
+            addLog('🔌 Iniciando test de conexión a Supabase...', 'info');
+            
+            try {
+                // Inicializar Supabase
+                supabaseClient = createClient(CONFIG.url, CONFIG.anonKey);
+                addLog('✅ Cliente Supabase creado', 'success');
+                
+                // Test de conexión básica
+                const { data, error } = await supabaseClient
+                    .from('configuracion')
+                    .select('clave')
+                    .limit(1);
+                
+                if (error) {
+                    addLog(`❌ Error de conexión: ${error.message}`, 'error');
+                    document.getElementById('supabaseStatus').textContent = 'Error de conexión';
+                    return false;
+                }
+                
+                addLog('✅ Conexión a Supabase exitosa', 'success');
+                document.getElementById('supabaseStatus').textContent = 'Conectado';
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error crítico: ${error.message}`, 'error');
+                document.getElementById('supabaseStatus').textContent = 'Error crítico';
+                return false;
+            }
+        }
+
+        // Test de usuario en la base de datos
+        async function testUserAuthentication() {
+            addLog('👤 Verificando usuario en base de datos...', 'info');
+            
+            try {
+                const { data: usuario, error } = await supabaseClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', CONFIG.testUser.email)
+                    .eq('estado', 'activo')
+                    .single();
+                
+                if (error) {
+                    addLog(`❌ Error buscando usuario: ${error.message}`, 'error');
+                    return false;
+                }
+                
+                if (!usuario) {
+                    addLog('❌ Usuario no encontrado en la base de datos', 'error');
+                    return false;
+                }
+                
+                addLog(`✅ Usuario encontrado: ${usuario.nombre}`, 'success');
+                addLog(`📧 Email: ${usuario.email}`, 'info');
+                addLog(`🔑 Hash de contraseña: ${usuario.password_hash ? 'Presente' : 'Ausente'}`, 'info');
+                addLog(`📅 Último acceso: ${usuario.ultimo_acceso || 'Nunca'}`, 'info');
+                
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error verificando usuario: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Test de tablas de la base de datos
+        async function testDatabaseTables() {
+            addLog('📊 Verificando tablas de la base de datos...', 'info');
+            
+            const tables = ['usuarios', 'salas', 'sesiones', 'productos', 'configuracion'];
+            
+            for (const table of tables) {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from(table)
+                        .select('*')
+                        .limit(1);
+                    
+                    if (error) {
+                        addLog(`❌ Error en tabla ${table}: ${error.message}`, 'error');
+                    } else {
+                        addLog(`✅ Tabla ${table}: Accesible`, 'success');
+                    }
+                } catch (error) {
+                    addLog(`❌ Error crítico en tabla ${table}: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // Test del flujo de autenticación completo
+        async function testAuthFlow() {
+            addLog('🔐 Iniciando test de flujo de autenticación...', 'info');
+            
+            try {
+                // 1. Verificar usuario
+                const { data: usuario, error: userError } = await supabaseClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', CONFIG.testUser.email)
+                    .eq('estado', 'activo')
+                    .single();
+                
+                if (userError || !usuario) {
+                    addLog('❌ Usuario no encontrado o inactivo', 'error');
+                    return false;
+                }
+                
+                addLog('✅ Usuario encontrado en base de datos', 'success');
+                
+                // 2. Verificar contraseña
+                const { data: passwordValid, error: passError } = await supabaseClient
+                    .rpc('verificar_password', {
+                        password: CONFIG.testUser.password,
+                        hash: usuario.password_hash
+                    });
+                
+                if (passError) {
+                    addLog(`❌ Error verificando contraseña: ${passError.message}`, 'error');
+                    return false;
+                }
+                
+                if (!passwordValid) {
+                    addLog('❌ Contraseña incorrecta', 'error');
+                    return false;
+                }
+                
+                addLog('✅ Contraseña verificada correctamente', 'success');
+                
+                // 3. Intentar login en Supabase Auth
+                const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+                    email: CONFIG.testUser.email,
+                    password: CONFIG.testUser.password
+                });
+                
+                if (authError) {
+                    addLog(`⚠️ Error en Supabase Auth: ${authError.message}`, 'warning');
+                    addLog('💡 Intentando registrar usuario en Supabase Auth...', 'info');
+                    
+                    // Intentar registrar en Supabase Auth
+                    const { error: signUpError } = await supabaseClient.auth.signUp({
+                        email: CONFIG.testUser.email,
+                        password: CONFIG.testUser.password
+                    });
+                    
+                    if (signUpError) {
+                        addLog(`❌ Error registrando en Supabase Auth: ${signUpError.message}`, 'error');
+                    } else {
+                        addLog('✅ Usuario registrado en Supabase Auth', 'success');
+                    }
+                } else {
+                    addLog('✅ Login exitoso en Supabase Auth', 'success');
+                }
+                
+                // 4. Actualizar último acceso
+                await supabaseClient
+                    .from('usuarios')
+                    .update({ ultimo_acceso: new Date().toISOString() })
+                    .eq('id', usuario.id);
+                
+                addLog('✅ Último acceso actualizado', 'success');
+                addLog('🎉 Test de autenticación completado exitosamente', 'success');
+                
+                return true;
+                
+            } catch (error) {
+                addLog(`❌ Error en test de autenticación: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', async () => {
+            addLog('🚀 Iniciando diagnóstico de autenticación...', 'info');
+            
+            // Verificar entorno
+            checkEnvironment();
+            
+            // Test inicial de conexión
+            await testSupabaseConnection();
+            
+            addLog('✅ Diagnóstico inicial completado', 'success');
+        });
+    </script>
+</body>
+</html>

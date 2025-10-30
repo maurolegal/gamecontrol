@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Configuración Supabase</h2>
+        
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5>Estado de Conexión</h5>
+                <div id="status">Verificando...</div>
+                <button class="btn btn-primary mt-2" onclick="checkConnection()">Verificar</button>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5>Migración de Datos</h5>
+                <button class="btn btn-success" onclick="migrateData()">Migrar a Supabase</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    
+    <script>
+        async function checkConnection() {
+            document.getElementById('status').innerHTML = 'Verificando...';
+            
+            try {
+                if (window.supabaseConfig) {
+                    const result = await window.supabaseConfig.verificarConexion();
+                    document.getElementById('status').innerHTML = result.success ? '✅ Conectado' : '❌ Error';
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+
+        async function migrateData() {
+            if (window.migrarDatosASupabase) {
+                const result = await window.migrarDatosASupabase();
+                alert('Migración: ' + JSON.stringify(result));
+            }
+        }
+
+        setTimeout(checkConnection, 1000);
+    </script>
+</body>
+</html> 

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Autenticación Supabase</title>
+    <script>
+        (function(){
+            try{
+                var t = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', t);
+            }catch(e){}
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/styles.css" rel="stylesheet">
+    <style>
+        .debug-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .debug-logs {
+            background: #1a1a1a;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid #333;
+        }
+        
+        .debug-logs .info { color: #17a2b8; }
+        .debug-logs .success { color: #28a745; }
+        .debug-logs .warning { color: #ffc107; }
+        .debug-logs .error { color: #dc3545; }
+        
+        .btn-debug {
+            margin: 5px;
+            min-width: 200px;
+        }
+        
+        .alert-custom {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h4><i class="fas fa-bug"></i> Debug Autenticación Supabase</h4>
+                <p class="mb-0">Herramienta de diagnóstico para problemas de login</p>
+            </div>
+            
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <strong>📋 Proceso de Diagnóstico:</strong><br>
+                    1. Verificar Conexión → 2. Buscar Usuario → 3. Crear Usuario (si no existe) → 4. Probar Login
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary btn-debug" onclick="verificarConexion()">
+                            1. 🔗 Verificar Conexión Supabase
+                        </button>
+                        <button class="btn btn-info btn-debug" onclick="buscarUsuario()">
+                            2. 🔍 Buscar Usuario Admin
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-warning btn-debug" onclick="crearUsuario()">
+                            3. ➕ Crear Usuario Admin
+                        </button>
+                        <button class="btn btn-success btn-debug" onclick="probarLogin()">
+                            4. 🧪 Probar Login Directo
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <button class="btn btn-secondary" onclick="limpiarLogs()">🧹 Limpiar Logs</button>
+                    <button class="btn btn-dark" onclick="mostrarConfig()">⚙️ Mostrar Config</button>
+                </div>
+                
+                <div id="debugLogs" class="debug-logs">
+                    <div class="info">🔍 Debug de autenticación iniciado</div>
+                    <div class="info">💡 Usa los botones arriba para diagnosticar el problema</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/theme-ux.js"></script>
+    
+    <!-- Cargar Supabase -->
+    <script>
+        // Variables globales para el estado de carga
+        window.supabaseLoadStatus = 'loading';
+        
+        function logToConsole(message) {
+            console.log(message);
+            // Si la función addLog ya existe, usarla
+            if (typeof addLog === 'function') {
+                addLog(message, message.includes('✅') ? 'success' : message.includes('❌') ? 'error' : 'info');
+            }
+        }
+        
+        function loadSupabaseBackup() {
+            logToConsole('⚠️ CDN 1 falló, probando CDN 2...');
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js';
+            script.onload = () => {
+                window.supabaseLoadStatus = 'loaded-backup';
+                logToConsole('✅ Supabase CDN 2 cargado exitosamente');
+            };
+            script.onerror = () => {
+                window.supabaseLoadStatus = 'failed';
+                logToConsole('❌ Todos los CDNs fallaron');
+                logToConsole('💡 Verifica tu conexión a internet');
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+    
+    <script 
+        src="https://unpkg.com/@supabase/supabase-js@2" 
+        onload="window.supabaseLoadStatus = 'loaded-primary'; logToConsole('✅ Supabase CDN 1 cargado exitosamente');"
+        onerror="loadSupabaseBackup()">
+    </script>
+    
+    <script>
+        // Configuración debug (sin conflictos)
+        const DEBUG_CONFIG = {
+            url: 'https://stjbtxrrdofuxhigxfcy.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amJ0eHJyZG9mdXhoaWd4ZmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MTgwNzUsImV4cCI6MjA3NzM5NDA3NX0.vhz6v2pRepUH7g-ucSJKtWonmAeWYqwhrTxG_ypVElo',
+            email: 'maurochica23@gmail.com',
+            password: 'kennia23'
+        };
+        
+        let debugClient = null;
+        
+        // Función para agregar logs
+        function addLog(message, type = 'info') {
+            const container = document.getElementById('debugLogs');
+            const time = new Date().toLocaleTimeString();
+            
+            const log = document.createElement('div');
+            log.className = type;
+            log.innerHTML = `[${time}] ${message}`;
+            
+            container.appendChild(log);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Limpiar logs
+        function limpiarLogs() {
+            document.getElementById('debugLogs').innerHTML = `
+                <div class="info">🔍 Debug de autenticación reiniciado</div>
+                <div class="info">💡 Usa los botones para diagnosticar paso a paso</div>
+            `;
+        }
+        
+        // Mostrar configuración
+        function mostrarConfig() {
+            addLog('⚙️ Configuración actual:', 'info');
+            addLog(`   URL: ${DEBUG_CONFIG.url}`, 'info');
+            addLog(`   Email: ${DEBUG_CONFIG.email}`, 'info');
+            addLog(`   Password: ${'*'.repeat(DEBUG_CONFIG.password.length)}`, 'info');
+        }
+        
+        // 1. Verificar conexión a Supabase
+        async function verificarConexion() {
+            addLog('🔄 Iniciando verificación de conexión...', 'info');
+            
+            try {
+                // Verificar estado de carga
+                addLog(`📊 Estado de carga: ${window.supabaseLoadStatus}`, 'info');
+                
+                // Esperar un poco si aún está cargando
+                if (window.supabaseLoadStatus === 'loading') {
+                    addLog('⏳ Esperando que termine de cargar...', 'info');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                
+                // Verificar que la librería esté cargada
+                if (typeof createClient === 'undefined') {
+                    addLog('❌ Librería Supabase no cargada', 'error');
+                    if (window.supabaseLoadStatus === 'failed') {
+                        addLog('💡 Error de conexión a internet o CDN bloqueado', 'warning');
+                    } else {
+                        addLog('💡 Refresca la página e intenta de nuevo', 'warning');
+                    }
+                    return false;
+                }
+                
+                addLog('✅ Librería Supabase cargada correctamente', 'success');
+                
+                // Inicializar cliente
+                addLog('🔧 Inicializando cliente Supabase...', 'info');
+                debugClient = createClient(DEBUG_CONFIG.url, DEBUG_CONFIG.anonKey);
+                
+                if (!debugClient) {
+                    addLog('❌ Error inicializando cliente', 'error');
+                    return false;
+                }
+                
+                addLog('✅ Cliente Supabase inicializado', 'success');
+                
+                // Probar conexión con consulta simple
+                addLog('🧪 Probando consulta de conexión...', 'info');
+                
+                const { data, error } = await debugClient
+                    .from('usuarios')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+                        addLog('⚠️ Tabla usuarios no existe - necesita ser creada', 'warning');
+                        addLog('✅ Conexión a Supabase OK (tabla faltante)', 'success');
+                        return true;
+                    } else {
+                        addLog(`❌ Error de conexión: ${error.message}`, 'error');
+                        return false;
+                    }
+                } else {
+                    addLog('✅ Conexión completa exitosa', 'success');
+                    return true;
+                }
+                
+            } catch (error) {
+                addLog(`❌ Error inesperado: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        // 2. Buscar usuario en la base de datos
+        async function buscarUsuario() {
+            addLog('🔍 Buscando usuario admin...', 'info');
+            
+            if (!debugClient) {
+                addLog('❌ Cliente no inicializado. Ejecuta paso 1 primero', 'error');
+                return;
+            }
+            
+            try {
+                const { data: usuarios, error } = await debugClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', DEBUG_CONFIG.email);
+                
+                if (error) {
+                    if (error.code === 'PGRST116') {
+                        addLog('❌ Tabla usuarios no existe', 'error');
+                        addLog('💡 Necesitas crear el esquema primero', 'warning');
+                    } else {
+                        addLog(`❌ Error: ${error.message}`, 'error');
+                    }
+                    return;
+                }
+                
+                if (!usuarios || usuarios.length === 0) {
+                    addLog('❌ Usuario admin NO encontrado', 'error');
+                    addLog('💡 Ejecuta el paso 3 para crear el usuario', 'warning');
+                } else {
+                    const user = usuarios[0];
+                    addLog('✅ Usuario admin encontrado:', 'success');
+                    addLog(`   ID: ${user.id}`, 'info');
+                    addLog(`   Nombre: ${user.nombre}`, 'info');
+                    addLog(`   Email: ${user.email}`, 'info');
+                    addLog(`   Rol: ${user.rol}`, 'info');
+                    addLog(`   Estado: ${user.estado}`, 'info');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Error inesperado: ${error.message}`, 'error');
+            }
+        }
+        
+        // 3. Crear usuario admin
+        async function crearUsuario() {
+            addLog('➕ Creando usuario admin...', 'info');
+            
+            if (!debugClient) {
+                addLog('❌ Cliente no inicializado. Ejecuta paso 1 primero', 'error');
+                return;
+            }
+            
+            try {
+                // Crear hash simple del password
+                const passwordHash = btoa(DEBUG_CONFIG.password); // Usando base64 como hash simple
+                
+                const nuevoUsuario = {
+                    nombre: 'Administrador',
+                    email: DEBUG_CONFIG.email,
+                    password_hash: passwordHash,
+                    rol: 'admin',
+                    estado: 'activo'
+                };
+                
+                addLog('📝 Insertando usuario en la base de datos...', 'info');
+                
+                const { data, error } = await debugClient
+                    .from('usuarios')
+                    .insert([nuevoUsuario])
+                    .select();
+                
+                if (error) {
+                    if (error.code === '23505') {
+                        addLog('⚠️ Usuario ya existe en la base de datos', 'warning');
+                        addLog('✅ No es necesario crearlo de nuevo', 'success');
+                    } else if (error.code === 'PGRST116') {
+                        addLog('❌ Tabla usuarios no existe', 'error');
+                        addLog('🛠️ Necesitas configurar el esquema de BD primero', 'warning');
+                    } else {
+                        addLog(`❌ Error creando usuario: ${error.message}`, 'error');
+                    }
+                } else {
+                    addLog('✅ Usuario admin creado exitosamente!', 'success');
+                    addLog(`   ID: ${data[0].id}`, 'info');
+                    addLog(`   Email: ${data[0].email}`, 'info');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Error inesperado: ${error.message}`, 'error');
+            }
+        }
+        
+        // 4. Probar login directo
+        async function probarLogin() {
+            addLog('🧪 Probando login directo...', 'info');
+            
+            if (!debugClient) {
+                addLog('❌ Cliente no inicializado. Ejecuta paso 1 primero', 'error');
+                return;
+            }
+            
+            try {
+                addLog(`📧 Intentando login con: ${DEBUG_CONFIG.email}`, 'info');
+                
+                // Buscar usuario y verificar password
+                const { data: usuarios, error } = await debugClient
+                    .from('usuarios')
+                    .select('*')
+                    .eq('email', DEBUG_CONFIG.email)
+                    .eq('estado', 'activo')
+                    .limit(1);
+                
+                if (error) {
+                    addLog(`❌ Error buscando usuario: ${error.message}`, 'error');
+                    return;
+                }
+                
+                if (!usuarios || usuarios.length === 0) {
+                    addLog('❌ Usuario no encontrado o inactivo', 'error');
+                    addLog('💡 Ejecuta los pasos 2 y 3 primero', 'warning');
+                    return;
+                }
+                
+                const usuario = usuarios[0];
+                
+                // Verificar password (usando base64)
+                const passwordEsperado = btoa(DEBUG_CONFIG.password);
+                
+                if (usuario.password_hash === passwordEsperado) {
+                    addLog('✅ LOGIN EXITOSO!', 'success');
+                    addLog('🎉 Credenciales verificadas correctamente', 'success');
+                    addLog('💡 El problema está resuelto', 'success');
+                } else {
+                    addLog('❌ Password incorrecto', 'error');
+                    addLog(`   Esperado: ${passwordEsperado}`, 'error');
+                    addLog(`   Actual: ${usuario.password_hash}`, 'error');
+                }
+                
+            } catch (error) {
+                addLog(`❌ Error en login: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-inicializar cuando cargue la página
+        window.addEventListener('load', function() {
+            addLog('🚀 Debug listo para usar', 'success');
+            addLog(`📦 Estado Supabase: ${window.supabaseLoadStatus}`, 'info');
+            
+            if (window.supabaseLoadStatus.includes('loaded')) {
+                addLog('✅ Supabase cargado exitosamente', 'success');
+            } else if (window.supabaseLoadStatus === 'failed') {
+                addLog('❌ Error cargando Supabase', 'error');
+            }
+            
+            addLog('👆 Haz clic en "Verificar Conexión" para empezar', 'info');
+        });
+    </script>
+</body>
+</html> 

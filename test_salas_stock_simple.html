@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Salas-Stock Simple - GameControl</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-link me-2"></i>
+            Test Simple Salas-Stock
+        </h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-boxes me-2"></i>Estado del Sistema</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="estadoSistema">
+                            <p class="text-muted">Verificando estado del sistema...</p>
+                        </div>
+                        
+                        <button class="btn btn-primary" onclick="verificarSistemas()">
+                            <i class="fas fa-sync me-2"></i>Verificar Sistemas
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-gamepad me-2"></i>Test de Modal</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Prueba el modal de agregar productos</p>
+                        
+                        <button class="btn btn-success" onclick="testModalProductos()">
+                            <i class="fas fa-plus me-2"></i>Abrir Modal de Productos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-terminal me-2"></i>Log de Consola</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="logConsola" style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; max-height: 300px; overflow-y: auto;">
+                            <small class="text-muted">Los logs aparecerán aquí...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Librería Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Scripts del sistema -->
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    <script src="js/stock.js"></script>
+    <script src="js/salas.js"></script>
+    
+    <script>
+        // Función para agregar logs
+        function agregarLog(mensaje, tipo = 'info') {
+            const log = document.getElementById('logConsola');
+            const timestamp = new Date().toLocaleTimeString();
+            const clase = tipo === 'error' ? 'text-danger' : tipo === 'success' ? 'text-success' : 'text-info';
+            
+            log.innerHTML += `
+                <div class="${clase}">
+                    <small>[${timestamp}]</small> ${mensaje}
+                </div>
+            `;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Verificar estado de los sistemas
+        function verificarSistemas() {
+            agregarLog('🔍 Verificando sistemas...', 'info');
+            
+            const estado = {
+                gestorStock: !!window.gestorStock,
+                gestorSalas: !!window.gestorSalas,
+                productosStock: window.gestorStock?.productos?.length || 0,
+                categoriasStock: window.gestorStock?.categorias?.length || 0
+            };
+            
+            agregarLog(`✅ GestorStock: ${estado.gestorStock ? 'Disponible' : 'No disponible'}`, estado.gestorStock ? 'success' : 'error');
+            agregarLog(`✅ GestorSalas: ${estado.gestorSalas ? 'Disponible' : 'No disponible'}`, estado.gestorSalas ? 'success' : 'error');
+            agregarLog(`📦 Productos en stock: ${estado.productosStock}`, 'info');
+            agregarLog(`🏷️ Categorías: ${estado.categoriasStock}`, 'info');
+            
+            // Actualizar estado en la UI
+            document.getElementById('estadoSistema').innerHTML = `
+                <div class="alert ${estado.gestorStock && estado.gestorSalas ? 'alert-success' : 'alert-warning'}">
+                    <h6>Estado del Sistema:</h6>
+                    <ul class="mb-0">
+                        <li>GestorStock: <strong>${estado.gestorStock ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                        <li>GestorSalas: <strong>${estado.gestorSalas ? '✅ Disponible' : '❌ No disponible'}</strong></li>
+                        <li>Productos: <strong>${estado.productosStock}</strong></li>
+                        <li>Categorías: <strong>${estado.categoriasStock}</strong></li>
+                    </ul>
+                </div>
+            `;
+            
+            if (estado.gestorStock && estado.gestorSalas) {
+                agregarLog('🎉 Todos los sistemas están funcionando correctamente!', 'success');
+            } else {
+                agregarLog('⚠️ Algunos sistemas no están disponibles', 'error');
+            }
+        }
+
+        // Test del modal de productos
+        function testModalProductos() {
+            agregarLog('🔄 Probando modal de productos...', 'info');
+            
+            if (!window.gestorSalas) {
+                agregarLog('❌ GestorSalas no está disponible', 'error');
+                return;
+            }
+            
+            // Crear una sesión de prueba
+            const sesionTest = {
+                id: 'test_sesion_001',
+                salaId: 'test_sala_001',
+                estacion: 'PS1',
+                cliente: 'Cliente de Prueba'
+            };
+            
+            // Simular que estamos en el contexto de salas
+            window.sesiones = [sesionTest];
+            window.salas = [{
+                id: 'test_sala_001',
+                nombre: 'Sala de Prueba',
+                tipo: 'playstation'
+            }];
+            
+            agregarLog('📝 Sesión de prueba creada', 'info');
+            
+            // Llamar a la función de agregar productos
+            try {
+                window.gestorSalas.agregarProductos('test_sesion_001');
+                agregarLog('✅ Modal de productos abierto exitosamente', 'success');
+            } catch (error) {
+                agregarLog(`❌ Error al abrir modal: ${error.message}`, 'error');
+            }
+        }
+
+        // Configurar eventos de escucha
+        window.addEventListener('load', function() {
+            agregarLog('🚀 Sistema de testing iniciado', 'success');
+            agregarLog('📋 Usa los botones para probar la funcionalidad', 'info');
+            
+            // Verificar sistemas automáticamente después de un delay
+            setTimeout(verificarSistemas, 1000);
+        });
+
+        // Escuchar eventos del sistema
+        window.addEventListener('stockActualizado', (event) => {
+            agregarLog(`🔄 Stock actualizado: ${event.detail.productoId}`, 'info');
+        });
+        
+        window.addEventListener('movimientoRegistrado', (event) => {
+            agregarLog(`📝 Movimiento registrado: ${event.detail.tipo}`, 'info');
+        });
+    </script>
+</body>
+</html>

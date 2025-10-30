@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Ajustes - Sistema Gestión Salas Videojuegos</title>
+    <script>
+        (function(){
+            try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/theme-ux.js"></script>
+</head>
+<body>
+    <!-- Menú hamburguesa para móvil -->
+    <button class="menu-toggle d-md-none" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay para menú móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 col-lg-2 d-md-block sidebar" id="sidebar">
+                <div class="logo">
+                    <h4><i class="fas fa-gamepad me-2"></i> <span>GameControl</span></h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">
+                            <i class="fas fa-home"></i> <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="salas.html">
+                            <i class="fas fa-door-open"></i> <span>Salas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ventas.html">
+                            <i class="fas fa-cash-register"></i> <span>Ventas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="gastos.html">
+                            <i class="fas fa-file-invoice-dollar"></i> <span>Gastos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock.html">
+                            <i class="fas fa-boxes"></i> <span>Stock</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reportes.html">
+                            <i class="fas fa-chart-bar"></i> <span>Reportes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">
+                            <i class="fas fa-users"></i> <span>Usuarios</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="ajustes.html">
+                            <i class="fas fa-cog"></i> <span>Ajustes</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <div>
+                        <h3>Ajustes del Sistema</h3>
+                        <p class="mb-0 text-muted">Configuración general del sistema</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Perfil de Usuario -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-info d-none d-md-flex flex-column text-end">
+                                <span class="fw-semibold mb-0 user-name" style="font-size: 0.9rem;">Cargando...</span>
+                                <small class="text-muted user-role">--</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle d-flex align-items-center px-3" type="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">--</div>
+                                    <span class="d-md-none user-name">Cargando...</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="user-email">--</span>
+                                        </small>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración General -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <h5>Información del Negocio</h5>
+                            <div class="form-container">
+                                <form id="formInfoNegocio">
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Nombre del Negocio</label>
+                                        <input type="text" class="form-control" name="nombreNegocio" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Dirección</label>
+                                        <input type="text" class="form-control" name="direccion" required>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Teléfono</label>
+                                            <input type="tel" class="form-control" name="telefono" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Correo Electrónico</label>
+                                            <input type="email" class="form-control" name="email" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Logo del Negocio</label>
+                                        <input type="file" class="form-control" name="logo">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary-custom w-100">
+                                        <i class="fas fa-save me-2"></i> Guardar Cambios
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <h5>Configuración de Facturación</h5>
+                            <div class="form-container">
+                                <form id="formFacturacion">
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Moneda</label>
+                                        <select class="form-select" name="moneda" required>
+                                            <option value="COP">COP - Peso Colombiano</option>
+                                            <option value="USD">USD - Dólar Estadounidense</option>
+                                            <option value="EUR">EUR - Euro</option>
+                                            <option value="MXN">MXN - Peso Mexicano</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Formato de Número de Factura</label>
+                                        <input type="text" class="form-control" name="formatoFactura" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">IVA (%)</label>
+                                        <input type="number" class="form-control" name="iva" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Pie de Página en Facturas</label>
+                                        <textarea class="form-control" name="pieFactura" rows="3" required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary-custom w-100">
+                                        <i class="fas fa-save me-2"></i> Guardar Cambios
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración de Salas -->
+                <div class="row mb-4">
+                    <div class="col-md-8 mx-auto">
+                        <div class="module-container">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="mb-0">Configuración de Salas</h5>
+                                <a href="salas.html" class="btn btn-outline-primary">
+                                    <i class="fas fa-cog me-2"></i>Gestionar Tarifas
+                                </a>
+                            </div>
+                            <div class="form-container">
+                                <form id="formConfigSalas">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Tiempo Mínimo de Reserva (minutos)</label>
+                                            <input type="number" class="form-control" name="tiempoMinimo" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Tiempo de Gracia (minutos)</label>
+                                            <input type="number" class="form-control" name="tiempoGracia" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Límite de Reservas por Cliente</label>
+                                            <input type="number" class="form-control" name="limiteReservas" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Política de Cancelación</label>
+                                            <select class="form-select" name="politicaCancelacion" required>
+                                                <option value="Sin penalización">Sin penalización</option>
+                                                <option value="Cobro del 50%">Cobro del 50%</option>
+                                                <option value="Cobro total">Cobro total</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label-custom">Descuento por Paquete (3+ horas)</label>
+                                            <div class="input-group">
+                                                <input type="number" class="form-control" name="descuentoPaquete" required>
+                                                <span class="input-group-text">%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary-custom w-100">
+                                        <i class="fas fa-save me-2"></i> Guardar Cambios
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuración del Sistema -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <h5>Configuración de Notificaciones</h5>
+                            <div class="form-container">
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif-email" checked>
+                                        <label class="form-check-label">Notificaciones por correo</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif-stock" checked>
+                                        <label class="form-check-label">Alertas de stock bajo</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif-recordatorios" checked>
+                                        <label class="form-check-label">Recordatorios de reservas</label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="notif-push">
+                                        <label class="form-check-label">Notificaciones push</label>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small>Los cambios se guardan automáticamente</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="module-container">
+                            <h5>Copias de Seguridad</h5>
+                            <div class="form-container">
+                                <div class="mb-3">
+                                    <label class="form-label-custom">Frecuencia de Respaldo</label>
+                                    <select class="form-select" name="frecuenciaRespaldo">
+                                        <option value="Diaria">Diaria</option>
+                                        <option value="Semanal">Semanal</option>
+                                        <option value="Mensual">Mensual</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label-custom">Hora del Respaldo</label>
+                                    <input type="time" class="form-control" name="horaRespaldo" value="23:00">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label-custom">Retención de Respaldos</label>
+                                    <select class="form-select" name="retencionRespaldo">
+                                        <option value="7 días">7 días</option>
+                                        <option value="30 días">30 días</option>
+                                        <option value="90 días">90 días</option>
+                                    </select>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-secondary btn-respaldo-manual">
+                                        <i class="fas fa-download me-2"></i>Realizar Respaldo Manual
+                                    </button>
+                                </div>
+                                <div class="alert alert-info mt-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <small>Los cambios se guardan automáticamente</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alarmas de Sesión (Tiempo vencido) -->
+                <div class="row mb-4">
+                    <div class="col-md-8 mx-auto">
+                        <div class="module-container">
+                            <h5>
+                                <i class="fas fa-bell me-2"></i>Alarmas de Sesión
+                                <small class="text-muted">(al vencer el tiempo)</small>
+                            </h5>
+                            <div class="form-container">
+                                <form id="formAlarmasSesion">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="alarmas-habilitadas">
+                                                <label class="form-check-label" for="alarmas-habilitadas">Activar beep al vencer</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Volumen del beep</label>
+                                            <input type="range" class="form-range" id="alarmas-volumen" min="0" max="100" step="5">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Patrón inicial</label>
+                                            <select class="form-select" id="alarmas-patron-inicial">
+                                                <option value="triple">Triple beep</option>
+                                                <option value="simple">Beep simple</option>
+                                                <option value="doble">Doble beep</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Beep por minuto</label>
+                                            <select class="form-select" id="alarmas-minuto">
+                                                <option value="on">Encendido</option>
+                                                <option value="off">Apagado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="alert alert-info mt-3">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        <small>Los cambios se guardan automáticamente.</small>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mantenimiento del Sistema -->
+                <div class="module-container">
+                    <h5>Mantenimiento del Sistema</h5>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-container p-3 text-center">
+                                <i class="fas fa-broom fa-3x text-primary mb-3"></i>
+                                <h6>Limpiar Caché</h6>
+                                <button class="btn btn-primary-custom w-100 btn-limpiar-cache">Ejecutar</button>
+                                <small class="text-muted mt-2 d-block">Elimina archivos temporales</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-container p-3 text-center">
+                                <i class="fas fa-database fa-3x text-warning mb-3"></i>
+                                <h6>Optimizar Base de Datos</h6>
+                                <button class="btn btn-primary-custom w-100 btn-optimizar-db">Ejecutar</button>
+                                <small class="text-muted mt-2 d-block">Compacta y optimiza datos</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-container p-3 text-center">
+                                <i class="fas fa-history fa-3x text-info mb-3"></i>
+                                <h6>Limpiar Registros</h6>
+                                <button class="btn btn-primary-custom w-100 btn-limpiar-registros">Ejecutar</button>
+                                <small class="text-muted mt-2 d-block">Elimina registros antiguos</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-container p-3 text-center">
+                                <i class="fas fa-sync fa-3x text-success mb-3"></i>
+                                <h6>Actualizar Sistema</h6>
+                                <button class="btn btn-primary-custom w-100 btn-actualizar-sistema">Verificar</button>
+                                <small class="text-muted mt-2 d-block">Busca actualizaciones</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Gestión de Datos -->
+                    <div class="alert alert-warning mt-4">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Gestión de Datos del Sistema</h6>
+                        <p class="mb-3">Estas opciones te permiten gestionar los datos del sistema. Úsalas con precaución.</p>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="d-grid mb-2">
+                                    <button class="btn btn-info btn-crear-datos-demo">
+                                        <i class="fas fa-plus-circle me-2"></i>Crear Datos Demo
+                                    </button>
+                                </div>
+                                <small class="text-muted">Agrega salas, productos y sesiones de ejemplo</small>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-grid mb-2">
+                                    <button class="btn btn-warning btn-limpiar-datos-demo">
+                                        <i class="fas fa-trash-alt me-2"></i>Limpiar Datos Demo
+                                    </button>
+                                </div>
+                                <small class="text-muted">Elimina solo los datos de demostración</small>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-grid mb-2">
+                                    <button class="btn btn-outline-danger btn-limpiar-gastos">
+                                        <i class="fas fa-receipt me-2"></i>Limpiar Gastos
+                                    </button>
+                                </div>
+                                <small class="text-muted">Elimina SOLO los datos de gastos</small>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-grid mb-2">
+                                    <button class="btn btn-danger btn-resetear-sistema">
+                                        <i class="fas fa-undo me-2"></i>Resetear Sistema
+                                    </button>
+                                </div>
+                                <small class="text-muted">Elimina TODOS los datos y vuelve al estado inicial</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SUPABASE SDK (CARGAR PRIMERO) ===== -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/database-service.js"></script>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Utilidades de Navegación (Debe ir PRIMERO) -->
+    <script src="../js/navigation-utils.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/ajustes.js"></script>
+    <script>
+        // Cargar/guardar configuración de alarmas en localStorage.configuracion
+        document.addEventListener('DOMContentLoaded', () => {
+            const getConfig = () => {
+                try { return JSON.parse(localStorage.getItem('configuracion')) || {}; } catch { return {}; }
+            };
+            const setConfig = (cfg) => {
+                localStorage.setItem('configuracion', JSON.stringify(cfg));
+                // Avisar a otras vistas
+                window.dispatchEvent(new CustomEvent('configActualizada'));
+            };
+
+            const form = document.getElementById('formAlarmasSesion');
+            if (!form) return;
+
+            const elEnabled = document.getElementById('alarmas-habilitadas');
+            const elVol = document.getElementById('alarmas-volumen');
+            const elPatron = document.getElementById('alarmas-patron-inicial');
+            const elMinuto = document.getElementById('alarmas-minuto');
+
+            const cfg = getConfig();
+            cfg.alarmasSesion = cfg.alarmasSesion || { enabled: true, volume: 25, pattern: 'triple', perMinute: 'on' };
+
+            elEnabled.checked = !!cfg.alarmasSesion.enabled;
+            elVol.value = Number.isFinite(cfg.alarmasSesion.volume) ? cfg.alarmasSesion.volume : 25;
+            elPatron.value = cfg.alarmasSesion.pattern || 'triple';
+            elMinuto.value = cfg.alarmasSesion.perMinute || 'on';
+
+            const save = () => {
+                const c = getConfig();
+                c.alarmasSesion = {
+                    enabled: elEnabled.checked,
+                    volume: Math.max(0, Math.min(100, parseInt(elVol.value) || 0)),
+                    pattern: elPatron.value,
+                    perMinute: elMinuto.value
+                };
+                setConfig(c);
+            };
+
+            elEnabled.addEventListener('change', save);
+            elVol.addEventListener('input', save);
+            elPatron.addEventListener('change', save);
+            elMinuto.addEventListener('change', save);
+        });
+    </script>
+    <script>
+        // Resetear sistema: elimina datos locales y en Supabase
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.querySelector('.btn-resetear-sistema');
+            if (!btn) return;
+            btn.addEventListener('click', async () => {
+                if (!confirm('⚠️ Esto eliminará TODOS los datos y devolverá el sistema al estado inicial.\n\n¿Deseas continuar?')) return;
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Reseteando...';
+                try {
+                    // 1) Local: limpiar todo
+                    try { localStorage.clear(); sessionStorage.clear(); } catch (_) {}
+
+                    // 2) Supabase: eliminar datos operativos
+                    if (window.supabaseConfig && window.supabaseConfig.getSupabaseClient) {
+                        const client = await window.supabaseConfig.getSupabaseClient();
+                        const tablas = ['movimientos_stock','sesiones','gastos','productos','salas','notificaciones','reportes'];
+                        for (const t of tablas) {
+                            try { await client.from(t).delete().neq('id', '00000000-0000-0000-0000-000000000000'); } catch (_) {}
+                        }
+                        // Opcional: limpiar configuración a valores mínimos, no borrar completamente
+                        try { await client.from('configuracion').delete().neq('clave','sistema.nombre'); } catch (_) {}
+                    }
+
+                    // Marcar sistema limpio para no crear datos demo
+                    try { localStorage.setItem('sistemaLimpio', '1'); } catch (_) {}
+
+                    alert('✅ Sistema reseteado. Se recargará al login.');
+                    // Volver al login resolviendo ruta correcta
+                    const loginPath = (window.navigationUtils && window.navigationUtils.getLoginPath)
+                        ? window.navigationUtils.getLoginPath() : (location.pathname.includes('/pages/') ? '../login.html' : 'login.html');
+                    window.location.href = loginPath;
+                } catch (e) {
+                    alert('❌ Error reseteando el sistema: ' + (e?.message || e));
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-undo me-2"></i>Resetear Sistema';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

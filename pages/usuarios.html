@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Gestión de Usuarios - Sistema Gestión Salas Videojuegos</title>
+    <script>
+        (function(){
+            try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="../js/main.js"></script>
+    <script src="../js/theme-ux.js"></script>
+</head>
+<body>
+    <!-- Menú hamburguesa para móvil -->
+    <button class="menu-toggle d-md-none" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay para menú móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 col-lg-2 d-md-block sidebar">
+                <div class="logo">
+                    <h4><i class="fas fa-gamepad me-2"></i> <span>GameControl</span></h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">
+                            <i class="fas fa-home"></i> <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="salas.html">
+                            <i class="fas fa-door-open"></i> <span>Salas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ventas.html">
+                            <i class="fas fa-cash-register"></i> <span>Ventas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="gastos.html">
+                            <i class="fas fa-file-invoice-dollar"></i> <span>Gastos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock.html">
+                            <i class="fas fa-boxes"></i> <span>Stock</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reportes.html">
+                            <i class="fas fa-chart-bar"></i> <span>Reportes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="usuarios.html">
+                            <i class="fas fa-users"></i> <span>Usuarios</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ajustes.html">
+                            <i class="fas fa-cog"></i> <span>Ajustes</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <div>
+                        <h3>Gestión de Usuarios</h3>
+                        <p class="mb-0 text-muted">Administración de usuarios y permisos</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Perfil de Usuario -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-info d-none d-md-flex flex-column text-end">
+                                <span class="fw-semibold mb-0 user-name" style="font-size: 0.9rem;">Cargando...</span>
+                                <small class="text-muted user-role">--</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle d-flex align-items-center px-3" type="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">--</div>
+                                    <span class="d-md-none user-name">Cargando...</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="user-email">--</span>
+                                        </small>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen de Usuarios -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h5 class="card-title">Total Usuarios</h5>
+                            <h2 class="mb-0" data-stat="totalUsuarios">12</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> 2 nuevos este mes</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-success bg-opacity-10 text-success">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                            <h5 class="card-title">Usuarios Activos</h5>
+                            <h2 class="mb-0" data-stat="usuariosActivos">10</h2>
+                            <p class="text-muted mb-0">Del total</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="fas fa-user-clock"></i>
+                            </div>
+                            <h5 class="card-title">Sesiones Activas</h5>
+                            <h2 class="mb-0" data-stat="sesionesActivas">3</h2>
+                            <p class="text-muted mb-0">Ahora mismo</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-danger bg-opacity-10 text-danger">
+                                <i class="fas fa-user-lock"></i>
+                            </div>
+                            <h5 class="card-title">Cuentas Bloqueadas</h5>
+                            <h2 class="mb-0" data-stat="usuariosBloqueados">1</h2>
+                            <p class="text-muted mb-0">Por seguridad</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gestión de Usuarios -->
+                <div class="row mb-4">
+                    <div class="col-md-5">
+                        <div class="module-container">
+                            <h5>Agregar Nuevo Usuario</h5>
+                            <div class="form-container">
+                                <form id="formCrearUsuario">
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Nombre Completo</label>
+                                        <input type="text" name="nombre" class="form-control" placeholder="Nombre y apellidos" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Correo Electrónico</label>
+                                        <input type="email" name="email" class="form-control" placeholder="correo@ejemplo.com" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Rol</label>
+                                        <select name="rol" class="form-select" required>
+                                            <option value="">Seleccionar rol</option>
+                                            <option value="administrador">Administrador</option>
+                                            <option value="supervisor">Supervisor</option>
+                                            <option value="operador">Operador</option>
+                                            <option value="vendedor">Vendedor</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Contraseña</label>
+                                        <input type="password" name="password" class="form-control" placeholder="********" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Confirmar Contraseña</label>
+                                        <input type="password" name="confirmPassword" class="form-control" placeholder="********" required>
+                                    </div>
+                                    
+                                    <!-- Permisos -->
+                                    <div class="mb-3">
+                                        <label class="form-label-custom">Permisos del Usuario</label>
+                                        <div class="card border-info">
+                                            <div class="card-body">
+                                                <div class="row g-2">
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="dashboard" id="permiso_dashboard">
+                                                            <label class="form-check-label" for="permiso_dashboard">
+                                                                <i class="fas fa-home me-1"></i>Dashboard
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="salas" id="permiso_salas">
+                                                            <label class="form-check-label" for="permiso_salas">
+                                                                <i class="fas fa-door-open me-1"></i>Salas
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="ventas" id="permiso_ventas">
+                                                            <label class="form-check-label" for="permiso_ventas">
+                                                                <i class="fas fa-cash-register me-1"></i>Ventas
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="gastos" id="permiso_gastos">
+                                                            <label class="form-check-label" for="permiso_gastos">
+                                                                <i class="fas fa-file-invoice-dollar me-1"></i>Gastos
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="stock" id="permiso_stock">
+                                                            <label class="form-check-label" for="permiso_stock">
+                                                                <i class="fas fa-boxes me-1"></i>Stock
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="reportes" id="permiso_reportes">
+                                                            <label class="form-check-label" for="permiso_reportes">
+                                                                <i class="fas fa-chart-bar me-1"></i>Reportes
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="usuarios" id="permiso_usuarios">
+                                                            <label class="form-check-label" for="permiso_usuarios">
+                                                                <i class="fas fa-users me-1"></i>Usuarios
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="form-check">
+                                                            <input type="checkbox" class="form-check-input" name="permisos[]" value="ajustes" id="permiso_ajustes">
+                                                            <label class="form-check-label" for="permiso_ajustes">
+                                                                <i class="fas fa-cog me-1"></i>Ajustes
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <small class="text-muted mt-2 d-block">Los permisos se actualizarán automáticamente según el rol seleccionado</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary-custom w-100">
+                                        <i class="fas fa-user-plus me-2"></i> Crear Usuario
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="module-container">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Lista de Usuarios</h5>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select" id="filtroRol" style="width: auto;">
+                                        <option value="">Todos los roles</option>
+                                        <option value="administrador">Administrador</option>
+                                        <option value="supervisor">Supervisor</option>
+                                        <option value="operador">Operador</option>
+                                        <option value="vendedor">Vendedor</option>
+                                    </select>
+                                    <select class="form-select" id="filtroEstado" style="width: auto;">
+                                        <option value="">Todos los estados</option>
+                                        <option value="activo">Activo</option>
+                                        <option value="inactivo">Inactivo</option>
+                                        <option value="bloqueado">Bloqueado</option>
+                                    </select>
+                                    <input type="text" class="form-control" id="buscarUsuario" placeholder="Buscar..." style="width: 150px;">
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-custom table-hover" id="tablaUsuarios">
+                                    <thead>
+                                        <tr>
+                                            <th>Usuario</th>
+                                            <th>Rol</th>
+                                            <th>Último Acceso</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Los usuarios se cargarán dinámicamente aquí -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Permisos y Roles -->
+                <div class="module-container">
+                    <h5>Permisos por Rol</h5>
+                    <div class="table-responsive">
+                        <table class="table table-custom">
+                            <thead>
+                                <tr>
+                                    <th>Módulo</th>
+                                    <th>Administrador</th>
+                                    <th>Supervisor</th>
+                                    <th>Operador</th>
+                                    <th>Vendedor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Dashboard</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                </tr>
+                                <tr>
+                                    <td>Gestión de Salas</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                </tr>
+                                <tr>
+                                    <td>Ventas</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                </tr>
+                                <tr>
+                                    <td>Gastos</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                </tr>
+                                <tr>
+                                    <td>Stock</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                </tr>
+                                <tr>
+                                    <td>Reportes</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                </tr>
+                                <tr>
+                                    <td>Usuarios</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                </tr>
+                                <tr>
+                                    <td>Ajustes</td>
+                                    <td><i class="fas fa-check text-success"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                    <td><i class="fas fa-times text-danger"></i></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Usuario -->
+    <div class="modal fade" id="modalEditarUsuario" tabindex="-1" aria-labelledby="modalEditarUsuarioLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="modalEditarUsuarioLabel">
+                        <i class="fas fa-user-edit me-2"></i>Editar Usuario
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formEditarUsuario">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Nombre Completo</label>
+                                <input type="text" class="form-control" id="editarNombre" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="editarEmail" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Rol</label>
+                                <select class="form-select" id="editarRol" required>
+                                    <option value="administrador">Administrador</option>
+                                    <option value="supervisor">Supervisor</option>
+                                    <option value="operador">Operador</option>
+                                    <option value="vendedor">Vendedor</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-semibold">Estado</label>
+                                <select class="form-select" id="editarEstado" required>
+                                    <option value="activo">✅ Activo</option>
+                                    <option value="inactivo">❌ Inactivo</option>
+                                    <option value="bloqueado">🔒 Bloqueado</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Permisos de Usuario -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Permisos del Usuario</label>
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <div class="row g-2">
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_dashboard">
+                                                <label class="form-check-label" for="editarPermiso_dashboard">
+                                                    <i class="fas fa-home me-1"></i>Dashboard
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_salas">
+                                                <label class="form-check-label" for="editarPermiso_salas">
+                                                    <i class="fas fa-door-open me-1"></i>Salas
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_ventas">
+                                                <label class="form-check-label" for="editarPermiso_ventas">
+                                                    <i class="fas fa-cash-register me-1"></i>Ventas
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_gastos">
+                                                <label class="form-check-label" for="editarPermiso_gastos">
+                                                    <i class="fas fa-file-invoice-dollar me-1"></i>Gastos
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_stock">
+                                                <label class="form-check-label" for="editarPermiso_stock">
+                                                    <i class="fas fa-boxes me-1"></i>Stock
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_reportes">
+                                                <label class="form-check-label" for="editarPermiso_reportes">
+                                                    <i class="fas fa-chart-bar me-1"></i>Reportes
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_usuarios">
+                                                <label class="form-check-label" for="editarPermiso_usuarios">
+                                                    <i class="fas fa-users me-1"></i>Usuarios
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="editarPermiso_ajustes">
+                                                <label class="form-check-label" for="editarPermiso_ajustes">
+                                                    <i class="fas fa-cog me-1"></i>Ajustes
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <small class="text-muted mt-2 d-block">Los permisos se actualizarán automáticamente según el rol seleccionado</small>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning" onclick="window.gestorUsuarios.guardarEdicionUsuario()">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ver Permisos -->
+    <div class="modal fade" id="modalVerPermisos" tabindex="-1" aria-labelledby="modalVerPermisosLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalVerPermisosLabel">
+                        <i class="fas fa-key me-2"></i>Permisos de Usuario
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <h6 class="mb-1" id="permisoUsuarioNombre">Nombre del Usuario</h6>
+                        <span class="badge bg-secondary" id="permisoUsuarioRol">Rol</span>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">Módulos y Permisos</h6>
+                        </div>
+                        <div class="card-body p-0" id="permisosUsuarioDetalle">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cambiar Contraseña -->
+    <div class="modal fade" id="modalCambiarPassword" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formCambiarPassword">
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Usuario:</strong> <span id="usuarioPasswordNombre">-</span><br>
+                            <small>Se cambiará la contraseña para este usuario.</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nueva Contraseña</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="nuevaPassword" name="nuevaPassword" 
+                                       placeholder="Ingresa la nueva contraseña" required minlength="6">
+                                <button type="button" class="btn btn-outline-secondary" id="togglePassword1">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Mínimo 6 caracteres</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Confirmar Nueva Contraseña</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmarPassword" name="confirmarPassword" 
+                                       placeholder="Confirma la nueva contraseña" required>
+                                <button type="button" class="btn btn-outline-secondary" id="togglePassword2">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Importante:</strong> El usuario deberá usar la nueva contraseña en su próximo inicio de sesión.
+                        </div>
+                        
+                        <input type="hidden" id="usuarioPasswordId" name="usuarioId">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Cambiar Contraseña
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SUPABASE SDK (CARGAR PRIMERO) ===== -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/database-service.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Utilidades de Navegación (Debe ir PRIMERO) -->
+    <script src="../js/navigation-utils.js"></script>
+    
+    <script src="../js/auth.js"></script>
+    <script src="../js/usuarios.js"></script>
+</body>
+</html> 

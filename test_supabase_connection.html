@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Conexión Supabase - GameControl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .status-card {
+            border-left: 4px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+        .status-card.success {
+            border-left-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .status-card.error {
+            border-left-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .status-card.warning {
+            border-left-color: #ffc107;
+            background-color: #fffdf8;
+        }
+        .log-container {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="text-center mb-4">🔍 Test de Conexión Supabase</h1>
+                <p class="text-center text-muted">Verificación completa del sistema GameControl</p>
+            </div>
+        </div>
+
+        <!-- Estado General -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card status-card" id="general-status">
+                    <div class="card-body">
+                        <h5 class="card-title">📊 Estado General del Sistema</h5>
+                        <div id="general-status-content">Inicializando...</div>
+                        <button class="btn btn-primary mt-2" onclick="runFullTest()">🔄 Ejecutar Test Completo</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tests Específicos -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card status-card" id="connection-test">
+                    <div class="card-body">
+                        <h6 class="card-title">🔗 Test de Conexión</h6>
+                        <div id="connection-status">Pendiente...</div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="testConnection()">Probar Conexión</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <div class="card status-card" id="auth-test">
+                    <div class="card-body">
+                        <h6 class="card-title">🔐 Test de Autenticación</h6>
+                        <div id="auth-status">Pendiente...</div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="testAuth()">Probar Auth</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <div class="card status-card" id="database-test">
+                    <div class="card-body">
+                        <h6 class="card-title">🗄️ Test de Base de Datos</h6>
+                        <div id="database-status">Pendiente...</div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="testDatabase()">Probar DB</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <div class="card status-card" id="config-test">
+                    <div class="card-body">
+                        <h6 class="card-title">⚙️ Test de Configuración</h6>
+                        <div id="config-status">Pendiente...</div>
+                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="testConfig()">Probar Config</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">📝 Logs de Test</h6>
+                        <div class="log-container" id="test-logs">
+                            <div>Iniciando test de conexión...</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary mt-2" onclick="clearLogs()">Limpiar Logs</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Sistema -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title">ℹ️ Información del Sistema</h6>
+                        <div id="system-info">
+                            <p><strong>URL Supabase:</strong> <span id="supabase-url">Cargando...</span></p>
+                            <p><strong>Modo de Operación:</strong> <span id="operation-mode">Cargando...</span></p>
+                            <p><strong>Estado de Conexión:</strong> <span id="connection-state">Cargando...</span></p>
+                            <p><strong>Última Verificación:</strong> <span id="last-check">Cargando...</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+    
+    <script>
+        let testResults = {
+            connection: false,
+            auth: false,
+            database: false,
+            config: false
+        };
+
+        function log(message, type = 'info') {
+            const logsContainer = document.getElementById('test-logs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+        }
+
+        function clearLogs() {
+            document.getElementById('test-logs').innerHTML = '';
+        }
+
+        function updateStatus(cardId, status, message, type = 'info') {
+            const card = document.getElementById(cardId);
+            const statusDiv = document.getElementById(cardId.replace('-test', '-status'));
+            
+            card.className = `card status-card ${type}`;
+            statusDiv.innerHTML = message;
+            
+            log(`${cardId}: ${message}`, type);
+        }
+
+        async function testConnection() {
+            updateStatus('connection-test', 'testing', '🔄 Probando conexión...', 'warning');
+            
+            try {
+                if (!window.supabaseConfig) {
+                    throw new Error('Configuración de Supabase no disponible');
+                }
+
+                const result = await window.supabaseConfig.verificarConexion();
+                
+                if (result.success) {
+                    updateStatus('connection-test', 'success', '✅ Conexión exitosa', 'success');
+                    testResults.connection = true;
+                } else {
+                    updateStatus('connection-test', 'error', `❌ Error: ${result.error}`, 'error');
+                    testResults.connection = false;
+                }
+            } catch (error) {
+                updateStatus('connection-test', 'error', `❌ Error: ${error.message}`, 'error');
+                testResults.connection = false;
+            }
+        }
+
+        async function testAuth() {
+            updateStatus('auth-test', 'testing', '🔄 Probando autenticación...', 'warning');
+            
+            try {
+                const client = await window.supabaseConfig.getSupabaseClient();
+                if (!client) {
+                    throw new Error('Cliente no disponible');
+                }
+
+                // Test básico de autenticación
+                const { data, error } = await client.auth.getSession();
+                
+                if (error) {
+                    throw error;
+                }
+
+                updateStatus('auth-test', 'success', '✅ Autenticación funcionando', 'success');
+                testResults.auth = true;
+            } catch (error) {
+                updateStatus('auth-test', 'error', `❌ Error: ${error.message}`, 'error');
+                testResults.auth = false;
+            }
+        }
+
+        async function testDatabase() {
+            updateStatus('database-test', 'testing', '🔄 Probando base de datos...', 'warning');
+            
+            try {
+                const client = await window.supabaseConfig.getSupabaseClient();
+                if (!client) {
+                    throw new Error('Cliente no disponible');
+                }
+
+                // Test de consulta a la tabla configuracion
+                const { data, error } = await client
+                    .from('configuracion')
+                    .select('clave')
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                updateStatus('database-test', 'success', '✅ Base de datos accesible', 'success');
+                testResults.database = true;
+            } catch (error) {
+                updateStatus('database-test', 'error', `❌ Error: ${error.message}`, 'error');
+                testResults.database = false;
+            }
+        }
+
+        async function testConfig() {
+            updateStatus('config-test', 'testing', '🔄 Probando configuración...', 'warning');
+            
+            try {
+                if (!window.supabaseConfig) {
+                    throw new Error('Configuración no disponible');
+                }
+
+                const config = window.supabaseConfig.CONFIG;
+                const modo = window.supabaseConfig.obtenerModo();
+                
+                if (config && config.url && config.anonKey) {
+                    updateStatus('config-test', 'success', '✅ Configuración válida', 'success');
+                    testResults.config = true;
+                } else {
+                    throw new Error('Configuración incompleta');
+                }
+            } catch (error) {
+                updateStatus('config-test', 'error', `❌ Error: ${error.message}`, 'error');
+                testResults.config = false;
+            }
+        }
+
+        function updateSystemInfo() {
+            try {
+                const config = window.supabaseConfig?.CONFIG;
+                const modo = window.supabaseConfig?.obtenerModo();
+                
+                document.getElementById('supabase-url').textContent = config?.url || 'No disponible';
+                document.getElementById('operation-mode').textContent = modo || 'No disponible';
+                document.getElementById('connection-state').textContent = 'Verificando...';
+                document.getElementById('last-check').textContent = new Date().toLocaleString();
+                
+            } catch (error) {
+                log(`Error actualizando información del sistema: ${error.message}`, 'error');
+            }
+        }
+
+        async function runFullTest() {
+            log('🚀 Iniciando test completo del sistema...', 'info');
+            
+            // Actualizar información del sistema
+            updateSystemInfo();
+            
+            // Ejecutar todos los tests
+            await testConnection();
+            await testAuth();
+            await testDatabase();
+            await testConfig();
+            
+            // Evaluar resultados
+            const allPassed = Object.values(testResults).every(result => result === true);
+            
+            if (allPassed) {
+                updateStatus('general-status', 'success', '✅ Todos los tests pasaron correctamente', 'success');
+                log('🎉 ¡Sistema funcionando correctamente!', 'success');
+            } else {
+                updateStatus('general-status', 'error', '❌ Algunos tests fallaron', 'error');
+                log('⚠️ Algunos tests fallaron. Revisa los logs.', 'error');
+            }
+        }
+
+        // Inicialización automática
+        document.addEventListener('DOMContentLoaded', () => {
+            log('📋 Inicializando test de conexión...', 'info');
+            setTimeout(runFullTest, 1000);
+        });
+    </script>
+</body>
+</html>

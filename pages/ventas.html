@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Gestión de Ventas - Sistema Gestión Salas Videojuegos</title>
+    <script>
+        (function(){
+            try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/styles.css">
+    <script src="../js/main.js"></script>
+    <script src="../js/theme-ux.js"></script>
+</head>
+<body>
+    <!-- Menú hamburguesa para móvil -->
+    <button class="menu-toggle d-md-none" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Overlay para menú móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 col-lg-2 d-md-block sidebar" id="sidebar">
+                <div class="logo">
+                    <h4><i class="fas fa-gamepad me-2"></i> <span>GameControl</span></h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">
+                            <i class="fas fa-home"></i> <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="salas.html">
+                            <i class="fas fa-door-open"></i> <span>Salas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="ventas.html">
+                            <i class="fas fa-cash-register"></i> <span>Ventas</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="gastos.html">
+                            <i class="fas fa-file-invoice-dollar"></i> <span>Gastos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock.html">
+                            <i class="fas fa-boxes"></i> <span>Stock</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reportes.html">
+                            <i class="fas fa-chart-bar"></i> <span>Reportes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">
+                            <i class="fas fa-users"></i> <span>Usuarios</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ajustes.html">
+                            <i class="fas fa-cog"></i> <span>Ajustes</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <div>
+                        <h3>Gestión de Ventas</h3>
+                        <p class="mb-0 text-muted">Control y seguimiento de ventas</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Perfil de Usuario -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-info d-none d-md-flex flex-column text-end">
+                                <span class="fw-semibold mb-0 user-name" style="font-size: 0.9rem;">Cargando...</span>
+                                <small class="text-muted user-role">--</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle d-flex align-items-center px-3" type="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">--</div>
+                                    <span class="d-md-none user-name">Cargando...</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="user-email">--</span>
+                                        </small>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resumen de Ventas -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <h5 class="card-title">Ventas Hoy</h5>
+                            <h2 class="mb-0">$1,850.00</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> 8% desde ayer</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-success bg-opacity-10 text-success">
+                                <i class="fas fa-receipt"></i>
+                            </div>
+                            <h5 class="card-title">Transacciones</h5>
+                            <h2 class="mb-0">42</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> 5% desde ayer</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <h5 class="card-title">Ticket Promedio</h5>
+                            <h2 class="mb-0">$44.05</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> 3% desde ayer</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card p-4">
+                            <div class="card-icon bg-info bg-opacity-10 text-info">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h5 class="card-title">Clientes Nuevos</h5>
+                            <h2 class="mb-0">8</h2>
+                            <p class="text-success mb-0"><i class="fas fa-arrow-up"></i> 2 más que ayer</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sistema de Filtros Avanzado -->
+                <div class="module-container mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-filter me-2"></i>Filtros de Ventas</h5>
+                        <button class="btn btn-outline-secondary btn-sm" id="limpiarFiltros">
+                            <i class="fas fa-times me-1"></i>Limpiar Filtros
+                        </button>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <!-- Filtros de Período -->
+                        <div class="col-md-6 col-lg-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-alt me-1"></i>Período
+                            </label>
+                            <select class="form-select" id="filtroPeriodo">
+                                <option value="hoy">Hoy</option>
+                                <option value="ayer">Ayer</option>
+                                <option value="semana">Esta Semana</option>
+                                <option value="mes" selected>Este Mes</option>
+                                <option value="año">Este Año</option>
+                                <option value="rango">Rango Personalizado</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Rango de Fechas (se muestra cuando se selecciona "rango") -->
+                        <div class="col-md-6 col-lg-4" id="rangoFechas" style="display: none;">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-week me-1"></i>Rango de Fechas
+                            </label>
+                            <div class="d-flex gap-2">
+                                <input type="date" class="form-control" id="fechaInicio" placeholder="Desde">
+                                <input type="date" class="form-control" id="fechaFin" placeholder="Hasta">
+                            </div>
+                        </div>
+                        
+                        <!-- Filtro por Sala -->
+                        <div class="col-md-6 col-lg-2">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-door-open me-1"></i>Sala
+                            </label>
+                            <select class="form-select" id="filtroSala">
+                                <option value="">Todas las salas</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Filtro por Método de Pago -->
+                        <div class="col-md-6 col-lg-2">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-credit-card me-1"></i>Pago
+                            </label>
+                            <select class="form-select" id="filtroMetodoPago">
+                                <option value="">Todos los métodos</option>
+                                <option value="efectivo">Efectivo</option>
+                                <option value="tarjeta">Tarjeta</option>
+                                <option value="transferencia">Transferencia</option>
+                                <option value="qr">QR/Digital</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Botón Aplicar Filtros -->
+                        <div class="col-md-12 col-lg-1 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" id="aplicarFiltros">
+                                <i class="fas fa-search me-1"></i>Filtrar
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Resumen de Filtros Aplicados -->
+                    <div class="mt-3" id="resumenFiltros">
+                        <div class="d-flex flex-wrap gap-2" id="tagsResumen">
+                            <!-- Los tags de filtros se generarán dinámicamente aquí -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historial de Ventas -->
+                <div class="module-container">
+                    <h5>Historial de Ventas</h5>
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover">
+                            <thead>
+                                <tr>
+                                    <th># Sesión</th>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Sala</th>
+                                    <th>Hora Inicio</th>
+                                    <th>Hora Cierre</th>
+                                    <th>Duración</th>
+                                    <th>Productos</th>
+                                    <th>Método Pago</th>
+                                    <th>Total</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaVentasBody">
+                                <!-- Las ventas se generarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div id="info-paginacion">
+                            Mostrando 0 registros
+                        </div>
+                        <nav>
+                            <ul class="pagination mb-0">
+                                <li class="page-item disabled"><a class="page-link" href="#">Anterior</a></li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalle de Sesión -->
+    <div class="modal fade" id="modalDetalleSesion" tabindex="-1" aria-labelledby="modalDetalleSesionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="modalDetalleSesionLabel">
+                        <i class="fas fa-receipt me-2"></i>Detalle de Sesión
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="modalDetalleSesionBody">
+                    <!-- El contenido se generará dinámicamente -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="btnImprimirDetalle">
+                        <i class="fas fa-print me-1"></i>Imprimir Factura
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SUPABASE SDK (CARGAR PRIMERO) ===== -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/database-service.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Utilidades de Navegación (Debe ir PRIMERO) -->
+    <script src="../js/navigation-utils.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../js/auth.js"></script>
+    <script src="../js/ventas.js"></script>
+</body>
+</html> 
