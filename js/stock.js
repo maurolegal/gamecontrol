@@ -630,6 +630,12 @@ class GestorStock {
 
     actualizarTablaProductos(productos) {
         const tbody = document.querySelector('#tablaProductos tbody');
+        const infoPaginacion = document.getElementById('infoPaginacionProductos');
+        
+        if (infoPaginacion) {
+            infoPaginacion.textContent = `Mostrando ${productos.length} producto${productos.length !== 1 ? 's' : ''}`;
+        }
+
         if (!tbody) return;
 
         if (productos.length === 0) {
