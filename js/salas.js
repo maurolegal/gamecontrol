@@ -199,10 +199,8 @@ async function obtenerSesiones() {
             console.log('  - Resultado databaseService:', resultado);
             
             if (!resultado.success) {
-                console.warn('  - databaseService no exitoso, usando localStorage fallback');
-                const sesionesLocal = JSON.parse(localStorage.getItem('sesiones') || '[]');
-                console.log('  - Sesiones desde localStorage fallback:', sesionesLocal);
-                return sesionesLocal;
+                console.warn('  - databaseService no exitoso, retornando array vacío en producción');
+                return [];
             }
             
             const filas = Array.isArray(resultado.data) ? resultado.data : [];
@@ -227,26 +225,8 @@ async function obtenerSesiones() {
             
             console.log('  - Sesiones mapeadas desde BD:', sesionesMapeadas);
             
-            // Sincronizar con localStorage para mantener consistencia
-            const sesionesLocal = JSON.parse(localStorage.getItem('sesiones') || '[]');
-            console.log('  - Sesiones en localStorage:', sesionesLocal);
-            
-            // Combinar sesiones de BD con localStorage, priorizando BD
-            const sesionesCombinadas = [...sesionesMapeadas];
-            
-            // Agregar sesiones de localStorage que no estén en BD
-            sesionesLocal.forEach(sesionLocal => {
-                const existeEnBD = sesionesMapeadas.some(s => s.id === sesionLocal.id);
-                if (!existeEnBD) {
-                    console.log('  - Agregando sesión de localStorage que no está en BD:', sesionLocal);
-                    sesionesCombinadas.push(sesionLocal);
-                }
-            });
-            
-            console.log('  - Sesiones combinadas finales:', sesionesCombinadas);
-            
-            // Guardar en localStorage para mantener sincronización
-            localStorage.setItem('sesiones', JSON.stringify(sesionesCombinadas));
+            // En producción, confiamos 100% en la BD. No mezclamos con localStorage.
+            return sesionesMapeadas;
             
             return sesionesCombinadas;
         }

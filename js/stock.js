@@ -33,26 +33,40 @@ function guardarMovimientos(movimientos) {
 // Clase principal para gestión de stock
 class GestorStock {
     constructor() {
-        this.productos = obtenerProductos();
-        this.movimientos = obtenerMovimientos();
+        // En producción, no cargamos del localStorage para evitar datos fantasmas
+        this.productos = []; 
+        this.movimientos = [];
         this.categorias = this.cargarCategorias();
         this.categoriaEditando = null;
         this.inicializar();
     }
 
-    inicializar() {
+    async inicializar() {
         this.configurarEventosGestionCategorias();
         this.configurarEventos();
         this.configurarCalculosGanancia();
-        this.crearDatosEjemplo();
+        // this.crearDatosEjemplo(); // Deshabilitado en producción
         this.actualizarSelectCategorias();
         this.actualizarTablaCategorias();
-        this.cargarProductos();
-        this.cargarMovimientos();
+        
+        // Mostrar estado de carga
+        this.mostrarCargando(true);
+        
+        // Cargar estrictamente desde Supabase
+        await this.cargarDesdeSupabase();
+        
         this.actualizarEstadisticas();
         this.actualizarVistaPrevia();
-        // Intentar sincronizar con Supabase en segundo plano
-        this.cargarDesdeSupabase();
+        this.mostrarCargando(false);
+    }
+
+    mostrarCargando(mostrar) {
+        const tabla = document.getElementById('tablaStock');
+        if (!tabla) return;
+        
+        if (mostrar) {
+            tabla.innerHTML = '<tr><td colspan="8" class="text-center py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando datos actualizados...</td></tr>';
+        }
     }
 
     async cargarDesdeSupabase() {
