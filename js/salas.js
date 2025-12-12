@@ -1180,63 +1180,50 @@ class GestorSalas {
         const contenedorOpciones = modal.querySelector('#opcionesTiempo');
         if (contenedorOpciones) {
             contenedorOpciones.innerHTML = `
-                <div class="row g-2">
-                    <div class="col-6">
-                        <div class="tarifa-option" data-tiempo="30">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="tiempoTarifa" value="30" id="tiempo30">
-                                <label class="form-check-label w-100" for="tiempo30">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold">30 min</span>
-                                        <span class="text-primary">${formatearMoneda(tarifas.t30 || 0)}</span>
-                                    </div>
-                                    <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t30 || 0, 30)}/min</small>
-                                </label>
+                <div class="list-group list-group-flush">
+                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded mb-2 cursor-pointer">
+                        <div class="d-flex align-items-center">
+                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="30" id="tiempo30">
+                            <div>
+                                <div class="fw-bold">30 Minutos</div>
+                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t30 || 0, 30)}/min</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="tarifa-option" data-tiempo="60">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="tiempoTarifa" value="60" id="tiempo60" checked>
-                                <label class="form-check-label w-100" for="tiempo60">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold">1 hora</span>
-                                        <span class="text-success">${formatearMoneda(tarifas.t60 || 0)}</span>
-                                    </div>
-                                    <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t60 || 0, 60)}/min</small>
-                                </label>
+                        <span class="fw-bold text-primary">${formatearMoneda(tarifas.t30 || 0)}</span>
+                    </label>
+
+                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded mb-2 cursor-pointer active bg-light">
+                        <div class="d-flex align-items-center">
+                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="60" id="tiempo60" checked>
+                            <div>
+                                <div class="fw-bold">1 Hora</div>
+                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t60 || 0, 60)}/min</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="tarifa-option" data-tiempo="90">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="tiempoTarifa" value="90" id="tiempo90">
-                                <label class="form-check-label w-100" for="tiempo90">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold">1.5 horas</span>
-                                        <span class="text-warning">${formatearMoneda(tarifas.t90 || 0)}</span>
-                                    </div>
-                                    <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t90 || 0, 90)}/min</small>
-                                </label>
+                        <span class="fw-bold text-success">${formatearMoneda(tarifas.t60 || 0)}</span>
+                    </label>
+
+                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded mb-2 cursor-pointer">
+                        <div class="d-flex align-items-center">
+                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="90" id="tiempo90">
+                            <div>
+                                <div class="fw-bold">1.5 Horas</div>
+                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t90 || 0, 90)}/min</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="tarifa-option" data-tiempo="120">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="tiempoTarifa" value="120" id="tiempo120">
-                                <label class="form-check-label w-100" for="tiempo120">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold">2 horas</span>
-                                        <span class="text-info">${formatearMoneda(tarifas.t120 || 0)}</span>
-                                    </div>
-                                    <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t120 || 0, 120)}/min</small>
-                                </label>
+                        <span class="fw-bold text-warning">${formatearMoneda(tarifas.t90 || 0)}</span>
+                    </label>
+
+                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded cursor-pointer">
+                        <div class="d-flex align-items-center">
+                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="120" id="tiempo120">
+                            <div>
+                                <div class="fw-bold">2 Horas</div>
+                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t120 || 0, 120)}/min</small>
                             </div>
                         </div>
-                    </div>
+                        <span class="fw-bold text-info">${formatearMoneda(tarifas.t120 || 0)}</span>
+                    </label>
                 </div>
             `;
         }
