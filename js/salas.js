@@ -1180,50 +1180,47 @@ class GestorSalas {
         const contenedorOpciones = modal.querySelector('#opcionesTiempo');
         if (contenedorOpciones) {
             contenedorOpciones.innerHTML = `
-                <div class="list-group list-group-flush">
-                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded mb-2 cursor-pointer">
-                        <div class="d-flex align-items-center">
-                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="30" id="tiempo30">
-                            <div>
-                                <div class="fw-bold">30 Minutos</div>
-                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t30 || 0, 30)}/min</small>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="card h-100 border cursor-pointer option-card position-relative shadow-sm hover-shadow transition-all">
+                            <input type="radio" name="tiempoTarifa" value="30" class="d-none" onchange="this.closest('.row').querySelectorAll('.option-card').forEach(c => {c.classList.remove('border-primary', 'bg-light-primary'); c.classList.add('border-light')}); this.closest('label').classList.remove('border-light'); this.closest('label').classList.add('border-primary', 'bg-light-primary')">
+                            <div class="card-body text-center p-3">
+                                <div class="fw-bold text-dark mb-1">30 Min</div>
+                                <div class="h5 text-primary fw-bold mb-1">${formatearMoneda(tarifas.t30 || 0)}</div>
+                                <small class="text-muted d-block" style="font-size: 0.75rem">${this.calcularPrecioPorMinuto(tarifas.t30 || 0, 30)}/min</small>
                             </div>
-                        </div>
-                        <span class="fw-bold text-primary">${formatearMoneda(tarifas.t30 || 0)}</span>
-                    </label>
-
-                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded mb-2 cursor-pointer active bg-light">
-                        <div class="d-flex align-items-center">
-                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="60" id="tiempo60" checked>
-                            <div>
-                                <div class="fw-bold">1 Hora</div>
-                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t60 || 0, 60)}/min</small>
+                        </label>
+                    </div>
+                    <div class="col-6">
+                        <label class="card h-100 border border-primary bg-light-primary cursor-pointer option-card position-relative shadow-sm hover-shadow transition-all">
+                            <input type="radio" name="tiempoTarifa" value="60" class="d-none" checked onchange="this.closest('.row').querySelectorAll('.option-card').forEach(c => {c.classList.remove('border-primary', 'bg-light-primary'); c.classList.add('border-light')}); this.closest('label').classList.remove('border-light'); this.closest('label').classList.add('border-primary', 'bg-light-primary')">
+                            <div class="card-body text-center p-3">
+                                <div class="fw-bold text-dark mb-1">1 Hora</div>
+                                <div class="h5 text-success fw-bold mb-1">${formatearMoneda(tarifas.t60 || 0)}</div>
+                                <small class="text-muted d-block" style="font-size: 0.75rem">${this.calcularPrecioPorMinuto(tarifas.t60 || 0, 60)}/min</small>
                             </div>
-                        </div>
-                        <span class="fw-bold text-success">${formatearMoneda(tarifas.t60 || 0)}</span>
-                    </label>
-
-                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded mb-2 cursor-pointer">
-                        <div class="d-flex align-items-center">
-                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="90" id="tiempo90">
-                            <div>
-                                <div class="fw-bold">1.5 Horas</div>
-                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t90 || 0, 90)}/min</small>
+                        </label>
+                    </div>
+                    <div class="col-6">
+                        <label class="card h-100 border border-light cursor-pointer option-card position-relative shadow-sm hover-shadow transition-all">
+                            <input type="radio" name="tiempoTarifa" value="90" class="d-none" onchange="this.closest('.row').querySelectorAll('.option-card').forEach(c => {c.classList.remove('border-primary', 'bg-light-primary'); c.classList.add('border-light')}); this.closest('label').classList.remove('border-light'); this.closest('label').classList.add('border-primary', 'bg-light-primary')">
+                            <div class="card-body text-center p-3">
+                                <div class="fw-bold text-dark mb-1">1.5 Horas</div>
+                                <div class="h5 text-warning fw-bold mb-1">${formatearMoneda(tarifas.t90 || 0)}</div>
+                                <small class="text-muted d-block" style="font-size: 0.75rem">${this.calcularPrecioPorMinuto(tarifas.t90 || 0, 90)}/min</small>
                             </div>
-                        </div>
-                        <span class="fw-bold text-warning">${formatearMoneda(tarifas.t90 || 0)}</span>
-                    </label>
-
-                    <label class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 border rounded cursor-pointer">
-                        <div class="d-flex align-items-center">
-                            <input class="form-check-input me-3" type="radio" name="tiempoTarifa" value="120" id="tiempo120">
-                            <div>
-                                <div class="fw-bold">2 Horas</div>
-                                <small class="text-muted">${this.calcularPrecioPorMinuto(tarifas.t120 || 0, 120)}/min</small>
+                        </label>
+                    </div>
+                    <div class="col-6">
+                        <label class="card h-100 border border-light cursor-pointer option-card position-relative shadow-sm hover-shadow transition-all">
+                            <input type="radio" name="tiempoTarifa" value="120" class="d-none" onchange="this.closest('.row').querySelectorAll('.option-card').forEach(c => {c.classList.remove('border-primary', 'bg-light-primary'); c.classList.add('border-light')}); this.closest('label').classList.remove('border-light'); this.closest('label').classList.add('border-primary', 'bg-light-primary')">
+                            <div class="card-body text-center p-3">
+                                <div class="fw-bold text-dark mb-1">2 Horas</div>
+                                <div class="h5 text-info fw-bold mb-1">${formatearMoneda(tarifas.t120 || 0)}</div>
+                                <small class="text-muted d-block" style="font-size: 0.75rem">${this.calcularPrecioPorMinuto(tarifas.t120 || 0, 120)}/min</small>
                             </div>
-                        </div>
-                        <span class="fw-bold text-info">${formatearMoneda(tarifas.t120 || 0)}</span>
-                    </label>
+                        </label>
+                    </div>
                 </div>
             `;
         }

@@ -550,3 +550,18 @@ body.dark-mode .salas-page.salas-corporate .btn-action-minimal:hover {
   background: #353b48;
   color: #fff;
 }
+
+/* Modal Option Cards */
+.bg-light-primary {
+  background-color: rgba(37, 99, 235, 0.08) !important;
+}
+.hover-shadow:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+.option-card {
+  border-width: 2px !important;
+}
+
