@@ -82,29 +82,37 @@ class NavigationUtils {
 
             console.log('🚪 Cerrando sesión desde:', this.currentPath);
             
-            // Limpiar todas las sesiones de forma más exhaustiva
-            const keysToRemove = [
-                'sesionActual',
-                'salas_current_session',
-                'bienvenidaMostrada',
-                'gamecontrol_session',
-                'auth_token'
-            ];
+            // 1. Limpiar almacenamiento local y de sesión
+            localStorage.clear();
+            sessionStorage.clear();
             
-            keysToRemove.forEach(key => {
-                localStorage.removeItem(key);
-                sessionStorage.removeItem(key);
-            });
+            // 2. Limpiar Service Workers y Caches
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+            }
+            
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                });
+            }
             
             // Obtener la ruta correcta para login
             const loginPath = this.getLoginPath();
             console.log('🔄 Redirigiendo a:', loginPath);
             
             // Redirigir inmediatamente en móvil, con delay en desktop
+            // Agregar timestamp para evitar caché del navegador
             const delay = isMobile ? 50 : 100;
             setTimeout(() => {
                 this.logoutInProgress = false;
-                window.location.href = loginPath;
+                window.location.href = loginPath + '?t=' + new Date().getTime();
             }, delay);
             
         } catch (error) {

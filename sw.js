@@ -1,7 +1,7 @@
 // Service Worker para forzar actualizaciones y mantener el sistema siempre fresco
 // Estrategia: network-first con cache mínimo para modo offline
 
-const SW_VERSION = 'v2025-08-11-01';
+const SW_VERSION = 'v2025-12-12-01';
 const CACHE_NAME = `gc-core-${SW_VERSION}`;
 const CORE_ASSETS = [
   './',
