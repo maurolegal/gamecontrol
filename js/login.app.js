@@ -94,15 +94,7 @@ async function verificarSesionExistente() {
 // ===================================================================
 
 function configurarFormularioLogin() {
-  if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-    const emailField = document.getElementById('email');
-    const passwordField = document.getElementById('password');
-    if (emailField && passwordField) {
-      emailField.value = 'maurochica23@gmail.com';
-      passwordField.value = 'kennia23';
-      mostrarAlerta('info', 'Modo desarrollo: Credenciales pre-llenadas');
-    }
-  }
+  // Producción: sin auto-llenado
 }
 
 function configurarEventos() {
@@ -368,15 +360,9 @@ function mostrarAlerta(tipo, mensaje) {
 
 function mostrarInformacionSistema() {
   const info = document.getElementById('systemInfo');
-  if (!info) return;
-  info.innerHTML = `
-    <div class="text-center">
-      <h5><i class="fas fa-cloud me-2"></i>Sistema Online</h5>
-      <p class="mb-2"><i class="fas fa-database me-1"></i>Base de datos: <span class="text-success">Supabase PostgreSQL</span></p>
-      <p class="mb-2"><i class="fas fa-shield-alt me-1"></i>Autenticación: <span class="text-success">Supabase Auth</span></p>
-      <small class="text-muted"><i class="fas fa-wifi me-1"></i>Requiere conexión a internet</small>
-    </div>
-  `;
+  if (info) {
+    info.innerHTML = ''; // Producción: sin información del sistema
+  }
 }
 
 function mostrarErrorConexion() {
