@@ -11,22 +11,27 @@ class NavigationUtils {
     constructor() {
         this.currentPath = window.location.pathname;
         this.isInPagesFolder = this.currentPath.includes('/pages/');
-        this.isLoginPage = this.currentPath.includes('login.html');
+        this.isLoginPage = this.currentPath.includes('login.html') || this.currentPath.includes('login_mobile.html');
+        this.isMobileLoginPage = this.currentPath.includes('login_mobile.html');
         this.logoutInProgress = false; // Prevenir múltiples logouts
         
         console.log('🔍 NavigationUtils inicializado:', {
             currentPath: this.currentPath,
             isInPagesFolder: this.isInPagesFolder,
-            isLoginPage: this.isLoginPage
+            isLoginPage: this.isLoginPage,
+            isMobileLoginPage: this.isMobileLoginPage
         });
     }
 
     // Obtener la ruta correcta para login.html
     getLoginPath() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const loginFile = isMobile ? 'login_mobile.html' : 'login.html';
+        
         if (this.isInPagesFolder) {
-            return '../login.html'; // Desde /pages/ ir un nivel arriba
+            return '../' + loginFile; // Desde /pages/ ir un nivel arriba
         } else {
-            return 'login.html'; // Desde la raíz
+            return loginFile; // Desde la raíz
         }
     }
 
@@ -106,7 +111,8 @@ class NavigationUtils {
             console.error('❌ Error durante logout:', error);
             this.logoutInProgress = false;
             // Fallback: forzar ir a la raíz
-            window.location.href = '/gamecontrol/login.html';
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            window.location.href = isMobile ? '/gamecontrol/login_mobile.html' : '/gamecontrol/login.html';
         }
     }
 
