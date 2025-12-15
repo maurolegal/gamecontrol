@@ -227,6 +227,34 @@ class DatabaseService {
         }
     }
 
+    // Upsert (insertar o actualizar) registro
+    async upsert(tabla, datos, opciones = {}) {
+        try {
+            const client = await this.getClient();
+
+            const { data, error } = await client
+                .from(tabla)
+                .upsert(datos, { 
+                    onConflict: opciones.onConflict || 'id',
+                    ...opciones 
+                })
+                .select();
+
+            if (error) {
+                console.error(`Error en upsert de ${tabla}:`, error);
+                throw new Error(`Error en upsert de ${tabla}: ${error.message}`);
+            }
+
+            // Limpiar caché relacionado
+            this.clearTableCache(tabla);
+
+            return { success: true, data: data ? data[0] : null };
+        } catch (error) {
+            console.error(`Error crítico en upsert de ${tabla}:`, error);
+            throw error;
+        }
+    }
+
     // ===================================================================
     // OPERACIONES ESPECÍFICAS - SOLO SUPABASE
     // ===================================================================
