@@ -78,35 +78,29 @@ async function obtenerConfiguracion() {
         const configuracion = await window.databaseService.obtenerConfiguracion();
         
         // Configuración por defecto
-    const configDefault = {
-        tarifasPorSala: {},
-        tiempoMinimo: 30,
-        tiempoGracia: 10,
-        limiteReservas: 2,
-        politicaCancelacion: 'Sin penalización',
-        descuentoPaquete: 10,
-        moneda: CONFIG.moneda,
-        nombreNegocio: 'GameControl',
-        direccion: '',
-        telefono: '',
-        email: '',
+        const configDefault = {
+            tarifasPorSala: {},
+            tiempoMinimo: 30,
+            tiempoGracia: 10,
+            limiteReservas: 2,
+            politicaCancelacion: 'Sin penalización',
+            descuentoPaquete: 10,
+            moneda: CONFIG.moneda,
+            nombreNegocio: 'GameControl',
+            direccion: '',
+            telefono: '',
+            email: '',
             logo: '',
             sistemaConfigurado: true
         };
 
-        // Si no hay configuración, crear una por defecto
-        if (!configuracion || configuracion.length === 0) {
-            await inicializarConfiguracionDefault(configDefault);
+        // La configuración ahora es un objeto (datos JSONB), no un array
+        if (!configuracion || Object.keys(configuracion).length === 0) {
             return configDefault;
         }
 
-        // Convertir array de configuración a objeto
-        const configObj = {};
-        configuracion.forEach(item => {
-            configObj[item.clave] = item.valor;
-        });
-
-        return { ...configDefault, ...configObj };
+        // Fusionar configuración remota con defaults
+        return { ...configDefault, ...configuracion };
 
     } catch (error) {
         console.error('Error obteniendo configuración:', error);
