@@ -116,19 +116,54 @@ async function obtenerConfiguracion() {
 
 async function guardarConfiguracion(config) {
     try {
+        // Guardar en localStorage primero
+        localStorage.setItem('configuracion', JSON.stringify(config));
+        
+        // Sincronizar con Supabase si está disponible
         if (!window.databaseService) {
-            throw new Error('Database service no disponible');
+            console.warn('Database service no disponible, solo guardado local');
+            return true;
         }
 
-        // Guardar cada configuración como un registro separado
-        for (const [clave, valor] of Object.entries(config)) {
-            await window.databaseService.update('configuracion', clave, {
-                valor: valor,
-                fecha_actualizacion: new Date().toISOString()
-            });
+        // Detectar esquema dinámicamente
+        const res = await window.databaseService.select('configuracion', { limite: 1 });
+        
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+            const row = res.data[0];
+            const rowId = row.id;
+            
+            // Construir payload según columnas disponibles
+            const payload = {};
+            if (Object.prototype.hasOwnProperty.call(row, 'datos')) {
+                payload.datos = config;
+            } else if (Object.prototype.hasOwnProperty.call(row, 'valor')) {
+                payload.valor = config;
+            } else {
+                payload.datos = config;
+            }
+            
+            // Actualizar sin fecha_actualizacion (se maneja por trigger DB)
+            const updateRes = await window.databaseService.update('configuracion', rowId, payload);
+            
+            if (updateRes && updateRes.success) {
+                console.log('✅ Configuración sincronizada con Supabase');
+                return true;
+            }
+        } else {
+            // No existe, insertar
+            await window.databaseService.insert('configuracion', { datos: config })
+                .catch(() => window.databaseService.insert('configuracion', { 
+                    clave: 'global_config', 
+                    valor: config, 
+                    tipo: 'json', 
+                    editable: true, 
+                    publico: false 
+                }));
+            console.log('✅ Configuración creada en Supabase');
+            return true;
         }
 
-        console.log('✅ Configuración guardada en Supabase');
+        console.log('✅ Configuración guardada');
         return true;
 
     } catch (error) {
