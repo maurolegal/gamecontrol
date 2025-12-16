@@ -4,7 +4,7 @@
 // CONFIGURACIÓN GLOBAL
 // ===================================================================
 
-const CONFIG = {
+window.CONFIG = window.CONFIG || {
     moneda: 'COP',
     formatoMoneda: {
         style: 'currency',

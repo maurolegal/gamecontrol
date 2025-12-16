@@ -61,14 +61,13 @@ function guardarConfiguracion(config) {
     }
 }
 
-// Configuración global
-const CONFIG = {
-    tiposConsola: {
-        playstation: { prefijo: 'PS', icon: 'fab fa-playstation' },
-        xbox: { prefijo: 'XB', icon: 'fab fa-xbox' },
-        nintendo: { prefijo: 'NT', icon: 'fas fa-gamepad' },
-        pc: { prefijo: 'PC', icon: 'fas fa-desktop' }
-    }
+// Configuración global (no redeclarar si ya existe)
+window.CONFIG = window.CONFIG || {};
+window.CONFIG.tiposConsola = window.CONFIG.tiposConsola || {
+    playstation: { prefijo: 'PS', icon: 'fab fa-playstation' },
+    xbox: { prefijo: 'XB', icon: 'fab fa-xbox' },
+    nintendo: { prefijo: 'NT', icon: 'fas fa-gamepad' },
+    pc: { prefijo: 'PC', icon: 'fas fa-desktop' }
 };
 
 // Funciones de utilidad
