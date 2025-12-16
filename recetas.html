@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>50 Recetas Criollas para Air Fryer - Edición Colombia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #d35400;
+            --secondary-color: #2c3e50;
+            --bg-color: #ffffff;
+            --accent-color: #e67e22;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.8;
+            color: var(--secondary-color);
+            background-color: var(--bg-color);
+            counter-reset: page;
+        }
+
+        .container {
+            max-width: 210mm; /* A4 width */
+            margin: 0 auto;
+            background: #fff;
+            padding: 20mm;
+        }
+
+        /* ========== PORTADA DEL LIBRO ========== */
+        .book-cover {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #d35400 0%, #e67e22 100%);
+            color: white;
+            page-break-after: always;
+            padding: 60px;
+        }
+
+        .book-cover h1 {
+            font-family: 'Merriweather', serif;
+            font-size: 3.5em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .book-cover .subtitle {
+            font-size: 1.8em;
+            font-weight: 300;
+            margin-bottom: 40px;
+            font-style: italic;
+        }
+
+        .book-cover .author {
+            font-size: 1.3em;
+            margin-top: 60px;
+            font-weight: 400;
+        }
+
+        .book-cover .edition {
+            font-size: 1em;
+            margin-top: 20px;
+            opacity: 0.9;
+        }
+
+        /* ========== ÍNDICE ========== */
+        .table-of-contents {
+            page-break-after: always;
+            padding: 40px 0;
+        }
+
+        .table-of-contents h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 2.5em;
+            color: var(--primary-color);
+            margin-bottom: 40px;
+            text-align: center;
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 20px;
+        }
+
+        .toc-section {
+            margin-bottom: 30px;
+        }
+
+        .toc-section h3 {
+            font-size: 1.4em;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .toc-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dotted #ccc;
+            margin-bottom: 8px;
+        }
+
+        .toc-item a {
+            text-decoration: none;
+            color: var(--secondary-color);
+            flex: 1;
+        }
+
+        .toc-item a:hover {
+            color: var(--primary-color);
+        }
+
+        .toc-page {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        /* ========== TÍTULOS Y SECCIONES ========== */
+        h1 {
+            font-family: 'Merriweather', serif;
+            color: var(--primary-color);
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-family: 'Merriweather', serif;
+            color: var(--secondary-color);
+            font-size: 1.8em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        h3.recipe-title {
+            font-family: 'Merriweather', serif;
+            color: var(--primary-color);
+            font-size: 1.9em;
+            margin-bottom: 20px;
+            border-left: 6px solid var(--primary-color);
+            padding-left: 20px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            background: #fff3e0;
+        }
+
+        .section-divider {
+            page-break-after: always;
+            text-align: center;
+            padding: 100px 0;
+            background: linear-gradient(135deg, #f9f9f9 0%, #ffffff 100%);
+        }
+
+        .section-divider h2 {
+            font-family: 'Merriweather', serif;
+            font-size: 3em;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .section-divider p {
+            font-size: 1.2em;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* ========== TARJETAS DE RECETAS ========== */
+        .recipe-card {
+            background: #fff;
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+            page-break-after: always;
+            padding: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .recipe-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 3px solid var(--primary-color);
+        }
+
+        .recipe-info-box {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-around;
+            font-weight: 600;
+            margin-bottom: 30px;
+            border: 2px solid var(--primary-color);
+            text-align: center;
+        }
+
+        .recipe-info-box span {
+            font-size: 1.1em;
+        }
+
+        .ingredients-section, .steps-section {
+            margin-bottom: 25px;
+        }
+
+        .ingredients-section h4, .steps-section h4 {
+            color: var(--secondary-color);
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 8px;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-top: 15px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            line-height: 1.8;
+        }
+
+        /* ========== PIE DE PÁGINA ========== */
+        .page-footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+            font-size: 0.9em;
+            color: #999;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        /* ========== BOTÓN DE EXPORTAR ========== */
+        .print-btn-container {
+            text-align: center;
+            margin: 60px 0;
+            padding: 50px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+            border-radius: 15px;
+            border: 3px dashed var(--primary-color);
+        }
+
+        .print-btn-container h2 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-family: 'Merriweather', serif;
+        }
+
+        .print-btn-container p {
+            font-size: 1.1em;
+            margin-bottom: 30px;
+            color: #666;
+        }
+
+        .print-btn {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(211, 84, 0, 0.4);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .print-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(211, 84, 0, 0.5);
+        }
+
+        /* ========== ESTILOS PARA IMPRESIÓN/PDF ========== */
+        @media print {
+            body {
+                padding: 0;
+                background-color: #fff;
+            }
+
+            .container {
+                max-width: 100%;
+                padding: 15mm;
+            }
+
+            .print-btn-container {
+                display: none;
+            }
+
+            .recipe-card {
+                border: none;
+                page-break-after: always;
+                page-break-inside: avoid;
+            }
+
+            .book-cover {
+                page-break-after: always;
+            }
+
+            .table-of-contents {
+                page-break-after: always;
+            }
+
+            .section-divider {
+                page-break-after: always;
+            }
+
+            /* Numeración de páginas */
+            @page {
+                margin: 20mm;
+                @bottom-right {
+                    content: counter(page);
+                }
+            }
+
+            a {
+                color: inherit;
+                text-decoration: none;
+            }
+        }
+
+        /* Estilos responsive para pantalla */
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .book-cover h1 {
+                font-size: 2em;
+            }
+
+            .book-cover .subtitle {
+                font-size: 1.2em;
+            }
+
+            h3.recipe-title {
+                font-size: 1.5em;
+            }
+
+            .recipe-info-box {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== PORTADA DEL LIBRO ========== -->
+<div class="book-cover">
+    <h1>DOMINA TU<br>AIR FRYER</h1>
+    <div class="subtitle">50 Recetas Criollas Colombianas<br>Fáciles, Deliciosas y Saludables</div>
+    <div style="margin: 40px 0; font-size: 4em;">🍳</div>
+    <div class="author">Cocina Colombiana Moderna</div>
+    <div class="edition">Edición 2025 - Especial Colombia</div>
+</div>
+
+<!-- ========== TABLA DE CONTENIDOS ========== -->
+<div class="table-of-contents">
+    <div class="container">
+        <h2>📖 Índice General</h2>
+        
+        <div class="toc-section">
+            <h3>🥓 Capítulo 1: Carnes y Aves</h3>
+            <div class="toc-item"><a href="#receta1">1. Chicharrón Crocante (El Rey)</a><span class="toc-page">Pág. 3</span></div>
+            <div class="toc-item"><a href="#receta4">4. Alitas de Pollo BBQ "Melosas"</a><span class="toc-page">Pág. 6</span></div>
+            <div class="toc-item"><a href="#receta28">28. Nuggets de Pollo Caseros</a><span class="toc-page">Pág. 31</span></div>
+            <div class="toc-item"><a href="#receta36">36. Lomo de Cerdo Asado (Entero)</a><span class="toc-page">Pág. 39</span></div>
+            <div class="toc-item"><a href="#receta44">44. Longaniza Asada</a><span class="toc-page">Pág. 47</span></div>
+        </div>
+
+        <div class="toc-section">
+            <h3>🥟 Capítulo 2: Empanadas y Pasabocas</h3>
+            <div class="toc-item"><a href="#receta2">2. Empanadas de Iglesia (Súper Crocantes)</a><span class="toc-page">Pág. 4</span></div>
+            <div class="toc-item"><a href="#receta21">21. Pan de Bono (Del Congelador a la Mesa)</a><span class="toc-page">Pág. 24</span></div>
+            <div class="toc-item"><a href="#receta30">30. Arepa de Huevo</a><span class="toc-page">Pág. 33</span></div>
+            <div class="toc-item"><a href="#receta42">42. Aros de Cebolla</a><span class="toc-page">Pág. 45</span></div>
+        </div>
+
+        <div class="toc-section">
+            <h3>🍌 Capítulo 3: Plátanos y Acompañamientos</h3>
+            <div class="toc-item"><a href="#receta3">3. Patacones Pisados con Hogao</a><span class="toc-page">Pág. 5</span></div>
+            <div class="toc-item"><a href="#receta5">5. Plátano Maduro con Queso y Bocadillo</a><span class="toc-page">Pág. 7</span></div>
+            <div class="toc-item"><a href="#receta22">22. Papas a la Francesa (Naturales y Crocantes)</a><span class="toc-page">Pág. 25</span></div>
+            <div class="toc-item"><a href="#receta45">45. Cascos de Papa al Romero</a><span class="toc-page">Pág. 48</span></div>
+        </div>
+
+        <div class="toc-section">
+            <h3>🥗 Capítulo 4: Vegetales y Opciones Saludables</h3>
+            <div class="toc-item"><a href="#receta23">23. Tomates Asados a la Provenzal</a><span class="toc-page">Pág. 26</span></div>
+            <div class="toc-item"><a href="#receta24">24. Garbanzos Crocantes (Snack Saludable)</a><span class="toc-page">Pág. 27</span></div>
+            <div class="toc-item"><a href="#receta27">27. Cubos de Tofu/Queso Crocantes</a><span class="toc-page">Pág. 30</span></div>
+            <div class="toc-item"><a href="#receta32">32. Champiñones Rellenos</a><span class="toc-page">Pág. 35</span></div>
+            <div class="toc-item"><a href="#receta34">34. Rollitos de Espárragos con Tocineta</a><span class="toc-page">Pág. 37</span></div>
+            <div class="toc-item"><a href="#receta37">37. Brócoli Rostizado (Sabe a Nuez)</a><span class="toc-page">Pág. 40</span></div>
+            <div class="toc-item"><a href="#receta40">40. Coliflor Estilo "Alitas Búfalo"</a><span class="toc-page">Pág. 43</span></div>
+            <div class="toc-item"><a href="#receta49">49. Pimentones Rellenos</a><span class="toc-page">Pág. 52</span></div>
+        </div>
+
+        <div class="toc-section">
+            <h3>🐟 Capítulo 5: Pescados y Mariscos</h3>
+            <div class="toc-item"><a href="#receta33">33. Camarones al Ajillo Rápidos</a><span class="toc-page">Pág. 36</span></div>
+            <div class="toc-item"><a href="#receta46">46. Tilapia Frita (Sin Inmersión en Aceite)</a><span class="toc-page">Pág. 49</span></div>
+        </div>
+
+        <div class="toc-section">
+            <h3>🍕 Capítulo 6: Pizzas y Snacks Rápidos</h3>
+            <div class="toc-item"><a href="#receta26">26. Pizza Rápida en Pan Árabe</a><span class="toc-page">Pág. 29</span></div>
+            <div class="toc-item"><a href="#receta29">29. Nachos con Queso (Para Ver Películas)</a><span class="toc-page">Pág. 32</span></div>
+            <div class="toc-item"><a href="#receta31">31. Pan con Ajo y Perejil</a><span class="toc-page">Pág. 34</span></div>
+            <div class="toc-item"><a href="#receta38">38. Queso Asado (Bloque)</a><span class="toc-page">Pág. 41</span></div>
+            <div class="toc-item"><a href="#receta41">41. Croissant de Jamón y Queso</a><span class="toc-page">Pág. 44</span></div>
+            <div class="toc-item"><a href="#receta43">43. Mix de Nueces Tostadas</a><span class="toc-page">Pág. 46</span></div>
+        </div>
+
+        <div class="toc-section">
+            <h3>🍰 Capítulo 7: Postres y Dulces</h3>
+            <div class="toc-item"><a href="#receta25">25. Manzanas Asadas (Postre Fit)</a><span class="toc-page">Pág. 28</span></div>
+            <div class="toc-item"><a href="#receta39">39. Brownie Rápido</a><span class="toc-page">Pág. 42</span></div>
+            <div class="toc-item"><a href="#receta47">47. Mug Cake (Torta en Taza)</a><span class="toc-page">Pág. 50</span></div>
+            <div class="toc-item"><a href="#receta48">48. Churros Azucarados (Congelados)</a><span class="toc-page">Pág. 51</span></div>
+        </div>
+
+        <div class="toc-section">
+            <h3>🔧 Capítulo 8: Recalentados y Trucos</h3>
+            <div class="toc-item"><a href="#receta35">35. Papa Rellena (Cómo Calentarla Bien)</a><span class="toc-page">Pág. 38</span></div>
+            <div class="toc-item"><a href="#receta50">50. BONUS: Limpieza Profunda con Vapor</a><span class="toc-page">Pág. 53</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+
+<div class="container">
+
+    <!-- ========== CAPÍTULO 1: CARNES Y AVES ========== -->
+    <div class="section-divider">
+        <h2>🥓 Capítulo 1</h2>
+        <p>Carnes y Aves</p>
+    </div>
+
+    <div class="recipe-card" id="receta1">
+        <h3 class="recipe-title">1. Chicharrón Crocante (El Rey)</h3>
+        <img src="https://source.unsplash.com/800x600/?crispy,pork,belly" alt="Chicharrón en Air Fryer" class="recipe-image">
+        
+        <div class="recipe-info-box">
+            <span>🌡️ Temp: 200°C</span>
+            <span>⏱️ Tiempo: 30-40 min</span>
+            <span>👥 Porciones: 4</span>
+        </div>
+
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>1 kg de tocino barriguero (pide que le hagan cortes en la piel).</li>
+                <li>1 cucharada de bicarbonato de sodio (El secreto de la crocancia).</li>
+                <li>Sal al gusto.</li>
+                <li>Limón.</li>
+            </ul>
+        </div>
+
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Seca muy bien el tocino con toallas de papel. La humedad es enemiga de lo crocante.</li>
+                <li>Frota el bicarbonato solo en la piel. Echa sal por la parte de la carne.</li>
+                <li>Precalienta la Air Fryer a 200°C por 5 minutos.</li>
+                <li>Coloca los trozos con la piel hacia ARRIBA sin que se monten unos sobre otros.</li>
+                <li>Cocina a 200°C por 20 minutos. Abre, revisa. Si la piel tiene burbujas, voltea y cocina 10-15 minutos más para dorar la carne.</li>
+                <li>Sirve con limón.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== CAPÍTULO 2: EMPANADAS Y PASABOCAS ========== -->
+    <div class="section-divider">
+        <h2>🥟 Capítulo 2</h2>
+        <p>Empanadas y Pasabocas</p>
+    </div>
+
+    <div class="recipe-card" id="receta2">
+        <h3 class="recipe-title">2. Empanadas de Iglesia (Súper Crocantes)</h3>
+        <img src="https://source.unsplash.com/800x600/?empanadas,fried" alt="Empanadas Colombianas" class="recipe-image">
+        
+        <div class="recipe-info-box">
+            <span>🌡️ Temp: 190°C</span>
+            <span>⏱️ Tiempo: 12-15 min</span>
+            <span>👥 Cantidad: 10 uds</span>
+        </div>
+
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Empanadas crudas (pueden ser congeladas o hechas en casa con harina de maíz precocida).</li>
+                <li>Aceite en spray (Indispensable).</li>
+            </ul>
+        </div>
+
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Precalienta la Air Fryer a 190°C.</li>
+                <li>Rocía las empanadas con el aceite en spray por AMBOS lados. Si no tienes spray, usa una brocha de silicona. Sin esto, quedarán pálidas y secas.</li>
+                <li>Colócalas en la canasta sin que se toquen.</li>
+                <li>Cocina por 8 minutos. Abre la canasta, dales la vuelta.</li>
+                <li>Cocina por 4-7 minutos más hasta que estén doradas a tu gusto. ¡Acompaña con ají!</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== CAPÍTULO 3: PLÁTANOS Y ACOMPAÑAMIENTOS ========== -->
+    <div class="section-divider">
+        <h2>🍌 Capítulo 3</h2>
+        <p>Plátanos y Acompañamientos</p>
+    </div>
+
+    <div class="recipe-card" id="receta3">
+        <h3 class="recipe-title">3. Patacones Pisados con Hogao</h3>
+        <img src="https://source.unsplash.com/800x600/?plantain,tostones" alt="Patacones en Air Fryer" class="recipe-image">
+        
+        <div class="recipe-info-box">
+            <span>🌡️ Temp: 180°C / 200°C</span>
+            <span>⏱️ Tiempo: 15 min total</span>
+            <span>👥 Porciones: 4</span>
+        </div>
+
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>2 Plátanos verdes pelados y cortados en trozos gruesos.</li>
+                <li>Aceite en spray o de oliva.</li>
+                <li>Sal y ajo en polvo.</li>
+                <li>Hogao para servir.</li>
+            </ul>
+        </div>
+
+        <div class="steps-section">
+            <h4>Preparación (Doble cocción):</h4>
+            <ol>
+                <li>**Primera cocción:** Rocía los trozos de plátano con aceite, sal y ajo. Llévalos a la Air Fryer a 180°C por 10 minutos (voltea a la mitad).</li>
+                <li>Sácalos y písalos (aplástalos) con una pataconera o el fondo de un vaso hasta que queden planos.</li>
+                <li>**Segunda cocción:** Vuelve a rociar un poco de aceite en los patacones ya pisados. Sube la temperatura a 200°C y cocina por 5 minutos más hasta que estén tostados.</li>
+                <li>Sirve calientes con el hogao encima.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Volver a capítulo 1 para alitas -->
+    <div class="recipe-card" id="receta4">
+        <h3 class="recipe-title">4. Alitas de Pollo BBQ "Melosas"</h3>
+        <img src="https://source.unsplash.com/800x600/?chicken,wings,bbq" alt="Alitas BBQ" class="recipe-image">
+        
+        <div class="recipe-info-box">
+            <span>🌡️ Temp: 190°C</span>
+            <span>⏱️ Tiempo: 25 min</span>
+            <span>👥 Porciones: 2-3</span>
+        </div>
+
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>1 kg de alitas de pollo (colombinas y alas separadas).</li>
+                <li>Adobo seco: Sal, pimienta, paprika, ajo en polvo.</li>
+                <li>1 taza de tu salsa BBQ favorita.</li>
+            </ul>
+        </div>
+
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Seca las alitas. Cúbrelas con el adobo seco (la salsa va al final para que no se queme).</li>
+                <li>Cocina a 190°C por 20 minutos, agitando la canasta cada 7 minutos para que se doren parejo.</li>
+                <li>Cuando ya estén cocidas y doradas, sácalas a un bowl.</li>
+                <li>Báñalas con la salsa BBQ y mézclalas bien.</li>
+                <li>Vuelve a meterlas a la Air Fryer por solo 3-5 minutos más para que la salsa se caramelice y se ponga "melosa".</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 3: plátanos -->
+    <div class="recipe-card" id="receta5">
+        <h3 class="recipe-title">5. Plátano Maduro con Queso y Bocadillo</h3>
+        <img src="https://source.unsplash.com/800x600/?baked,plantain,cheese" alt="Plátano Maduro" class="recipe-image">
+        
+        <div class="recipe-info-box">
+            <span>🌡️ Temp: 180°C</span>
+            <span>⏱️ Tiempo: 15-20 min</span>
+            <span>👥 Porciones: 2</span>
+        </div>
+
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>2 Plátanos bien maduros (cáscara negra es mejor).</li>
+                <li>Queso mozzarella o doble crema en tiras.</li>
+                <li>Bocadillo veleño en tiras.</li>
+                <li>Un poco de mantequilla.</li>
+            </ul>
+        </div>
+
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pela los plátanos y úntalos con un poco de mantequilla.</li>
+                <li>Llévalos a la Air Fryer a 180°C por 10 minutos. Voltea a la mitad.</li>
+                <li>Sácalos con cuidado. Haz un corte a lo largo (como una canoa) sin traspasarlos.</li>
+                <li>Rellena la ranura con el queso y el bocadillo.</li>
+                <li>Vuelve a meterlos a 180°C por 5 minutos más o hasta que el queso esté derretido y dorado.</li>
+            </ol>
+        </div>
+    </div>
+
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 2 -->
+    <div class="recipe-card" id="receta21">
+        <h3 class="recipe-title">21. Pan de Bono (Del congelador a la mesa)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Pan de Bono" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 170°C</span><span>⏱️ 10-12 min</span><span>👥 4-6 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Paquete de Pan de Bonos o Pan de Yucas congelados (listos para hornear).</li>
+                <li>No necesitas aceite.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Precalienta la Air Fryer 3 minutos.</li>
+                <li>Coloca los panes congelados separados (crecen un poco).</li>
+                <li>Cocina a 170°C. **OJO:** No uses 200°C porque se queman por fuera y quedan crudos por dentro.</li>
+                <li>A los 10 minutos revisa. Deben estar doraditos.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 3 -->
+    <div class="recipe-card" id="receta22">
+        <h3 class="recipe-title">22. Papas a la Francesa (Naturales y Crocantes)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Papas Francesa" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 20-25 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>2 Papas grandes (Pastusa o Sabanera).</li>
+                <li>1 cucharada de aceite.</li>
+                <li>Sal y Paprika.</li>
+                <li>Agua fría (para el truco).</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Corta las papas en bastones del mismo grosor.</li>
+                <li>**El Secreto:** Déjalas en un bowl con agua fría y hielo por 30 minutos (esto quita el almidón).</li>
+                <li>Sécalas MUY BIEN con un trapo. Si están húmedas, no quedan crocantes.</li>
+                <li>Mézclalas con el aceite y especias.</li>
+                <li>Cocina a 200°C moviendo la canasta cada 5 minutos obligatoriamente.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== CAPÍTULO 4: VEGETALES Y OPCIONES SALUDABLES ========== -->
+    <div class="section-divider">
+        <h2>🥗 Capítulo 4</h2>
+        <p>Vegetales y Opciones Saludables</p>
+    </div>
+
+    <div class="recipe-card" id="receta23">
+        <h3 class="recipe-title">23. Tomates Asados a la Provenzal</h3>
+        <img src="https://res.cloudinary.com/dtygv4kfq/image/upload/v1765892920/Gemini_Generated_Image_h90m0lh90m0lh90m_jheb1l.png" alt="Tomates Asados" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 8-10 min</span><span>👥 2-3 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>3 Tomates rojos firmes cortados por la mitad.</li>
+                <li>Orégano, sal y pimienta.</li>
+                <li>Un chorrito de aceite de oliva.</li>
+                <li>Queso parmesano (opcional).</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pon los tomates en la canasta con el corte hacia arriba.</li>
+                <li>Sazona con las hierbas y el aceite.</li>
+                <li>Cocina a 200°C por 8 minutos.</li>
+                <li>Si quieres, pon el queso al final y gratina 2 minutos más. Ideales para acompañar carne.</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="recipe-card" id="receta24">
+        <h3 class="recipe-title">24. Garbanzos Crocantes (Snack Saludable)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Garbanzos Snack" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 15-18 min</span><span>👥 1 Taza</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>1 lata de garbanzos (o cocidos en casa).</li>
+                <li>Aceite de oliva.</li>
+                <li>Comino, paprika, sal de ajo y pimienta.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Lava y escurre los garbanzos. Sécalos muy bien con papel de cocina.</li>
+                <li>En un bowl, imprégnalos con el aceite y todas las especias.</li>
+                <li>Cocina a 200°C. Agita la canasta cada 5 minutos.</li>
+                <li>Están listos cuando suenen como piedras al agitar. Deja enfriar para que se pongan más duros. ¡Saben a chicharrón!</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== CAPÍTULO 7: POSTRES Y DULCES ========== -->
+    <div class="section-divider">
+        <h2>🍰 Capítulo 7</h2>
+        <p>Postres y Dulces</p>
+    </div>
+
+    <div class="recipe-card" id="receta25">
+        <h3 class="recipe-title">25. Manzanas Asadas (Postre Fit)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Manzanas Asadas" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 15 min</span><span>👥 2 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>2 Manzanas rojas o verdes.</li>
+                <li>Canela en polvo.</li>
+                <li>Miel o azúcar morena.</li>
+                <li>Uvas pasas (opcional).</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Lava las manzanas y quítales el corazón (el centro) sin romper el fondo.</li>
+                <li>Rellena el hueco con canela, miel y pasas.</li>
+                <li>Cocina a 180°C por 15 minutos o hasta que la piel se arrugue y estén blanditas.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== CAPÍTULO 6: PIZZAS Y SNACKS RÁPIDOS ========== -->
+    <div class="section-divider">
+        <h2>🍕 Capítulo 6</h2>
+        <p>Pizzas y Snacks Rápidos</p>
+    </div>
+
+    <div class="recipe-card" id="receta26">
+        <h3 class="recipe-title">26. Pizza Rápida en Pan Árabe</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Pizza Rápida" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 190°C</span><span>⏱️ 5-7 min</span><span>👥 1-2 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Tortillas de harina (tipo burrito) o Pan Árabe.</li>
+                <li>Pasta de tomate.</li>
+                <li>Queso mozzarella rallado.</li>
+                <li>Jamón o Pepperoni.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Arma la pizza sobre la rejilla de la Air Fryer (si la armas afuera se te desarma al meterla).</li>
+                <li>**Truco Pro:** Si usas pepperoni, pínchalo con palillos de dientes a la masa. El aire de la freidora es fuerte y hace volar los ingredientes ligeros hacia la resistencia.</li>
+                <li>Cocina a 190°C hasta que el queso gratine.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Vuelve a capítulo 4 -->
+    <div class="recipe-card" id="receta27">
+        <h3 class="recipe-title">27. Cubos de Tofu/Queso Crocantes</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Tofu o Queso" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 15 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Bloque de Tofu firme o Queso para freír.</li>
+                <li>Maicena (Fécula de maíz).</li>
+                <li>Salsa de soya y aceite.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Corta en cubos. Pásalos por la salsa de soya y luego revuélcalos en maicena.</li>
+                <li>Rocía con aceite en spray para que no quede harina blanca.</li>
+                <li>Cocina a 200°C por 15 minutos moviendo a la mitad. Quedan con una costra increíble.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Vuelve a capítulo 1 -->
+    <div class="recipe-card" id="receta28">
+        <h3 class="recipe-title">28. Nuggets de Pollo Caseros</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Nuggets Caseros" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 12 min</span><span>👥 10-12 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Pechuga de pollo cortada en cubos.</li>
+                <li>1 huevo batido.</li>
+                <li>Miga de pan o Corn Flakes triturados (más crocante).</li>
+                <li>Sal y ajo.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Sazona el pollo. Pásalo por huevo y luego por la miga/cereales.</li>
+                <li>Coloca en la cesta sin amontonar.</li>
+                <li>Rocía aceite en spray (clave para el color dorado).</li>
+                <li>Cocina a 180°C por 6 minutos, voltea, rocía aceite de nuevo y cocina 6 minutos más.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 6 -->
+    <div class="recipe-card" id="receta29">
+        <h3 class="recipe-title">29. Nachos con Queso (Para ver películas)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Nachos" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 170°C</span><span>⏱️ 3-5 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Paquete de Nachos/Totopos naturales.</li>
+                <li>Queso Cheddar o Mozzarella rallado.</li>
+                <li>Jalapeños (opcional).</li>
+                <li>Molde pequeño que quepa en la freidora o papel aluminio.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pon una capa de nachos, una de queso, otra de nachos y otra de queso.</li>
+                <li>Mete el molde a la Air Fryer.</li>
+                <li>Cocina a 170°C solo hasta que el queso se derrita (unos 3 minutos).</li>
+                <li>Saca y pon guacamole o pico de gallo frío encima.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Vuelve a capítulo 2 -->
+    <div class="recipe-card" id="receta30">
+        <h3 class="recipe-title">30. Arepa de Huevo (Lista para freír)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Arepa Huevo" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 14-16 min</span><span>👥 1-2 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Arepas de huevo compradas congeladas (listas para freír).</li>
+                <li>Aceite en brocha o spray.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pincela la arepa congelada con aceite por AMBOS lados generosamente.</li>
+                <li>Cocina a 200°C por 8 minutos.</li>
+                <li>Voltea con cuidado y cocina otros 6-8 minutos hasta que esté tostada.</li>
+                <li>¡Menos grasa, mismo sabor!</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 6 -->
+    <div class="recipe-card" id="receta31">
+        <h3 class="recipe-title">31. Pan con Ajo y Perejil</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Pan con Ajo" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 4-5 min</span><span>👥 4 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Pan francés o baguette cortado en rodajas.</li>
+                <li>2 cucharadas de mantequilla.</li>
+                <li>1 diente de ajo triturado y perejil picado.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Mezcla la mantequilla con el ajo y perejil.</li>
+                <li>Unta cada rodaja de pan.</li>
+                <li>Lleva a la Air Fryer a 180°C por solo 4 o 5 minutos hasta que bordes doren.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 4 -->
+    <div class="recipe-card" id="receta32">
+        <h3 class="recipe-title">32. Champiñones Rellenos</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Champiñones" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 8-10 min</span><span>👥 6 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>6 Champiñones grandes.</li>
+                <li>Queso crema o Mozzarella.</li>
+                <li>Tocineta picada (opcional).</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Limpia los champiñones y quítales el tallo con cuidado.</li>
+                <li>Rellena el hueco con el queso y pon tocineta encima.</li>
+                <li>Cocina a 180°C por 8 minutos. El champiñón se cocina en su propio jugo.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== CAPÍTULO 5: PESCADOS Y MARISCOS ========== -->
+    <div class="section-divider">
+        <h2>🐟 Capítulo 5</h2>
+        <p>Pescados y Mariscos</p>
+    </div>
+
+    <div class="recipe-card" id="receta33">
+        <h3 class="recipe-title">33. Camarones al Ajillo Rápidos</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Camarones" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 5-7 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>1 libra de camarones crudos pelados.</li>
+                <li>Aceite de oliva, ajo picado, sal y limón.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>En un bowl, mezcla los camarones con el aceite y ajo.</li>
+                <li>Ponlos en la canasta (o en un molde si quieres guardar el jugo).</li>
+                <li>Cocina a 180°C. ¡Cuidado! Se cocinan muy rápido (5 a 7 minutos). Si te pasas quedan cauchudos.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 4 -->
+    <div class="recipe-card" id="receta34">
+        <h3 class="recipe-title">34. Rollitos de Espárragos con Tocineta</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Espárragos" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 10 min</span><span>👥 Entrada</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Espárragos frescos (corta la parte dura del tallo).</li>
+                <li>Tiras de tocineta ahumada.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Toma un grupo de 3 espárragos.</li>
+                <li>Enrolla una tira de tocineta alrededor de ellos, apretando bien.</li>
+                <li>Cocina a 200°C por 10 minutos. La tocineta queda crocante y el espárrago tierno.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== CAPÍTULO 8: RECALENTADOS Y TRUCOS ========== -->
+    <div class="section-divider">
+        <h2>🔧 Capítulo 8</h2>
+        <p>Recalentados y Trucos</p>
+    </div>
+
+    <div class="recipe-card" id="receta35">
+        <h3 class="recipe-title">35. Papa Rellena (Cómo calentarla bien)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Papa Rellena" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 10-12 min</span><span>👥 1 Ud</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Papa rellena comprada (que ya se enfrió).</li>
+                <li>No necesitas aceite extra.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>El microondas pone la papa rellena aguada y fea. La Air Fryer la revive.</li>
+                <li>Mete la papa fría a 180°C por 10-12 minutos.</li>
+                <li>El calor seco hará que la cáscara vuelva a estar crocante como recién freída.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 1 -->
+    <div class="recipe-card" id="receta36">
+        <h3 class="recipe-title">36. Lomo de Cerdo Asado (entero)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Lomo de Cerdo" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 35-45 min</span><span>👥 4 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Bloque de lomo o cañón de cerdo (aprox 500g-700g).</li>
+                <li>Adobo: Mostaza, miel, sal, pimienta.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Adoba la carne y déjala reposar 1 hora en nevera.</li>
+                <li>Ponla en la Air Fryer a 180°C. El tiempo depende del grosor, calcula 40 minutos.</li>
+                <li>A mitad de tiempo, voltea la pieza.</li>
+                <li>**Vital:** Deja reposar la carne 10 minutos fuera de la freidora antes de cortar, o se saldrán los jugos y quedará seca.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 4 -->
+    <div class="recipe-card" id="receta37">
+        <h3 class="recipe-title">37. Brócoli Rostizado (Sabe a nuez)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Brócoli" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 8-10 min</span><span>👥 Guarnición</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Arbolitos de brócoli lavados y secos.</li>
+                <li>Aceite de oliva, sal y limón.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Mezcla el brócoli con el aceite y sal.</li>
+                <li>Cocina a 200°C.</li>
+                <li>El truco es dejar que las puntas se quemen un poquito (se ponen cafés). Eso le da un sabor ahumado delicioso.</li>
+                <li>Sirve con unas gotas de limón.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 6 -->
+    <div class="recipe-card" id="receta38">
+        <h3 class="recipe-title">38. Queso Asado (Bloque)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Queso Asado" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 10 min</span><span>👥 2-3 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Bloque de Queso Costeño (duro) o Queso para asar.</li>
+                <li>Papel aluminio.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Haz una "camita" con papel aluminio (dobla los bordes hacia arriba para que no se riegue si se derrite mucho).</li>
+                <li>Pon el bloque de queso entero encima.</li>
+                <li>Cocina a 200°C por 10 minutos o hasta que se forme una costra dorada encima.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 7 -->
+    <div class="recipe-card" id="receta39">
+        <h3 class="recipe-title">39. Brownie Rápido</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Brownie" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 165°C</span><span>⏱️ 15-20 min</span><span>👥 2-4 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Mezcla lista para brownie (de caja) o tu receta casera.</li>
+                <li>Molde de silicona o aluminio pequeño (que quepa en la cesta).</li>
+                <li>Mantequilla para engrasar.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Prepara la mezcla según la caja.</li>
+                <li>Engrasa el molde y vierte la mezcla (máximo hasta la mitad).</li>
+                <li>Cocina a 165°C. Revisa a los 15 minutos insertando un palillo. Si sale húmedo pero no líquido, ya está. (En la Air Fryer se secan rápido, mejor sácalos antes).</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 4 -->
+    <div class="recipe-card" id="receta40">
+        <h3 class="recipe-title">40. Coliflor estilo "Alitas Búfalo"</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Coliflor Búfalo" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 15 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Coliflor en trozos.</li>
+                <li>Salsa picante (tipo Búfalo) y un poco de mantequilla derretida.</li>
+                <li>Maicena.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pasa la coliflor húmeda por maicena. Cocina 10 min a 200°C.</li>
+                <li>Mezcla la salsa picante con la mantequilla.</li>
+                <li>Saca la coliflor, báñala en la salsa y vuelve a meter 5 minutos más.</li>
+                <li>Queda picante y deliciosa.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 6 -->
+    <div class="recipe-card" id="receta41">
+        <h3 class="recipe-title">41. Croissant de Jamón y Queso</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Croissant" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 160°C</span><span>⏱️ 3-4 min</span><span>👥 1 Ud</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Croissant de panadería (grande).</li>
+                <li>Jamón y Queso tajado.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Abre el croissant por la mitad con un cuchillo de sierra.</li>
+                <li>Rellena con jamón y queso.</li>
+                <li>Lleva a la Air Fryer a 160°C (temperatura baja).</li>
+                <li>Solo necesitas 3 minutos para que el queso derrita y el pan se ponga crocante. Si subes la temperatura, quemas el pan.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 2 -->
+    <div class="recipe-card" id="receta42">
+        <h3 class="recipe-title">42. Aros de Cebolla (De paquete)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Aros de Cebolla" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 8-10 min</span><span>👥 Snack</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Aros de cebolla congelados.</li>
+                <li>Aceite en spray.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Sácalos del congelador y ponlos en la canasta en una sola capa (no los amontones o se rompen).</li>
+                <li>Rocía aceite. Cocina a 200°C.</li>
+                <li>A los 5 minutos, dales la vuelta con cuidado usando pinzas.</li>
+                <li>Cocina hasta dorar.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 6 -->
+    <div class="recipe-card" id="receta43">
+        <h3 class="recipe-title">43. Mix de Nueces Tostadas</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Nueces" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 150°C</span><span>⏱️ 5-6 min</span><span>👥 Snack</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Mix de nueces crudas (maní, almendra, marañón).</li>
+                <li>Un tris de sal o picante en polvo.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pon las nueces en la canasta.</li>
+                <li>Cocina a baja temperatura (150°C). Las nueces tienen mucho aceite natural y se queman en segundos.</li>
+                <li>Cada 2 minutos abre y agita. En 5 o 6 minutos olerán delicioso y estarán listas.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 1 -->
+    <div class="recipe-card" id="receta44">
+        <h3 class="recipe-title">44. Longaniza Asada</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Longaniza" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 15-18 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Longaniza de cerdo buena calidad.</li>
+                <li>Arepa para acompañar.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pincha la longaniza con un tenedor varias veces para que salga la grasa.</li>
+                <li>Cocina a 200°C.</li>
+                <li>Voltea a la mitad del tiempo. Quedará súper dorada y mucho más seca de grasa que en sartén.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 3 -->
+    <div class="recipe-card" id="receta45">
+        <h3 class="recipe-title">45. Cascos de Papa al Romero</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Cascos de Papa" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 20 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Papas medianas lavadas (con piel).</li>
+                <li>Aceite de oliva, sal gruesa y romero seco.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Corta las papas en cascos (gajos) gruesos.</li>
+                <li>Mezcla bien con el aceite y el romero.</li>
+                <li>Ponlas con la piel hacia abajo en la canasta.</li>
+                <li>Cocina a 200°C por 20 minutos hasta que estén doradas y suaves por dentro.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 5 -->
+    <div class="recipe-card" id="receta46">
+        <h3 class="recipe-title">46. Tilapia Frita (Sin inmersión en aceite)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Tilapia" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 12-14 min</span><span>👥 2 Filetes</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Filetes de tilapia o mojarra (secos).</li>
+                <li>Harina de trigo con sal y ajo en polvo.</li>
+                <li>Aceite en spray.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Seca el pescado. Pásalo por la harina y sacude el exceso (solo una capa fina).</li>
+                <li>Ponlo en la freidora y rocía ABUNDANTE aceite en spray sobre la harina.</li>
+                <li>Cocina a 200°C. A la mitad, voltea y vuelve a rociar aceite donde veas harina blanca. Queda crocante.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 7 -->
+    <div class="recipe-card" id="receta47">
+        <h3 class="recipe-title">47. Mug Cake (Torta en taza)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Mug Cake" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 160°C</span><span>⏱️ 10-12 min</span><span>👥 1 Ud</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>1 taza de cerámica apta para horno.</li>
+                <li>Mezcla: 4 cdas harina, 2 cdas cacao, 2 cdas azúcar, 1 pizca polvo hornear, 3 cdas leche, 1 cda aceite.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Mezcla todo muy bien en la taza. No la llenes más de la mitad porque se riega.</li>
+                <li>Mete la taza a la Air Fryer.</li>
+                <li>Cocina a 160°C por 10 minutos. Inserta un palillo para probar.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 7 -->
+    <div class="recipe-card" id="receta48">
+        <h3 class="recipe-title">48. Churros Azucarados (Congelados)</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Churros" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 6-8 min</span><span>👥 6 Uds</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>Churros congelados listos para hornear.</li>
+                <li>Azúcar y canela para el final.</li>
+                <li>Aceite en spray.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Pon los churros y rocía aceite.</li>
+                <li>Cocina a 200°C por 6-8 minutos moviéndolos para que doren parejo.</li>
+                <li>**Inmediatamente** al sacarlos calientes, revuélcalos en la mezcla de azúcar y canela para que se pegue.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 4 -->
+    <div class="recipe-card" id="receta49">
+        <h3 class="recipe-title">49. Pimentones Rellenos</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Pimentones Rellenos" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 180°C</span><span>⏱️ 15 min</span><span>👥 2 Porciones</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Ingredientes:</h4>
+            <ul>
+                <li>1 Pimentón grande cortado a lo largo (limpio).</li>
+                <li>Carne molida cocinada, arroz o sobras de comida.</li>
+                <li>Queso para gratinar.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Preparación:</h4>
+            <ol>
+                <li>Rellena las mitades del pimentón con tu mezcla favorita.</li>
+                <li>Ponlas con cuidado en la cesta para que no se volteen (puedes hacer una base de aluminio arrugado para sostenerlos).</li>
+                <li>Cocina a 180°C por 15 minutos. El pimentón se asa y el queso gratina.</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Continúa capítulo 8 -->
+    <div class="recipe-card" id="receta50">
+        <h3 class="recipe-title">50. BONUS: Limpieza Profunda con Vapor</h3>
+        <img src="RUTA_DE_TU_IMAGEN.jpg" alt="Limpieza Air Fryer" class="recipe-image">
+        <div class="recipe-info-box">
+            <span>🌡️ 200°C</span><span>⏱️ 10 min</span><span>👥 Limpieza</span>
+        </div>
+        <div class="ingredients-section">
+            <h4>Necesitas:</h4>
+            <ul>
+                <li>Un plato hondo o molde apto para calor.</li>
+                <li>Agua y zumo de 2 limones (o vinagre).</li>
+                <li>Un trapo húmedo.</li>
+            </ul>
+        </div>
+        <div class="steps-section">
+            <h4>Procedimiento (El mejor truco):</h4>
+            <ol>
+                <li>A veces la grasa se pega en la resistencia de arriba y la freidora empieza a humear.</li>
+                <li>Pon el plato con agua y limón en la cesta.</li>
+                <li>Enciende a 200°C por 10 o 15 minutos.</li>
+                <li>El vapor de limón ablandará toda la grasa pegada en las paredes y resistencia.</li>
+                <li>Desconecta, deja enfriar un poco y pasa el trapo. ¡Saldrá todo fácil!</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- ========== PÁGINA FINAL DE EXPORTACIÓN ========== -->
+    <div class="print-btn-container">
+        <h2>📚 ¡Tu Libro de Recetas Está Listo!</h2>
+        <p style="font-size: 1.2em; line-height: 1.8;">
+            Este libro contiene 50 recetas organizadas profesionalmente para tu Air Fryer.<br>
+            Haz clic en el botón de abajo para guardarlo como PDF en tu dispositivo.
+        </p>
+        <button class="print-btn" onclick="window.print()">🖨️ EXPORTAR A PDF</button>
+        <div style="margin-top: 30px; padding: 20px; background: #fff3e0; border-radius: 10px; border-left: 5px solid var(--primary-color);">
+            <h3 style="color: var(--primary-color); margin-bottom: 15px;">📝 Instrucciones para Exportar:</h3>
+            <ol style="text-align: left; max-width: 600px; margin: 0 auto; line-height: 1.8;">
+                <li>Haz clic en el botón "EXPORTAR A PDF"</li>
+                <li>En la ventana de impresión, selecciona <strong>"Guardar como PDF"</strong> como destino</li>
+                <li>Ajusta la configuración:
+                    <ul>
+                        <li>Márgenes: Predeterminados</li>
+                        <li>Orientación: Vertical</li>
+                        <li>Escala: Ajustar a la página</li>
+                    </ul>
+                </li>
+                <li>Haz clic en "Guardar" y elige la ubicación en tu dispositivo</li>
+            </ol>
+        </div>
+        <p style="margin-top: 30px; color: #666; font-style: italic;">
+            💡 Consejo: Puedes compartir este PDF con tu familia y amigos, o imprimirlo para tenerlo siempre a mano en tu cocina.
+        </p>
+        <div style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e0e0e0;">
+            <p style="color: #999; font-size: 0.9em;">
+                © 2025 - Domina Tu Air Fryer<br>
+                Recetas Criollas Colombianas - Edición Especial
+            </p>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

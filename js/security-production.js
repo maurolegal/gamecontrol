@@ -34,11 +34,22 @@
     // Run auth check immediately
     checkAuth();
 
-    // 2. Disable Developer Tools & Context Menu
-    document.addEventListener('contextmenu', function(e) {
-        e.preventDefault();
-        return false;
-    });
+    // 2. Disable Developer Tools & Context Menu (allow override)
+    const allowContextMenu = (function() {
+        try {
+            return (typeof window !== 'undefined' && window.ALLOW_CONTEXT_MENU === true) ||
+                   (localStorage.getItem('allowContextMenu') === '1');
+        } catch (_) {
+            return false;
+        }
+    })();
+
+    if (!allowContextMenu) {
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    }
 
     document.addEventListener('keydown', function(e) {
         // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U

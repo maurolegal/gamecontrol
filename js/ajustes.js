@@ -16,7 +16,14 @@ class SistemaAjustes {
     obtenerConfiguracion() {
         // Obtener configuración del sistema principal
         const configPrincipal = JSON.parse(localStorage.getItem('configSistema')) || {};
-        
+        // Merge con 'configuracion' (usada por salas.js) para tarifas
+        try {
+            const cfgSalas = JSON.parse(localStorage.getItem('configuracion') || '{}');
+            if (cfgSalas && cfgSalas.tarifasPorSala) {
+                configPrincipal.tarifasPorSala = { ...(configPrincipal.tarifasPorSala || {}), ...cfgSalas.tarifasPorSala };
+            }
+        } catch (_) {}
+
         // Configuración por defecto
         const configDefault = {
             // Información del negocio
@@ -63,11 +70,40 @@ class SistemaAjustes {
 
     guardarConfiguracion(config) {
         localStorage.setItem('configSistema', JSON.stringify(config));
+        // Mantener también 'configuracion' (tarifas para salas)
+        try {
+            const cfgExistente = JSON.parse(localStorage.getItem('configuracion') || '{}');
+            const merge = { ...cfgExistente, tarifasPorSala: config.tarifasPorSala || {} };
+            localStorage.setItem('configuracion', JSON.stringify(merge));
+        } catch (_) {}
         
         // Actualizar CONFIG global para compatibilidad
         if (window.CONFIG) {
             window.CONFIG.moneda = config.moneda;
             window.CONFIG.formatoMoneda.currency = config.moneda;
+        }
+
+        // Sincronizar con Supabase si está disponible (detectar esquema dinámicamente)
+        if (window.databaseService) {
+            const payload = (() => { try { return JSON.parse(localStorage.getItem('configuracion')||'{}'); } catch(_) { return { tarifasPorSala: config.tarifasPorSala||{} }; } })();
+            window.databaseService
+                .select('configuracion', { limite: 1 })
+                .then(res => {
+                    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+                        const row = res.data[0];
+                        const rowId = row.id;
+                        const dataToSave = (Object.prototype.hasOwnProperty.call(row, 'datos')) ? { datos: payload } : (Object.prototype.hasOwnProperty.call(row, 'valor') ? { valor: payload } : { datos: payload });
+                        return window.databaseService.update('configuracion', rowId, dataToSave);
+                    } else {
+                        // Insertar una fila nueva; preferir 'datos', fallback a key-value
+                        return window.databaseService.insert('configuracion', { datos: payload })
+                            .catch(() => window.databaseService.insert('configuracion', { clave: 'global_config', valor: payload, tipo: 'json', editable: true, publico: false }));
+                    }
+                })
+                .then(r2 => {
+                    if (r2 && r2.success) console.log('✅ Ajustes: configuración sincronizada con Supabase');
+                })
+                .catch(err => console.error('❌ Ajustes: no se pudo sincronizar configuración:', err?.message || err));
         }
 
         // Notificar a otros módulos del sistema
