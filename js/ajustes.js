@@ -351,7 +351,11 @@ class SistemaAjustes {
     }
 
     generarTarjetaTarifa(sala, config) {
-        const tarifaActual = config.tarifasPorSala[sala.id] || sala.tarifa || 0;
+        const base = config.tarifasPorSala && config.tarifasPorSala[sala.id];
+        const tarifas = (base && typeof base === 'object') 
+            ? base 
+            : { t30: 0, t60: Number(base || sala.tarifa || 0) || 0, t90: 0, t120: 0 };
+        const { t30 = 0, t60 = 0, t90 = 0, t120 = 0 } = tarifas;
         const estadoBadge = this.obtenerClaseBadgeEstado(sala.estado);
         
         return `
@@ -369,23 +373,80 @@ class SistemaAjustes {
                             <span class="badge bg-${estadoBadge}">${sala.estado || 'Disponible'}</span>
                         </div>
                         
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Tarifa por Hora</label>
-                            <div class="input-group">
-                                <span class="input-group-text">$</span>
-                                <input type="number" 
-                                       class="form-control tarifa-input" 
-                                       name="tarifa_${sala.id}" 
-                                       value="${tarifaActual}"
-                                       min="0" 
-                                       step="500" 
-                                       data-sala-id="${sala.id}"
-                                       data-sala-nombre="${sala.nombre}">
-                                <span class="input-group-text">COP</span>
+                        <label class="form-label fw-semibold">Tarifas por duración</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="tarifa-item mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">30m</span>
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" 
+                                               class="form-control tarifa-input" 
+                                               name="tarifa_30_${sala.id}"
+                                               value="${t30}"
+                                               min="0"
+                                               step="100"
+                                               data-sala-id="${sala.id}"
+                                               data-tiempo="30">
+                                        <span class="input-group-text">COP</span>
+                                    </div>
+                                    <small class="text-muted precio-por-minuto">$${(t30/30||0).toLocaleString()} por minuto</small>
+                                </div>
                             </div>
-                            <small class="text-muted precio-por-minuto">
-                                Precio por minuto: $${Math.round(tarifaActual / 60).toLocaleString()}
-                            </small>
+                            <div class="col-6">
+                                <div class="tarifa-item mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">60m</span>
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" 
+                                               class="form-control tarifa-input" 
+                                               name="tarifa_60_${sala.id}"
+                                               value="${t60}"
+                                               min="0"
+                                               step="100"
+                                               data-sala-id="${sala.id}"
+                                               data-tiempo="60">
+                                        <span class="input-group-text">COP</span>
+                                    </div>
+                                    <small class="text-muted precio-por-minuto">$${(t60/60||0).toLocaleString()} por minuto</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="tarifa-item mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">90m</span>
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" 
+                                               class="form-control tarifa-input" 
+                                               name="tarifa_90_${sala.id}"
+                                               value="${t90}"
+                                               min="0"
+                                               step="100"
+                                               data-sala-id="${sala.id}"
+                                               data-tiempo="90">
+                                        <span class="input-group-text">COP</span>
+                                    </div>
+                                    <small class="text-muted precio-por-minuto">$${(t90/90||0).toLocaleString()} por minuto</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="tarifa-item mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text">120m</span>
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" 
+                                               class="form-control tarifa-input" 
+                                               name="tarifa_120_${sala.id}"
+                                               value="${t120}"
+                                               min="0"
+                                               step="100"
+                                               data-sala-id="${sala.id}"
+                                               data-tiempo="120">
+                                        <span class="input-group-text">COP</span>
+                                    </div>
+                                    <small class="text-muted precio-por-minuto">$${(t120/120||0).toLocaleString()} por minuto</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -570,19 +631,29 @@ class SistemaAjustes {
 
     guardarTarifas() {
         const config = this.obtenerConfiguracion();
-        const inputs = document.querySelectorAll('.tarifa-input');
-        
-        inputs.forEach(input => {
-            const salaId = input.dataset.salaId;
-            const tarifa = parseFloat(input.value) || 0;
-            if (salaId) {
-                config.tarifasPorSala[salaId] = tarifa;
-            }
+        const tarjetas = document.querySelectorAll('.tarifa-sala-card');
+
+        tarjetas.forEach(card => {
+            const inputs = card.querySelectorAll('.tarifa-input');
+            if (!inputs || inputs.length === 0) return;
+
+            // Todos los inputs comparten mismo salaId
+            const salaId = inputs[0].dataset.salaId;
+            const tarifas = { t30: 0, t60: 0, t90: 0, t120: 0 };
+            inputs.forEach(input => {
+                const minutos = parseInt(input.dataset.tiempo, 10);
+                const valor = Number(input.value) || 0;
+                if (minutos === 30) tarifas.t30 = valor;
+                if (minutos === 60) tarifas.t60 = valor;
+                if (minutos === 90) tarifas.t90 = valor;
+                if (minutos === 120) tarifas.t120 = valor;
+            });
+
+            if (!config.tarifasPorSala) config.tarifasPorSala = {};
+            config.tarifasPorSala[salaId] = tarifas;
         });
 
         this.guardarConfiguracion(config);
-        
-        // Actualizar también las salas directamente para compatibilidad
         this.actualizarTarifasEnSalas(config.tarifasPorSala);
     }
 
@@ -590,7 +661,8 @@ class SistemaAjustes {
         const salas = this.obtenerSalasReales();
         const salasActualizadas = salas.map(sala => {
             if (tarifasPorSala[sala.id]) {
-                sala.tarifa = tarifasPorSala[sala.id];
+                const t = tarifasPorSala[sala.id];
+                sala.tarifa = typeof t === 'object' ? (t.t60 || 0) : t;
             }
             return sala;
         });
@@ -626,11 +698,12 @@ class SistemaAjustes {
     // ==================== UTILIDADES ====================
     actualizarPrecioPorMinutoEnTiempoReal(input) {
         const tarifa = parseFloat(input.value) || 0;
-        const precioPorMinuto = Math.round(tarifa / 60);
-        const elementoPrecio = input.closest('.card-body').querySelector('.precio-por-minuto');
-        
+        const minutos = parseInt(input.dataset.tiempo || '60', 10);
+        const precioPorMinuto = Math.round(tarifa / (minutos || 1));
+        const wrapper = input.closest('.tarifa-item');
+        const elementoPrecio = wrapper ? wrapper.querySelector('.precio-por-minuto') : null;
         if (elementoPrecio) {
-            elementoPrecio.textContent = `Precio por minuto: $${precioPorMinuto.toLocaleString()}`;
+            elementoPrecio.textContent = `$${precioPorMinuto.toLocaleString()} por minuto`;
         }
     }
 
@@ -833,7 +906,7 @@ class SistemaAjustes {
         // Actualizar configuración de tarifas
         const config = this.obtenerConfiguracion();
         salasDemo.forEach(sala => {
-            config.tarifasPorSala[sala.id] = sala.tarifa;
+            config.tarifasPorSala[sala.id] = { t30: 0, t60: sala.tarifa || 0, t90: 0, t120: 0 };
         });
         this.guardarConfiguracion(config);
 
