@@ -99,12 +99,15 @@
         // Variables globales
         let supabaseClient = null;
         
-        const CONFIG = {
-            url: 'https://stjbtxrrdofuxhigxfcy.supabase.co',
-            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amJ0eHJyZG9mdXhoaWd4ZmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MTgwNzUsImV4cCI6MjA3NzM5NDA3NX0.vhz6v2pRepUH7g-ucSJKtWonmAeWYqwhrTxG_ypVElo',
-            adminEmail: 'maurochica23@gmail.com',
-            adminPassword: 'kennia23'
-        };
+        try { CONFIG; } catch (e) {
+            window.CONFIG = window.CONFIG || {
+                url: 'https://stjbtxrrdofuxhigxfcy.supabase.co',
+                anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN0amJ0eHJyZG9mdXhoaWd4ZmN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE4MTgwNzUsImV4cCI6MjA3NzM5NDA3NX0.vhz6v2pRepUH7g-ucSJKtWonmAeWYqwhrTxG_ypVElo',
+                adminEmail: 'maurochica23@gmail.com',
+                adminPassword: 'kennia23'
+            };
+            const CONFIG = window.CONFIG;
+        }
         
         // Función para agregar logs
         function addLog(message, type = 'info') {

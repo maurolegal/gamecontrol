@@ -73,15 +73,18 @@
             addToConsole(args.join(' '), 'error');
         };
         
-        // Configuración global (copiada de salas.js)
-        const CONFIG = {
-            tiposConsola: {
-                playstation: { prefijo: 'PS', icon: 'fab fa-playstation', nombre: 'PlayStation' },
-                xbox: { prefijo: 'XB', icon: 'fab fa-xbox', nombre: 'Xbox' },
-                nintendo: { prefijo: 'NT', icon: 'fas fa-gamepad', nombre: 'Nintendo' },
-                pc: { prefijo: 'PC', icon: 'fas fa-desktop', nombre: 'PC' }
-            }
-        };
+        // Configuración global (evitar redeclaración)
+        try { CONFIG; } catch (e) {
+            window.CONFIG = window.CONFIG || {
+                tiposConsola: {
+                    playstation: { prefijo: 'PS', icon: 'fab fa-playstation', nombre: 'PlayStation' },
+                    xbox: { prefijo: 'XB', icon: 'fab fa-xbox', nombre: 'Xbox' },
+                    nintendo: { prefijo: 'NT', icon: 'fas fa-gamepad', nombre: 'Nintendo' },
+                    pc: { prefijo: 'PC', icon: 'fas fa-desktop', nombre: 'PC' }
+                }
+            };
+            const CONFIG = window.CONFIG;
+        }
         
         // Datos de prueba
         const salasPrueba = [
