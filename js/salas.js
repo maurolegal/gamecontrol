@@ -443,7 +443,7 @@ class GestorSalas {
         console.log('🔄 Recargando configuración en GestorSalas...');
         this.config = obtenerConfiguracion();
         this.normalizarTarifasManual();
-        this.renderizarSalas();
+        this.actualizarSalas();
         
         // Si el modal de tarifas está abierto, actualizarlo
         const modalTarifas = document.getElementById('modalTarifas');
