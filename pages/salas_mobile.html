@@ -10,402 +10,158 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/salas-mobile-native.css">
     <script src="../js/security-production.js"></script>
-    
-    <style>
-        :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-card: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
-            --primary: #3b82f6;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --border: #475569;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            overflow-x: hidden;
-            padding-bottom: 70px;
-        }
-
-        /* Header fijo */
-        .mobile-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-secondary);
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            z-index: 1000;
-        }
-
-        .header-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .header-icon {
-            width: 36px;
-            height: 36px;
-            background: var(--bg-card);
-            border: none;
-            border-radius: 8px;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-        }
-
-        /* Stats compactas */
-        .stats-row {
-            position: fixed;
-            top: 60px;
-            left: 0;
-            right: 0;
-            background: var(--bg-primary);
-            padding: 12px 8px;
-            display: flex;
-            gap: 6px;
-            overflow-x: auto;
-            z-index: 999;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .stat-card {
-            flex: 1;
-            min-width: 70px;
-            background: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 8px;
-            text-align: center;
-            border: 1px solid var(--border);
-        }
-
-        .stat-value {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text-primary);
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 10px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-
-        /* Contenido principal */
-        .main-content {
-            margin-top: 130px;
-            padding: 0 12px;
-        }
-
-        /* Sala card */
-        .sala-card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border);
-        }
-
-        .sala-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .sala-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .sala-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--primary);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 14px;
-        }
-
-        /* Estaciones grid */
-        .estaciones-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-
-        .estacion-item {
-            background: var(--bg-card);
-            border-radius: 8px;
-            padding: 12px;
-            border: 1px solid var(--border);
-            position: relative;
-        }
-
-        .estacion-item.ocupada {
-            border-color: var(--success);
-            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(16, 185, 129, 0.1) 100%);
-        }
-
-        .estacion-item.disponible {
-            border-color: var(--border);
-        }
-
-        .estacion-numero {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-        }
-
-        .estacion-status {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .estacion-status.ocupada {
-            background: var(--success);
-            color: white;
-        }
-
-        .estacion-status.disponible {
-            background: var(--border);
-            color: var(--text-secondary);
-        }
-
-        .estacion-cliente {
-            font-size: 13px;
-            color: var(--text-primary);
-            margin: 6px 0 4px;
-            font-weight: 500;
-        }
-
-        .estacion-tiempo {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        .estacion-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        .btn-action {
-            flex: 1;
-            padding: 6px;
-            border-radius: 6px;
-            border: none;
-            font-size: 12px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-
-        .btn-action.primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-action.success {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-action.danger {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-action i {
-            font-size: 11px;
-        }
-
-        /* Bottom Nav */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-secondary);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
-            z-index: 1000;
-        }
-
-        .nav-item {
-            flex: 1;
-            text-align: center;
-            padding: 4px 0;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .nav-item.active {
-            color: var(--primary);
-        }
-
-        .nav-item i {
-            display: block;
-            font-size: 20px;
-            margin-bottom: 2px;
-        }
-
-        .nav-item span {
-            font-size: 11px;
-            display: block;
-        }
-
-        /* Loading skeleton */
-        .skeleton {
-            background: linear-gradient(90deg, var(--bg-card) 25%, var(--border) 50%, var(--bg-card) 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-        }
-
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-
-        /* Modal styles */
-        .modal-content {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            color: var(--text-primary);
-        }
-
-        .modal-header {
-            border-bottom: 1px solid var(--border);
-        }
-
-        .modal-footer {
-            border-top: 1px solid var(--border);
-        }
-
-        /* Hidden elements */
-        .sidebar, .sidebar-overlay, .d-none { display: none !important; }
-    </style>
 </head>
-<body class="salas-page salas-corporate">
+<body class="salas-page salas-corporate salas-mobile-native">
 
-    <!-- Header -->
-    <div class="mobile-header">
-        <div class="header-title">
-            <i class="fas fa-gamepad me-2"></i>Salas
+    <!-- Header (native-like) -->
+    <header class="gc-header">
+        <div class="gc-header-row">
+            <div class="gc-title">
+                <div class="gc-appicon" aria-hidden="true"><i class="fas fa-gamepad"></i></div>
+                <div style="min-width:0">
+                    <h1>Salas</h1>
+                    <p class="gc-subtitle">Control en tiempo real</p>
+                </div>
+            </div>
+            <div class="gc-actions">
+                <button class="gc-iconbtn" type="button" onclick="window.location.reload()" aria-label="Actualizar">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <div class="dropdown">
+                    <button class="gc-iconbtn" type="button" id="userMenuBtn" data-bs-toggle="dropdown" aria-label="Menú de usuario">
+                        <i class="fas fa-user"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuBtn">
+                        <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Ajustes</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
         </div>
-        <div class="header-actions">
-            <button class="header-icon" onclick="window.location.reload()">
-                <i class="fas fa-sync-alt"></i>
-            </button>
-            <button class="header-icon" id="userMenuBtn" data-bs-toggle="dropdown">
-                <i class="fas fa-user"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Ajustes</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
-            </ul>
-        </div>
-    </div>
+    </header>
 
-    <!-- Stats compactas -->
-    <div class="stats-row">
-        <div class="stat-card">
-            <span class="stat-value" id="totalSalas">0</span>
-            <span class="stat-label">Salas</span>
+    <!-- Stats (IDs alineados a salas.js) -->
+    <section class="gc-stats" aria-label="Resumen">
+        <div class="gc-stat is-primary">
+            <span class="v" id="totalSalas">0</span>
+            <span class="l">Salas</span>
         </div>
-        <div class="stat-card">
-            <span class="stat-value text-success" id="estacionesOcupadas">0</span>
-            <span class="stat-label">Ocupadas</span>
+        <div class="gc-stat is-success">
+            <span class="v" id="salasDisponibles">0</span>
+            <span class="l">Libres</span>
         </div>
-        <div class="stat-card">
-            <span class="stat-value text-muted" id="estacionesDisponibles">0</span>
-            <span class="stat-label">Libres</span>
+        <div class="gc-stat is-warning">
+            <span class="v" id="salasOcupadas">0</span>
+            <span class="l">En uso</span>
         </div>
-        <div class="stat-card">
-            <span class="stat-value text-warning" id="totalEstaciones">0</span>
-            <span class="stat-label">Total</span>
+        <div class="gc-stat">
+            <span class="v" id="ingresosHoy">$0</span>
+            <span class="l">Ingresos</span>
         </div>
-    </div>
+    </section>
 
-    <!-- Contenido Principal -->
-    <div class="main-content" id="salasContainer">
-        <!-- Las salas se cargarán dinámicamente aquí -->
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Cargando...</span>
+    <!-- Contenido Principal (salas.js usa #contenedorSalas) -->
+    <main class="gc-content" id="contenedorSalas" aria-live="polite">
+        <div class="gc-loading text-center">
+            <div class="spinner-border text-primary" role="status" aria-label="Cargando"></div>
+            <div class="mt-3" style="color: rgba(226,232,240,0.65); font-size: 13px;">Cargando salas…</div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation (native-like) -->
+    <nav class="gc-bottomnav" aria-label="Navegación">
+        <div class="row">
+            <a href="../index.html" class="gc-tab">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="salas_mobile.html" class="gc-tab active">
+                <i class="fas fa-gamepad"></i>
+                <span>Salas</span>
+            </a>
+            <a href="stock.html" class="gc-tab">
+                <i class="fas fa-box"></i>
+                <span>Stock</span>
+            </a>
+            <a href="ventas.html" class="gc-tab">
+                <i class="fas fa-cash-register"></i>
+                <span>Ventas</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Modal requerido por salas.js para iniciar sesión -->
+    <div class="modal fade" id="modalIniciarSesion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-fullscreen-sm-down modal-dialog-centered modal-md">
+            <div class="modal-content gc-modal">
+                <div class="modal-header gc-modal-header">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="gc-modal-badge" aria-hidden="true"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <h5 class="modal-title m-0">Iniciar Servicio</h5>
+                            <div class="gc-modal-subtitle">Selecciona estación, tiempo y cliente</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <form id="formIniciarSesion">
+                    <div class="modal-body gc-modal-body">
+                        <div class="gc-modal-section">
+                            <div class="gc-section-title"><i class="fas fa-user"></i><span>Cliente</span></div>
+                            <input type="text" class="form-control form-control-lg" name="cliente" placeholder="Gamertag / Nombre (opcional)" autocomplete="off">
+                            <div class="form-text">Tip: si lo dejas vacío, queda “Genérico”.</div>
+                        </div>
+
+                        <div class="gc-modal-section">
+                            <div class="gc-section-title"><i class="fas fa-tv"></i><span>Estación</span></div>
+                            <select class="form-select form-select-lg" name="estacion" id="selectEstacion" required></select>
+                        </div>
+
+                        <div class="gc-modal-section">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="gc-section-title mb-0"><i class="fas fa-hourglass-half"></i><span>Duración</span></div>
+                                <span class="gc-chip">Modo Gamer</span>
+                            </div>
+                            <div id="opcionesTiempo" class="mt-2"></div>
+
+                            <div class="gc-divider"></div>
+
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="gc-section-title mb-0"><i class="fas fa-sliders-h"></i><span>Personalizado</span></div>
+                                <span class="gc-hint">Anula los botones de arriba</span>
+                            </div>
+
+                            <div class="input-group input-group-lg">
+                                <input type="number" min="1" step="1" inputmode="numeric" class="form-control" name="tiempoPersonalizado" placeholder="Ej: 75">
+                                <span class="input-group-text">min</span>
+                            </div>
+                        </div>
+
+                        <div class="gc-total">
+                            <div class="gc-total-left">
+                                <div class="gc-total-label">Total estimado</div>
+                                <div class="gc-total-sub">Se calcula según tarifas</div>
+                            </div>
+                            <div id="costoEstimado" class="gc-total-value">$0</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer gc-modal-footer">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-play me-2"></i>Iniciar
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <a href="../index.html" class="nav-item">
-            <i class="fas fa-home"></i>
-            <span>Inicio</span>
-        </a>
-        <a href="salas_mobile.html" class="nav-item active">
-            <i class="fas fa-gamepad"></i>
-            <span>Salas</span>
-        </a>
-        <a href="stock.html" class="nav-item">
-            <i class="fas fa-box"></i>
-            <span>Stock</span>
-        </a>
-        <a href="ventas.html" class="nav-item">
-            <i class="fas fa-cash-register"></i>
-            <span>Ventas</span>
-        </a>
-    </div>
-
-    <!-- Modales (se reutilizarán los del JS original) -->
-    <div id="modalContainer"></div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -417,51 +173,10 @@
     <script src="../js/salas.js"></script>
 
     <script>
-        // Configuración específica para vista móvil
+        // Vista móvil: forzar tema oscuro y mejorar UX de scroll.
         document.addEventListener('DOMContentLoaded', () => {
-            // Forzar tema oscuro
             document.documentElement.setAttribute('data-theme', 'dark');
-            
-            // Interceptar la generación de HTML para adaptarla a móvil
-            if (window.gestorSalas) {
-                const originalRenderizar = window.gestorSalas.renderizarSalas;
-                window.gestorSalas.renderizarSalas = function() {
-                    originalRenderizar.call(this);
-                    adaptarVistaMovil();
-                };
-            }
         });
-
-        function adaptarVistaMovil() {
-            const salasContainer = document.getElementById('salasContainer');
-            if (!salasContainer) return;
-
-            // Remover cualquier sidebar o elementos de desktop
-            const sidebar = document.querySelector('.sidebar');
-            if (sidebar) sidebar.remove();
-
-            // Adaptar las salas al formato móvil
-            const salas = document.querySelectorAll('.sala-item');
-            salas.forEach(sala => {
-                sala.classList.add('sala-card');
-                
-                // Reorganizar estructura si es necesario
-                const nombre = sala.querySelector('.sala-nombre');
-                const estaciones = sala.querySelector('.estaciones-container');
-                
-                if (nombre && estaciones) {
-                    // Mover a formato móvil
-                    const header = document.createElement('div');
-                    header.className = 'sala-header';
-                    header.innerHTML = `
-                        <div class="sala-name">${nombre.textContent}</div>
-                        <div class="sala-icon"><i class="fas fa-gamepad"></i></div>
-                    `;
-                    
-                    sala.insertBefore(header, sala.firstChild);
-                }
-            });
-        }
     </script>
 </body>
 </html>
