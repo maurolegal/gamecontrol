@@ -1896,7 +1896,8 @@ class GestorSalas {
                 const formData = new FormData(e.target);
                 const tipo = formData.get('tipo');
                 const tipoInfo = CONFIG.tiposConsola[tipo] || { prefijo: 'EST' };
-                const tarifa = parseFloat(formData.get('tarifa')) || 0;
+                // Tarifa base eliminada: tarifas se configuran únicamente en el modal de Tarifas
+                const tarifa = 0;
                 
                 // Construir payload compatible con esquema de Supabase (tabla salas)
                 const payloadInsertSala = {
@@ -1906,7 +1907,7 @@ class GestorSalas {
                         prefijo: formData.get('prefijo') || tipoInfo.prefijo
                     },
                     num_estaciones: parseInt(formData.get('estaciones')),
-                    tarifas: { base: tarifa },
+                    tarifas: { base: 0 },
                     activa: true
                 };
                 let nuevaSalaId;
@@ -1926,7 +1927,7 @@ class GestorSalas {
                         tipo: payloadInsertSala.equipamiento.tipo_consola,
                         numEstaciones: payloadInsertSala.num_estaciones,
                         prefijo: payloadInsertSala.equipamiento.prefijo,
-                        tarifa: tarifa,
+                        tarifa: 0,
                         activo: true
                     });
                     await guardarSalas(this.salas);
@@ -1935,7 +1936,7 @@ class GestorSalas {
                     const config = obtenerConfiguracion();
                     const salaIdParaTarifa = this.salas[this.salas.length - 1].id;
                     if (!config.tarifasPorSala) config.tarifasPorSala = {};
-                    config.tarifasPorSala[salaIdParaTarifa] = { t30: 0, t60: tarifa, t90: 0, t120: 0 };
+                    config.tarifasPorSala[salaIdParaTarifa] = { t30: 0, t60: 0, t90: 0, t120: 0 };
                     guardarConfiguracion(config);
                     this.config = config;
                     
@@ -3984,7 +3985,6 @@ class GestorSalas {
         document.getElementById('editarTipo').value = sala.tipo;
         document.getElementById('editarNumEstaciones').value = sala.numEstaciones;
         document.getElementById('editarPrefijo').value = sala.prefijo;
-        document.getElementById('editarTarifa').value = sala.tarifa;
 
         // Mostrar el modal
         const modal = new bootstrap.Modal(document.getElementById('modalEditarSala'));
@@ -4007,7 +4007,6 @@ class GestorSalas {
             sala.tipo = formData.get('tipo');
             sala.numEstaciones = parseInt(formData.get('numEstaciones'));
             sala.prefijo = formData.get('prefijo');
-            sala.tarifa = parseFloat(formData.get('tarifa'));
 
             // Guardar en Supabase si está disponible
             if (window.databaseService) {
@@ -4017,9 +4016,6 @@ class GestorSalas {
                     equipamiento: {
                         tipo_consola: sala.tipo,
                         prefijo: sala.prefijo
-                    },
-                    tarifas: {
-                        base: sala.tarifa
                     }
                 };
 
