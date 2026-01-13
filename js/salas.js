@@ -178,6 +178,7 @@ async function obtenerSalas() {
                     numEstaciones: row.num_estaciones ?? row.numEstaciones ?? 4,
                     prefijo: equipamiento.prefijo || 'EST',
                     tarifa: tarifas.base || 0,
+                    tarifas: tarifas,
                     activo: (typeof row.activa === 'boolean') ? row.activa : true
                 };
                 console.log('  - Sala mapeada:', sala);
@@ -631,6 +632,18 @@ class GestorSalas {
 
     // Obtiene las tarifas configuradas (manuales) para una sala, con fallback 0
     _obtenerTarifasConfiguradas(sala) {
+        // 1) Preferir tarifas por sala desde Supabase (columna salas.tarifas)
+        const tRemote = sala?.tarifas;
+        if (tRemote && typeof tRemote === 'object') {
+            return {
+                t30: Number(tRemote.t30) || 0,
+                t60: Number(tRemote.t60) || 0,
+                t90: Number(tRemote.t90) || 0,
+                t120: Number(tRemote.t120) || 0
+            };
+        }
+
+        // 2) Fallback a configuración (si existe)
         const t = this.config?.tarifasPorSala?.[sala.id];
         if (t && typeof t === 'object') {
             return {
@@ -1830,9 +1843,12 @@ class GestorSalas {
         // Manejar formulario de tarifas
         const formTarifas = document.getElementById('formTarifas');
         if (formTarifas) {
-            formTarifas.addEventListener('submit', (e) => {
+            formTarifas.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
+
+                // Agrupar tarifas por sala para guardar en Supabase (una actualización por sala)
+                const updatesPorSala = {};
                 
                 // Actualizar tarifas
                 for (const [key, value] of formData.entries()) {
@@ -1846,9 +1862,47 @@ class GestorSalas {
                         const tiempo = sinPrefijo.slice(lastUnderscore + 1);
                         const tarifa = parseFloat(value);
                         if (!isNaN(tarifa) && salaId && tiempo) {
-                            this.actualizarTarifaDiferenciada(salaId, tiempo, tarifa);
+                            if (!updatesPorSala[salaId]) updatesPorSala[salaId] = { t30: 0, t60: 0, t90: 0, t120: 0 };
+                            updatesPorSala[salaId][`t${tiempo}`] = Number(tarifa) || 0;
                         }
                     }
+                }
+
+                // Aplicar cambios en memoria (config + salas) antes de persistir
+                try {
+                    if (!this.config) this.config = obtenerConfiguracion();
+                    if (!this.config.tarifasPorSala) this.config.tarifasPorSala = {};
+                    for (const [salaId, tarifas] of Object.entries(updatesPorSala)) {
+                        this.config.tarifasPorSala[salaId] = { ...tarifas };
+                        const sala = this.salas.find(s => s.id === salaId);
+                        if (sala) {
+                            sala.tarifas = { ...(sala.tarifas || {}), ...tarifas, base: Number(sala.tarifas?.base) || 0 };
+                            sala.tarifa = Number(sala.tarifas.base) || 0;
+                        }
+                    }
+                    guardarConfiguracion(this.config);
+                } catch (_) {}
+
+                // Persistir en Supabase por sala
+                const fallos = [];
+                if (window.databaseService) {
+                    for (const [salaId, tarifas] of Object.entries(updatesPorSala)) {
+                        try {
+                            const sala = this.salas.find(s => s.id === salaId);
+                            const payloadTarifas = { ...(sala?.tarifas || {}), ...tarifas };
+                            await window.databaseService.update('salas', salaId, { tarifas: payloadTarifas });
+                        } catch (err) {
+                            fallos.push({ salaId, err });
+                        }
+                    }
+                } else {
+                    fallos.push({ salaId: 'global', err: new Error('databaseService no disponible') });
+                }
+
+                if (fallos.length > 0) {
+                    console.error('❌ Error guardando tarifas en Supabase:', fallos);
+                    mostrarNotificacion('No se pudo guardar tarifas en Supabase. Revisa permisos/RLS.', 'error');
+                    return;
                 }
                 
                 // Cerrar modal de manera segura
@@ -1874,7 +1928,7 @@ class GestorSalas {
                     }, 150);
                 }
                 
-                mostrarNotificacion('Tarifas actualizadas correctamente', 'success');
+                mostrarNotificacion('Tarifas guardadas en Supabase', 'success');
             });
         }
 
@@ -2182,13 +2236,8 @@ class GestorSalas {
             </div>
         `;
         
-        // Agregar eventos de cambio a los inputs de tarifa
+        // Vista previa en tiempo real (solo UI). Guardado ocurre al enviar el formulario.
         contenedorTarifas.querySelectorAll('.tarifa-input').forEach(input => {
-            input.addEventListener('change', (e) => {
-                this.actualizarTarifaDiferenciada(e.target.dataset.salaId, e.target.dataset.tiempo, parseFloat(e.target.value));
-            });
-            
-            // Vista previa en tiempo real
             input.addEventListener('input', (e) => {
                 const valor = parseFloat(e.target.value) || 0;
                 const tiempo = parseInt(e.target.dataset.tiempo);
@@ -2315,8 +2364,9 @@ class GestorSalas {
     }
     
     obtenerTarifaPorTiempo(salaId, tiempoMinutos) {
-        const tarifas = this.config?.tarifasPorSala?.[salaId];
-        if (!tarifas || typeof tarifas !== 'object') return 0;
+        const sala = this.salas?.find(s => s.id === salaId);
+        const tarifas = sala ? this._obtenerTarifasConfiguradas(sala) : null;
+        if (!tarifas) return 0;
         if (tiempoMinutos <= 30) return Number(tarifas.t30) || 0;
         if (tiempoMinutos <= 60) return Number(tarifas.t60) || 0;
         if (tiempoMinutos <= 90) return Number(tarifas.t90) || 0;
@@ -2325,8 +2375,9 @@ class GestorSalas {
     
     calcularTarifaPersonalizada(salaId, tiempoMinutos) {
         // Mantener cálculo solo para tiempos personalizados; si no hay t60, retorna 0
-        const tarifas = this.config?.tarifasPorSala?.[salaId];
-        const hora = tarifas && typeof tarifas === 'object' ? (Number(tarifas.t60) || 0) : 0;
+        const sala = this.salas?.find(s => s.id === salaId);
+        const tarifas = sala ? this._obtenerTarifasConfiguradas(sala) : null;
+        const hora = tarifas ? (Number(tarifas.t60) || 0) : 0;
         if (!hora) return 0;
         return Math.round(hora * (Number(tiempoMinutos) || 0) / 60);
     }
