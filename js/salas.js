@@ -4,33 +4,23 @@ function generarId() {
 }
 
 function obtenerConfiguracion() {
-    try {
-        const config = JSON.parse(localStorage.getItem('configuracion'));
-        return config || {
-            tarifasPorSala: {},
-            tiposConsola: {
-                playstation: { prefijo: 'PS' },
-                xbox: { prefijo: 'XB' },
-                nintendo: { prefijo: 'NT' },
-                pc: { prefijo: 'PC' }
-            }
-        };
-    } catch (error) {
-        console.warn('Error al obtener configuración:', error);
-        return {
-            tarifasPorSala: {},
-            tiposConsola: {
-                playstation: { prefijo: 'PS' },
-                xbox: { prefijo: 'XB' },
-                nintendo: { prefijo: 'NT' },
-                pc: { prefijo: 'PC' }
-            }
-        };
-    }
+    // SOLO Supabase (con cache en memoria). No leer localStorage.
+    const cached = window.__GC_CONFIG_CACHE;
+    if (cached && typeof cached === 'object') return cached;
+    return {
+        tarifasPorSala: {},
+        tiposConsola: {
+            playstation: { prefijo: 'PS' },
+            xbox: { prefijo: 'XB' },
+            nintendo: { prefijo: 'NT' },
+            pc: { prefijo: 'PC' }
+        }
+    };
 }
 
 function guardarConfiguracion(config) {
-    localStorage.setItem('configuracion', JSON.stringify(config));
+    // Cache en memoria (para la UI). No persistir en localStorage.
+    window.__GC_CONFIG_CACHE = (config && typeof config === 'object') ? config : obtenerConfiguracion();
     
     // Sincronizar con Supabase en segundo plano (detectar esquema dinámicamente)
     if (window.databaseService) {
@@ -490,7 +480,7 @@ class GestorSalas {
             // Volumen desde configuración si está definido (0..100 => 0..1)
             let vol = volume;
             try {
-                const cfg = JSON.parse(localStorage.getItem('configuracion') || '{}');
+                const cfg = obtenerConfiguracion();
                 if (cfg?.alarmasSesion && typeof cfg.alarmasSesion.volume === 'number') {
                     vol = Math.max(0, Math.min(1, cfg.alarmasSesion.volume / 100));
                 }
@@ -516,7 +506,7 @@ class GestorSalas {
         if (this._alertasTiempoDisparadas.has(sesion.id)) return;
         // Respetar flag de alarmas habilitadas
         try {
-            const cfg = JSON.parse(localStorage.getItem('configuracion') || '{}');
+            const cfg = obtenerConfiguracion();
             if (cfg?.alarmasSesion && cfg.alarmasSesion.enabled === false) return;
         } catch (_) {}
         this._alertasTiempoDisparadas.add(sesion.id);
@@ -533,7 +523,7 @@ class GestorSalas {
 
         // Patrón inicial configurable (simple, doble, triple)
         try {
-            const cfg = JSON.parse(localStorage.getItem('configuracion') || '{}');
+            const cfg = obtenerConfiguracion();
             const pattern = cfg?.alarmasSesion?.pattern || 'triple';
             if (pattern === 'simple') {
                 setTimeout(() => this._beep(400, 880, 0.25), 0);
@@ -558,7 +548,7 @@ class GestorSalas {
             if (minutosExcedidos > last) {
                 // Respetar config de beep por minuto
                 try {
-                    const cfg = JSON.parse(localStorage.getItem('configuracion') || '{}');
+                    const cfg = obtenerConfiguracion();
                     const perMin = cfg?.alarmasSesion?.perMinute ?? 'on';
                     if (perMin === 'off') {
                         this._ultimaAlarmaMinuto.set(sesion.id, minutosExcedidos);
@@ -4217,13 +4207,12 @@ async function inicializarSincronizacionConfiguracion() {
         }
 
         if (remoteConfig && typeof remoteConfig === 'object' && Object.keys(remoteConfig).length > 0) {
-            const localConfigStr = localStorage.getItem('configuracion');
-            const localConfig = localConfigStr ? JSON.parse(localConfigStr) : {};
+            const cacheConfig = obtenerConfiguracion();
 
             const mergedConfig = {
                 ...remoteConfig,
-                tarifasPorSala: mergeTarifasPorSala(remoteConfig.tarifasPorSala, localConfig.tarifasPorSala),
-                tiposConsola: remoteConfig.tiposConsola || localConfig.tiposConsola || {
+                tarifasPorSala: mergeTarifasPorSala(remoteConfig.tarifasPorSala, cacheConfig.tarifasPorSala),
+                tiposConsola: remoteConfig.tiposConsola || cacheConfig.tiposConsola || {
                     playstation: { prefijo: 'PS' },
                     xbox: { prefijo: 'XB' },
                     nintendo: { prefijo: 'NT' },
@@ -4231,20 +4220,17 @@ async function inicializarSincronizacionConfiguracion() {
                 }
             };
 
-            const mergedStr = JSON.stringify(mergedConfig);
-            if (mergedStr !== localConfigStr) {
-                localStorage.setItem('configuracion', mergedStr);
-                console.log('✅ Configuración sincronizada desde Supabase');
-                if (window.gestorSalas) window.gestorSalas.recargarConfiguracion();
-            }
+            window.__GC_CONFIG_CACHE = mergedConfig;
+            console.log('✅ Configuración sincronizada desde Supabase');
+            if (window.gestorSalas) window.gestorSalas.recargarConfiguracion();
         } else {
             // Si no existe configuración remota, subir la local si tiene datos
             console.log('⚠️ No hay configuración remota. Subiendo configuración local...');
-            const localConfig = obtenerConfiguracion();
-            if (localConfig && Object.keys(localConfig.tarifasPorSala || {}).length > 0) {
-                guardarConfiguracion(localConfig);
+            const cacheConfig = obtenerConfiguracion();
+            if (cacheConfig && Object.keys(cacheConfig.tarifasPorSala || {}).length > 0) {
+                guardarConfiguracion(cacheConfig);
             } else {
-                console.log('⚠️ No hay configuración local válida para subir');
+                console.log('⚠️ No hay configuración cache válida para subir');
             }
         }
     } catch (error) {
@@ -4262,8 +4248,7 @@ async function inicializarSincronizacionConfiguracion() {
                     try {
                         const row = payload?.new || null;
                         if (!row) return;
-                        const localConfigStr = localStorage.getItem('configuracion');
-                        const localConfig = localConfigStr ? JSON.parse(localConfigStr) : {};
+                        const cacheConfig = obtenerConfiguracion();
                         // Si hay clave, solo reaccionar a 'global_config'; si no hay clave, usar 'datos'
                         if (Object.prototype.hasOwnProperty.call(row, 'clave')) {
                             if (row.clave !== 'global_config') return;
@@ -4271,10 +4256,10 @@ async function inicializarSincronizacionConfiguracion() {
                             if (newConfig && typeof newConfig === 'object' && Object.keys(newConfig).length > 0) {
                                 const merged = {
                                     ...newConfig,
-                                    tarifasPorSala: mergeTarifasPorSala(newConfig.tarifasPorSala, localConfig.tarifasPorSala),
-                                    tiposConsola: newConfig.tiposConsola || localConfig.tiposConsola
+                                    tarifasPorSala: mergeTarifasPorSala(newConfig.tarifasPorSala, cacheConfig.tarifasPorSala),
+                                    tiposConsola: newConfig.tiposConsola || cacheConfig.tiposConsola
                                 };
-                                localStorage.setItem('configuracion', JSON.stringify(merged));
+                                window.__GC_CONFIG_CACHE = merged;
                                 if (window.gestorSalas) window.gestorSalas.recargarConfiguracion();
                                 mostrarNotificacion('Configuración actualizada en tiempo real', 'info');
                             }
@@ -4283,10 +4268,10 @@ async function inicializarSincronizacionConfiguracion() {
                             if (newConfig && typeof newConfig === 'object' && Object.keys(newConfig).length > 0) {
                                 const merged = {
                                     ...newConfig,
-                                    tarifasPorSala: mergeTarifasPorSala(newConfig.tarifasPorSala, localConfig.tarifasPorSala),
-                                    tiposConsola: newConfig.tiposConsola || localConfig.tiposConsola
+                                    tarifasPorSala: mergeTarifasPorSala(newConfig.tarifasPorSala, cacheConfig.tarifasPorSala),
+                                    tiposConsola: newConfig.tiposConsola || cacheConfig.tiposConsola
                                 };
-                                localStorage.setItem('configuracion', JSON.stringify(merged));
+                                window.__GC_CONFIG_CACHE = merged;
                                 if (window.gestorSalas) window.gestorSalas.recargarConfiguracion();
                                 mostrarNotificacion('Configuración actualizada en tiempo real', 'info');
                             }
