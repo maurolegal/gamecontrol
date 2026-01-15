@@ -36,7 +36,7 @@ class GestorStock {
         // En producción, no cargamos del localStorage para evitar datos fantasmas
         this.productos = []; 
         this.movimientos = [];
-        this.categorias = this.cargarCategorias();
+        this.categorias = [];
         this.categoriaEditando = null;
         this.inicializar();
     }
@@ -54,6 +54,7 @@ class GestorStock {
         
         // Cargar estrictamente desde Supabase
         await this.cargarDesdeSupabase();
+        await this.cargarCategoriasRemotas();
         
         this.actualizarEstadisticas();
         this.actualizarVistaPrevia();
@@ -146,25 +147,74 @@ class GestorStock {
 
     // === GESTIÓN DE CATEGORÍAS (igual que gastos) ===
     cargarCategorias() {
-        const categorias = localStorage.getItem('categorias_productos');
-        if (categorias) {
-            return JSON.parse(categorias);
-        }
-        
-        // Sin categorías por defecto - el usuario debe crearlas
-        const categoriasVacias = [];
-        this.guardarCategorias(categoriasVacias);
-        return categoriasVacias;
+        return Array.isArray(this.categorias) ? this.categorias : [];
     }
 
-    guardarCategorias(categorias) {
-        localStorage.setItem('categorias_productos', JSON.stringify(categorias));
+    parseCategoriasConfig(valor) {
+        if (!valor) return [];
+        if (Array.isArray(valor)) return valor;
+        if (typeof valor === 'object') return Array.isArray(valor.categorias) ? valor.categorias : [];
+        if (typeof valor === 'string') {
+            try {
+                const parsed = JSON.parse(valor);
+                if (Array.isArray(parsed)) return parsed;
+                if (parsed && Array.isArray(parsed.categorias)) return parsed.categorias;
+            } catch (_) {}
+        }
+        return [];
+    }
+
+    async cargarCategoriasRemotas() {
+        try {
+            if (!window.databaseService) return;
+            const resultado = await window.databaseService.select('configuracion', {
+                filtros: { clave: 'categorias_productos' },
+                limite: 1,
+                noCache: true
+            });
+            const row = (resultado && resultado.success && Array.isArray(resultado.data) && resultado.data[0]) ? resultado.data[0] : null;
+            const valor = row ? (row.valor ?? row.datos ?? row.json ?? null) : null;
+            this.categorias = this.parseCategoriasConfig(valor);
+            this.actualizarSelectCategorias();
+            this.actualizarTablaCategorias();
+        } catch (e) {
+            console.warn('⚠️ No se pudieron cargar categorías desde Supabase:', e?.message || e);
+        }
+    }
+
+    async guardarCategorias(categorias) {
+        this.categorias = Array.isArray(categorias) ? categorias : [];
+        try {
+            if (!window.databaseService) return;
+            const resultado = await window.databaseService.select('configuracion', {
+                filtros: { clave: 'categorias_productos' },
+                limite: 1,
+                noCache: true
+            });
+            const row = (resultado && resultado.success && Array.isArray(resultado.data) && resultado.data[0]) ? resultado.data[0] : null;
+            const payload = {
+                clave: 'categorias_productos',
+                valor: this.categorias,
+                descripcion: 'Categorías de productos',
+                categoria: 'inventario',
+                tipo: 'json',
+                editable: true,
+                publico: false
+            };
+            if (row && row.id) {
+                await window.databaseService.update('configuracion', row.id, { valor: this.categorias });
+            } else {
+                await window.databaseService.insert('configuracion', payload);
+            }
+        } catch (e) {
+            console.warn('⚠️ No se pudieron guardar categorías en Supabase:', e?.message || e);
+        }
     }
 
     limpiarTodasLasCategorias() {
         // Eliminar todas las categorías existentes
-        localStorage.removeItem('categorias_productos');
         this.categorias = [];
+        this.guardarCategorias([]);
         
         // Actualizar interfaz
         this.actualizarSelectCategorias();
@@ -263,7 +313,7 @@ class GestorStock {
         }
     }
 
-    crearCategoria() {
+    async crearCategoria() {
         const nombre = document.getElementById('nombreNuevaCategoria')?.value.trim();
         const color = document.getElementById('colorNuevaCategoria')?.value;
         const icono = document.getElementById('iconoNuevaCategoria')?.value;
@@ -303,8 +353,7 @@ class GestorStock {
         };
 
         categorias.push(nuevaCategoria);
-        this.guardarCategorias(categorias);
-        this.categorias = categorias;
+        await this.guardarCategorias(categorias);
 
         // Actualizar interfaz
         this.actualizarSelectCategorias();
@@ -472,7 +521,7 @@ class GestorStock {
         modal.show();
     }
 
-    guardarCategoriaEditada() {
+    async guardarCategoriaEditada() {
         if (!this.categoriaEditando) return;
 
         const nombre = document.getElementById('nombreEditarCategoria').value.trim();
@@ -515,8 +564,7 @@ class GestorStock {
                 estado: estado
             };
 
-            this.guardarCategorias(categorias);
-            this.categorias = categorias;
+            await this.guardarCategorias(categorias);
 
             // Actualizar interfaz
             this.actualizarSelectCategorias();
@@ -532,7 +580,7 @@ class GestorStock {
         }
     }
 
-    toggleEstadoCategoria(categoriaId) {
+    async toggleEstadoCategoria(categoriaId) {
         const categorias = this.cargarCategorias();
         const categoria = categorias.find(cat => cat.id === categoriaId);
         
@@ -541,8 +589,7 @@ class GestorStock {
         // Cambiar estado
         categoria.estado = categoria.estado === 'activa' ? 'inactiva' : 'activa';
 
-        this.guardarCategorias(categorias);
-        this.categorias = categorias;
+        await this.guardarCategorias(categorias);
 
         // Actualizar interfaz
         this.actualizarSelectCategorias();
@@ -553,7 +600,7 @@ class GestorStock {
         console.log(`Categoría ${categoria.nombre} ${nuevoEstado}`);
     }
 
-    eliminarCategoria(categoriaId) {
+    async eliminarCategoria(categoriaId) {
         const categoria = this.categorias.find(cat => cat.id === categoriaId);
         if (!categoria) return;
 
@@ -569,8 +616,7 @@ class GestorStock {
             const categorias = this.cargarCategorias();
             const categoriasFiltradas = categorias.filter(cat => cat.id !== categoriaId);
             
-            this.guardarCategorias(categoriasFiltradas);
-            this.categorias = categoriasFiltradas;
+            await this.guardarCategorias(categoriasFiltradas);
 
             // Actualizar interfaz
             this.actualizarSelectCategorias();

@@ -200,6 +200,7 @@ async function obtenerSesiones() {
                 estacion: row.estacion,
                 cliente: row.cliente,
                 fecha_inicio: row.fecha_inicio,
+                tarifa_base: row.tarifa_base ?? row.tarifa ?? 0,
                 tarifa: row.tarifa_base ?? row.tarifa ?? 0,
                 tiempo: row.tiempo_contratado ?? row.tiempo ?? 60,
                 tiempoOriginal: row.tiempo_contratado ?? row.tiempoOriginal ?? row.tiempo ?? 60,
@@ -1366,7 +1367,7 @@ class GestorSalas {
         const duracionTotal = Math.ceil((ahora - fechaInicio) / (1000 * 60)); // en minutos
         
         // Calcular costo de tiempo
-        const tarifaTiempo = (sesion.tarifa_base || 0) + 
+        const tarifaTiempo = (sesion.tarifa_base || sesion.tarifa || 0) + 
                            (sesion.costoAdicional || 0) + 
                            (sesion.tiemposAdicionales?.reduce((sum, t) => sum + (t.costo || 0), 0) || 0);
         
