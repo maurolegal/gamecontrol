@@ -179,11 +179,9 @@ class GestorVentas {
     }
 
     obtenerSesionesFinalizadas() {
-        const sesionesFinalizadas = this.sesiones.filter(sesion => sesion.finalizada);
-        console.log('🔍 DEBUG ventas - sesiones finalizadas:');
-        console.log('  - Total sesiones cargadas:', this.sesiones.length);
-        console.log('  - Sesiones finalizadas encontradas:', sesionesFinalizadas.length);
-        console.log('  - Sesiones finalizadas:', sesionesFinalizadas);
+        // Filtrar sesiones finalizadas que tengan hora de cierre (indicativo de cobro realizado)
+        const sesionesFinalizadas = this.sesiones.filter(sesion => sesion.finalizada && sesion.fecha_fin);
+        console.log('🔍 DEBUG ventas - sesiones finalizadas:', sesionesFinalizadas.length);
         return sesionesFinalizadas;
     }
 
