@@ -74,7 +74,7 @@ class GestorVentas {
             this.actualizarEstadisticas();
             this.actualizarHistorialVentas();
             this.configurarRealtimeSesiones();
-        });
+        }).catch(() => {});
     }
 
     async cargarDesdeSupabase() {
@@ -93,7 +93,10 @@ class GestorVentas {
                 }
 
                 if (resSesiones && resSesiones.success && Array.isArray(resSesiones.data)) {
-                    this.sesiones = resSesiones.data.map(row => ({
+                    this.sesiones = resSesiones.data.map(row => {
+                        const metodoPagoRaw = row.metodo_pago || row.metodoPago || 'efectivo';
+                        const metodoPago = metodoPagoRaw === 'digital' ? 'qr' : metodoPagoRaw;
+                        return ({
                         id: row.id,
                         salaId: row.sala_id || row.salaId,
                         salaNombre: row.sala_nombre || row.salaNombre || null,
@@ -101,7 +104,7 @@ class GestorVentas {
                         cliente: row.cliente,
                         fecha_inicio: row.fecha_inicio,
                         fecha_fin: row.fecha_fin,
-                        metodoPago: row.metodo_pago || row.metodoPago || 'efectivo',
+                        metodoPago,
                         tarifa_base: row.tarifa_base ?? row.tarifa ?? 0,
                         tarifa: row.tarifa_base ?? row.tarifa ?? 0,
                         costoAdicional: row.costo_adicional ?? 0,
@@ -110,7 +113,8 @@ class GestorVentas {
                         totalGeneral: row.total_general ?? row.totalGeneral,
                         finalizada: row.finalizada === true || row.estado === 'finalizada' || row.estado === 'cerrada',
                         estado: row.estado || (row.finalizada ? 'finalizada' : 'activa')
-                    }));
+                        });
+                    });
                 }
             }
         } catch (e) {
@@ -179,10 +183,21 @@ class GestorVentas {
     }
 
     obtenerSesionesFinalizadas() {
-        // Filtrar sesiones finalizadas que tengan hora de cierre (indicativo de cobro realizado)
-        const sesionesFinalizadas = this.sesiones.filter(sesion => sesion.finalizada && sesion.fecha_fin);
-        console.log('🔍 DEBUG ventas - sesiones finalizadas:', sesionesFinalizadas.length);
-        return sesionesFinalizadas;
+        // Filtrar sesiones finalizadas (no exigir fecha_fin para mantener compatibilidad)
+        return this.sesiones.filter(sesion => {
+            const estado = (sesion.estado || '').toLowerCase();
+            return sesion.finalizada === true || estado === 'finalizada' || estado === 'cerrada';
+        });
+    }
+
+    obtenerFechaReferenciaSesion(sesion) {
+        const fecha = sesion.fecha_fin
+            || sesion.fin
+            || sesion.fecha_inicio
+            || sesion.inicio
+            || sesion.fecha_actualizacion
+            || sesion.fecha_creacion;
+        return new Date(fecha || Date.now());
     }
 
     obtenerRangoFechas(periodo) {
@@ -244,13 +259,14 @@ class GestorVentas {
             fin.setHours(23, 59, 59, 999);
             
             sesiones = sesiones.filter(sesion => {
-                const fechaSesion = new Date(sesion.fecha_inicio || sesion.inicio);
+                const fechaSesion = this.obtenerFechaReferenciaSesion(sesion);
                 return fechaSesion >= inicio && fechaSesion <= fin;
             });
         } else if (this.filtrosActivos.periodo !== 'rango') {
             const { fechaInicio, fechaFin } = this.obtenerRangoFechas(this.filtrosActivos.periodo);
+            
             sesiones = sesiones.filter(sesion => {
-                const fechaSesion = new Date(sesion.fecha_inicio || sesion.inicio);
+                const fechaSesion = this.obtenerFechaReferenciaSesion(sesion);
                 return fechaSesion >= fechaInicio && fechaSesion <= fechaFin;
             });
         }
@@ -266,7 +282,7 @@ class GestorVentas {
                 (sesion.metodoPago || 'efectivo') === this.filtrosActivos.metodoPago);
         }
 
-        return sesiones.sort((a, b) => new Date(b.fin || b.fecha_inicio || b.inicio) - new Date(a.fin || a.fecha_inicio || a.inicio));
+        return sesiones.sort((a, b) => this.obtenerFechaReferenciaSesion(b) - this.obtenerFechaReferenciaSesion(a));
     }
 
     actualizarEstadisticas() {
@@ -329,6 +345,8 @@ class GestorVentas {
                     </td>
                 </tr>
             `;
+            // Actualizar paginación con 0 registros
+            this.actualizarInfoPaginacion(0);
             return;
         }
 
@@ -448,7 +466,7 @@ class GestorVentas {
     }
 
     actualizarInfoPaginacion(total) {
-        const infoPaginacion = document.querySelector('.mt-3 div');
+        const infoPaginacion = document.getElementById('info-paginacion');
         if (infoPaginacion) {
             infoPaginacion.textContent = `Mostrando ${total} registro${total !== 1 ? 's' : ''}`;
         }

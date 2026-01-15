@@ -229,26 +229,22 @@ async function obtenerSesiones() {
 
 async function guardarSesiones(sesiones) {
     try {
-        console.log('🔍 DEBUG guardarSesiones() iniciando...');
-        console.log('  - Sesiones a guardar:', sesiones);
-        
-        // Siempre guardar en localStorage primero
-        localStorage.setItem('sesiones', JSON.stringify(sesiones));
-        console.log('  - Sesiones guardadas en localStorage');
-        
+        const sesionesEntrada = Array.isArray(sesiones) ? sesiones : [];
+
         // Si hay databaseService disponible, intentar sincronizar con Supabase
         if (window.databaseService) {
-            console.log('  - Intentando sincronizar con Supabase...');
             
             try {
                 // Obtener sesiones existentes en BD para comparar
                 const resultadoBD = await window.databaseService.select('sesiones');
                 const sesionesBD = resultadoBD.success ? resultadoBD.data : [];
-                console.log('  - Sesiones en BD:', sesionesBD);
                 
                 // Helper: mapear sesión UI -> payload BD
-                const mapSesionToPayload = (s) => ({
-                    sala_id: s.salaId,
+                const mapSesionToPayload = (s) => {
+                    const metodoPagoRaw = s.metodoPago || s.metodo_pago || 'efectivo';
+                    const metodoPago = metodoPagoRaw === 'qr' ? 'digital' : metodoPagoRaw;
+                    return {
+                    sala_id: s.salaId || s.sala_id,
                     usuario_id: (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.id) || null,
                     estacion: s.estacion,
                     cliente: s.cliente,
@@ -262,18 +258,19 @@ async function guardarSesiones(sesiones) {
                     total_productos: s.totalProductos || 0,
                     total_general: s.totalGeneral || 0,
                     descuento: s.descuento || 0,
-                    metodo_pago: s.metodoPago || 'efectivo',
+                    metodo_pago: metodoPago,
                     estado: s.finalizada ? 'finalizada' : (s.estado || 'activa'),
                     finalizada: !!s.finalizada,
                     productos: s.productos || [],
                     tiempos_adicionales: s.tiemposAdicionales || [],
                     notas: s.notas || null,
                     vendedor: s.vendedor || null
-                });
+                };
+                };
                 
                 // Insertar nuevas y actualizar modificadas
-                for (let i = 0; i < sesiones.length; i++) {
-                    const sesion = sesiones[i];
+                for (let i = 0; i < sesionesEntrada.length; i++) {
+                    const sesion = sesionesEntrada[i];
                     const sesionBD = sesionesBD.find(s => s.id === sesion.id);
                     const payload = mapSesionToPayload(sesion);
                     
@@ -283,8 +280,7 @@ async function guardarSesiones(sesiones) {
                             const res = await window.databaseService.insert('sesiones', payload);
                             if (res && res.success && res.data && res.data.id) {
                                 // Reemplazar id local por id remoto
-                                sesiones[i].id = res.data.id;
-                                console.log('  - Insertada sesión en Supabase:', res.data.id);
+                                sesionesEntrada[i].id = res.data.id;
                             }
                         } catch (e) {
                             console.warn('⚠️ No se pudo insertar sesión en Supabase:', e?.message || e);
@@ -301,7 +297,6 @@ async function guardarSesiones(sesiones) {
                         if (haCambiado) {
                             try {
                                 await window.databaseService.update('sesiones', sesion.id, payload);
-                                console.log('  - Actualizada sesión en Supabase:', sesion.id);
                             } catch (e) {
                                 console.warn('⚠️ No se pudo actualizar sesión en Supabase:', e?.message || e);
                             }
@@ -316,7 +311,6 @@ async function guardarSesiones(sesiones) {
             }
         }
         
-        console.log('✅ guardarSesiones() completado');
     } catch (error) {
         console.error('❌ Error guardando sesiones:', error);
     }
