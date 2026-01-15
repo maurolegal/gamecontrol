@@ -854,20 +854,20 @@ class GestorSalas {
             <div class="estacion-disponible-acciones">
                 <button class="btn btn-primary btn-iniciar-minimal" 
                         onclick="window.gestorSalas.iniciarSesion('${salaId}', '${estacion}')">
-                    <i class="fas fa-play me-1"></i>Iniciar
+                    <i class="fas fa-play"></i>
                 </button>
                 <div class="acciones-rapidas-disponible">
                     <button class="btn btn-outline-success btn-sm" 
                             onclick="window.gestorSalas.iniciarSesionRapida('${salaId}', '${estacion}', 60)" 
                             title="Iniciar sesión de 1 hora">
                         <i class="fas fa-clock"></i>
-                        <span class="d-none d-sm-inline">1h</span>
+                        <span class="ms-1 fw-bold small">1h</span>
                     </button>
                     <button class="btn btn-outline-info btn-sm" 
                             onclick="window.gestorSalas.iniciarSesionRapida('${salaId}', '${estacion}', 120)" 
                             title="Iniciar sesión de 2 horas">
                         <i class="fas fa-clock"></i>
-                        <span class="d-none d-sm-inline">2h</span>
+                        <span class="ms-1 fw-bold small">2h</span>
                     </button>
                 </div>
             </div>
