@@ -151,28 +151,28 @@
 
                 <!-- Estadísticas Rápidas (Compactas 4 Lineales) -->
                 <div class="row mb-3 g-2">
-                    <div class="col-6 col-md-3">
+                    <div class="col-3">
                         <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
                             <div class="text-primary mb-1"><i class="fas fa-door-open fa-sm"></i></div>
                             <h6 class="mb-0 fw-bold text-dark" id="totalSalas" style="font-size: 1rem;">0</h6>
                             <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Total</small>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-3">
                         <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
                             <div class="text-success mb-1"><i class="fas fa-check-circle fa-sm"></i></div>
                             <h6 class="mb-0 fw-bold text-success" id="salasDisponibles" style="font-size: 1rem;">0</h6>
                             <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Libres</small>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-3">
                         <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
                             <div class="text-warning mb-1"><i class="fas fa-clock fa-sm"></i></div>
                             <h6 class="mb-0 fw-bold text-warning" id="salasOcupadas" style="font-size: 1rem;">0</h6>
                             <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">En Uso</small>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-3">
                         <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
                             <div class="text-info mb-1"><i class="fas fa-dollar-sign fa-sm"></i></div>
                             <h6 class="mb-0 fw-bold text-info" id="ingresosHoy" style="font-size: 0.9rem;">$0</h6>
@@ -328,7 +328,8 @@
                     <h5 class="modal-title fw-bold">
                         <i class="fas fa-play me-2 text-primary"></i>Iniciar Sesión
                     </h5>
-                    <!-- Botón de cierre eliminado para obligar a usar las acciones del pie -->
+                    <!-- Botón de cierre visible solo en PC (clase d-none d-md-block) para mantener estética nativa limpia en móvil -->
+                    <button type="button" class="btn-close d-none d-md-block" data-bs-dismiss="modal"></button>
                 </div>
                 <form id="formIniciarSesion">
                     <div class="modal-body pt-2">
@@ -352,6 +353,16 @@
                             <div id="opcionesTiempo">
                                 <!-- Las opciones de tiempo se generarán dinámicamente -->
                             </div>
+                        </div>
+
+                        <!-- Tiempo personalizado visible solo en PC -->
+                        <div class="mb-3 d-none d-md-block">
+                            <label class="form-label fw-semibold small text-muted mb-1">Tiempo personalizado</label>
+                            <div class="input-group input-group-lg">
+                                <input type="number" class="form-control" name="tiempoPersonalizado" min="1" step="1" placeholder="Ej: 75" inputmode="numeric">
+                                <span class="input-group-text">min</span>
+                            </div>
+                            <div class="form-text">Si escribes aquí, se usa este tiempo y se ignoran las opciones de arriba.</div>
                         </div>
 
                         <!-- Total -->
