@@ -200,6 +200,7 @@ async function obtenerSesiones() {
                 estacion: row.estacion,
                 cliente: row.cliente,
                 fecha_inicio: row.fecha_inicio,
+                fecha_fin: row.fecha_fin ?? null,
                 tarifa_base: row.tarifa_base ?? row.tarifa ?? 0,
                 tarifa: row.tarifa_base ?? row.tarifa ?? 0,
                 tiempo: row.tiempo_contratado ?? row.tiempo ?? 60,
@@ -208,8 +209,16 @@ async function obtenerSesiones() {
                 costoAdicional: row.costo_adicional ?? 0,
                 productos: row.productos || [],
                 tiemposAdicionales: row.tiempos_adicionales || [],
+                descuento: row.descuento ?? 0,
+                totalProductos: row.total_productos ?? 0,
+                totalGeneral: row.total_general ?? 0,
+                metodoPago: (row.metodo_pago === 'digital') ? 'qr' : (row.metodo_pago ?? 'efectivo'),
                 estado: row.estado || (row.finalizada ? 'finalizada' : 'activa'),
-                finalizada: row.finalizada === true || row.estado === 'finalizada' || row.estado === 'cerrada'
+                finalizada: row.finalizada === true
+                    || row.estado === 'finalizada'
+                    || row.estado === 'cerrada'
+                    || row.estado === 'cancelada'
+                    || !!row.fecha_fin
             }));
             
             console.log('  - Sesiones mapeadas desde BD:', sesionesMapeadas);
@@ -306,9 +315,15 @@ async function guardarSesiones(sesiones) {
                         // Detectar cambios relevantes
                         const haCambiado = (
                             !!sesion.finalizada !== !!sesionBD.finalizada ||
+                            String(sesion.fecha_fin || sesion.fin || '') !== String(sesionBD.fecha_fin || '') ||
+                            String(sesion.estado || (sesion.finalizada ? 'finalizada' : 'activa')) !== String(sesionBD.estado || '') ||
+                            String((sesion.metodoPago || sesion.metodo_pago || 'efectivo')) !== String((sesionBD.metodo_pago || 'efectivo')) ||
                             Number(sesion.tiempoAdicional || 0) !== Number(sesionBD.tiempo_adicional || 0) ||
                             Number(sesion.costoAdicional || 0) !== Number(sesionBD.costo_adicional || 0) ||
+                            Number(sesion.totalTiempo || 0) !== Number(sesionBD.total_tiempo || 0) ||
+                            Number(sesion.totalProductos || 0) !== Number(sesionBD.total_productos || 0) ||
                             Number(sesion.totalGeneral || 0) !== Number(sesionBD.total_general || 0) ||
+                            Number(sesion.descuento || 0) !== Number(sesionBD.descuento || 0) ||
                             JSON.stringify(sesion.productos || []) !== JSON.stringify(sesionBD.productos || [])
                         );
                         if (haCambiado) {
@@ -335,6 +350,154 @@ async function guardarSesiones(sesiones) {
         
     } catch (error) {
         console.error('❌ Error guardando sesiones:', error);
+    }
+}
+
+async function guardarVentaContableDesdeSesion(sesion) {
+    try {
+        if (!window.databaseService) return;
+        if (!sesion) return;
+
+        const isUuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+        if (!isUuid(sesion.id)) {
+            throw new Error('sesion.id no es UUID (no se puede registrar venta contable).');
+        }
+
+        // auth.uid real
+        let authUid = null;
+        try {
+            if (window.supabaseConfig?.getSupabaseClient) {
+                const client = await window.supabaseConfig.getSupabaseClient();
+                const { data } = await client.auth.getSession();
+                authUid = data?.session?.user?.id || null;
+            }
+        } catch (_) {}
+
+        const metodoPagoRaw = sesion.metodoPago || sesion.metodo_pago || 'efectivo';
+        const metodoPago = metodoPagoRaw === 'qr' ? 'digital' : metodoPagoRaw;
+
+        const subtotalTiempo = Number(sesion.totalTiempo ?? sesion.total_tiempo ?? 0);
+        const subtotalProductos = Number(sesion.totalProductos ?? sesion.total_productos ?? 0);
+        const descuento = Number(sesion.descuento ?? 0);
+        const total = Number(sesion.totalGeneral ?? sesion.total_general ?? (subtotalTiempo + subtotalProductos - descuento));
+
+        const usuarioIdCandidate = (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.id) || null;
+        const usuarioId = (isUuid(usuarioIdCandidate) ? usuarioIdCandidate : null) || (isUuid(authUid) ? authUid : null);
+
+        // 1) Upsert lógico por sesion_id (unique)
+        let ventaId = null;
+        try {
+            const insertRes = await window.databaseService.insert('ventas', {
+                sesion_id: sesion.id,
+                sala_id: sesion.salaId || sesion.sala_id || null,
+                usuario_id: usuarioId,
+                cliente: sesion.cliente || 'Cliente',
+                estacion: sesion.estacion || null,
+                fecha_inicio: sesion.fecha_inicio || sesion.inicio || null,
+                fecha_cierre: sesion.fecha_fin || sesion.fin || new Date().toISOString(),
+                metodo_pago: metodoPago,
+                estado: 'cerrada',
+                subtotal_tiempo: subtotalTiempo,
+                subtotal_productos: subtotalProductos,
+                descuento,
+                total,
+                notas: sesion.notas || null,
+                vendedor: sesion.vendedor || null
+            });
+            ventaId = insertRes?.data?.id || null;
+        } catch (e) {
+            // Si ya existe por UNIQUE(sesion_id), buscamos y actualizamos
+            const msg = (e?.message || '').toLowerCase();
+            const maybeUnique = msg.includes('duplicate') || msg.includes('unique') || msg.includes('violates');
+            if (!maybeUnique) throw e;
+        }
+
+        if (!ventaId) {
+            const existing = await window.databaseService.select('ventas', {
+                filtros: { sesion_id: sesion.id },
+                limite: 1,
+                noCache: true
+            });
+            ventaId = existing?.data?.[0]?.id || null;
+            if (!ventaId) throw new Error('No se pudo resolver venta existente por sesion_id.');
+
+            await window.databaseService.update('ventas', ventaId, {
+                sala_id: sesion.salaId || sesion.sala_id || null,
+                usuario_id: usuarioId,
+                cliente: sesion.cliente || 'Cliente',
+                estacion: sesion.estacion || null,
+                fecha_inicio: sesion.fecha_inicio || sesion.inicio || null,
+                fecha_cierre: sesion.fecha_fin || sesion.fin || new Date().toISOString(),
+                metodo_pago: metodoPago,
+                estado: 'cerrada',
+                subtotal_tiempo: subtotalTiempo,
+                subtotal_productos: subtotalProductos,
+                descuento,
+                total,
+                notas: sesion.notas || null,
+                vendedor: sesion.vendedor || null,
+                updated_at: new Date().toISOString()
+            });
+        }
+
+        // 2) Reescribir items (delete+insert)
+        try {
+            const existentes = await window.databaseService.select('venta_items', {
+                filtros: { venta_id: ventaId },
+                noCache: true
+            });
+            const filas = existentes?.data || [];
+            for (const row of filas) {
+                if (row?.id) {
+                    await window.databaseService.delete('venta_items', row.id);
+                }
+            }
+        } catch (_) {
+            // si RLS no permite delete/select de items, la migración debe habilitarlo
+        }
+
+        const items = [];
+        // item de tiempo
+        items.push({
+            venta_id: ventaId,
+            line_no: 1,
+            tipo: 'tiempo',
+            producto_id: null,
+            descripcion: 'Tiempo de juego',
+            cantidad: 1,
+            precio_unitario: subtotalTiempo,
+            subtotal: subtotalTiempo
+        });
+
+        // items de productos
+        const productos = Array.isArray(sesion.productos) ? sesion.productos : [];
+        let lineNo = 2;
+        for (const p of productos) {
+            const cantidad = Number(p.cantidad ?? 1);
+            const precio = Number(p.precio ?? 0);
+            const subtotal = Number(p.subtotal ?? (cantidad * precio));
+            items.push({
+                venta_id: ventaId,
+                line_no: lineNo++,
+                tipo: 'producto',
+                producto_id: isUuid(p.id) ? p.id : null,
+                descripcion: p.nombre || p.descripcion || 'Producto',
+                cantidad,
+                precio_unitario: precio,
+                subtotal
+            });
+        }
+
+        for (const it of items) {
+            await window.databaseService.insert('venta_items', it);
+        }
+    } catch (e) {
+        console.warn('⚠️ No se pudo registrar venta contable:', e?.message || e);
+        try {
+            if (typeof window.mostrarNotificacion === 'function') {
+                window.mostrarNotificacion('No se pudo registrar la venta contable en Supabase (RLS/permisos).', 'error');
+            }
+        } catch (_) {}
     }
 }
 
@@ -648,6 +811,9 @@ class GestorSalas {
             
             console.log('  - Llamando actualizarEstadisticas()...');
             this.actualizarEstadisticas();
+
+            console.log('  - Llamando actualizarMovimientoHoy()...');
+            this.actualizarMovimientoHoy();
             
             console.log('✅ actualizarVista() completado');
         } catch (error) {
@@ -941,6 +1107,186 @@ class GestorSalas {
                 noSesionesElement.classList.add('d-none');
                 tablaSesiones.classList.remove('d-none');
             }
+        }
+    }
+
+    async actualizarMovimientoHoy() {
+        try {
+            const body = document.getElementById('tablaMovimientoHoyBody');
+            const elIniciadas = document.getElementById('movHoyIniciadas');
+            const elCerradas = document.getElementById('movHoyCerradas');
+            const elRegistros = document.getElementById('movHoyRegistros');
+            const elTotalCobrado = document.getElementById('movHoyTotalCobrado');
+            if (!body || !elIniciadas || !elCerradas || !elRegistros || !elTotalCobrado) return;
+
+            const start = new Date();
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 1);
+
+            const isBetween = (isoString) => {
+                if (!isoString) return false;
+                const d = new Date(isoString);
+                return d >= start && d < end;
+            };
+
+            // 1) Cargar cierres reales desde vista_ventas/ventas (fuente contable)
+            const cierresPorSesion = new Map(); // sesionId -> { fecha_cierre, metodo_pago, total }
+            try {
+                if (window.databaseService) {
+                    const rango = {
+                        operador: 'gte',
+                        valor: start.toISOString()
+                    };
+
+
+                    let resVentas = null;
+                    try {
+                        resVentas = await window.databaseService.select('vista_ventas', {
+                            filtros: { fecha_cierre: rango },
+                            ordenPor: { campo: 'fecha_cierre', direccion: 'desc' },
+                            noCache: true
+                        });
+                    } catch (_) {
+                        // Fallback: tabla ventas real (si no existe vista)
+                        resVentas = await window.databaseService.select('ventas', {
+                            filtros: { fecha_cierre: rango },
+                            ordenPor: { campo: 'fecha_cierre', direccion: 'desc' },
+                            noCache: true
+                        });
+                    }
+
+                    // Aplicar el límite superior (lte) si el wrapper no soporta AND con 2 operadores en el mismo campo.
+                    // DatabaseService permite un solo operador por campo; filtramos el límite superior en cliente.
+                    if (resVentas && Array.isArray(resVentas.data)) {
+                        resVentas.data = resVentas.data.filter(r => {
+                            const fc = r.fecha_cierre || r.fecha_fin || null;
+                            if (!fc) return false;
+                            const d = new Date(fc);
+                            return d >= start && d < end;
+                        });
+                    }
+
+                    const rows = Array.isArray(resVentas?.data) ? resVentas.data : [];
+                    for (const r of rows) {
+                        const sesionId = r.sesion_id || r.sesionId || null;
+                        if (!sesionId) continue;
+                        // Preferimos el último cierre (por si hubo updates)
+                        cierresPorSesion.set(sesionId, {
+                            fecha_cierre: r.fecha_cierre || r.fecha_fin || null,
+                            metodo_pago: r.metodo_pago || null,
+                            total: Number(r.total ?? r.total_general ?? 0)
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ No se pudieron cargar cierres desde ventas/vista_ventas:', e?.message || e);
+            }
+
+            const sesiones = Array.isArray(this.sesiones) ? this.sesiones : [];
+            const fechaCierreEfectiva = (s) => s?.fecha_fin || cierresPorSesion.get(s?.id)?.fecha_cierre || null;
+
+            // Movimiento: iniciadas hoy o cerradas hoy (aunque falte fecha_fin en sesiones)
+            const conMovimiento = sesiones.filter(s => isBetween(s.fecha_inicio) || isBetween(fechaCierreEfectiva(s)));
+
+            const iniciadasHoy = conMovimiento.filter(s => isBetween(s.fecha_inicio)).length;
+            const cerradasHoy = conMovimiento.filter(s => isBetween(fechaCierreEfectiva(s))).length;
+
+            // Total cobrado: preferir ventas/vista_ventas (es lo contable)
+            let totalCobradoHoy = 0;
+            for (const [, v] of cierresPorSesion.entries()) {
+                if (isBetween(v.fecha_cierre)) totalCobradoHoy += Number(v.total ?? 0);
+            }
+            // Fallback por si no existe tabla contable o está vacía
+            if (!Number.isFinite(totalCobradoHoy) || totalCobradoHoy <= 0) {
+                totalCobradoHoy = conMovimiento
+                    .filter(s => isBetween(fechaCierreEfectiva(s)))
+                    .reduce((acc, s) => {
+                        const tg = Number(s.totalGeneral ?? 0);
+                        if (!Number.isNaN(tg) && tg > 0) return acc + tg;
+
+                        const base = Number(s.tarifa_base ?? s.tarifa ?? 0);
+                        const adicional = Number(s.costoAdicional ?? 0) || (Array.isArray(s.tiemposAdicionales)
+                            ? s.tiemposAdicionales.reduce((sum, t) => sum + Number(t?.costo ?? 0), 0)
+                            : 0);
+                        const prod = Array.isArray(s.productos)
+                            ? s.productos.reduce((sum, p) => sum + Number(p?.subtotal ?? (Number(p?.cantidad ?? 1) * Number(p?.precio ?? 0))), 0)
+                            : Number(s.totalProductos ?? 0);
+                        const desc = Number(s.descuento ?? 0);
+
+                        const calc = base + adicional + prod - desc;
+                        return acc + (Number.isFinite(calc) ? calc : 0);
+                    }, 0);
+            }
+
+            elIniciadas.textContent = String(iniciadasHoy);
+            elCerradas.textContent = String(cerradasHoy);
+            elRegistros.textContent = String(conMovimiento.length);
+            elTotalCobrado.textContent = formatearMoneda(totalCobradoHoy);
+
+            const mapSalaNombre = (salaId) => {
+                const sala = Array.isArray(this.salas) ? this.salas.find(x => x.id === salaId) : null;
+                return sala?.nombre || 'Sala';
+            };
+
+            const fmtHora = (isoString) => {
+                if (!isoString) return '--';
+                const d = new Date(isoString);
+                return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            };
+
+            const estadoBadge = (s) => {
+                const est = (s.estado || (s.finalizada ? 'finalizada' : 'activa')).toLowerCase();
+                const cls = est === 'finalizada' ? 'bg-success' : (est === 'pausada' ? 'bg-warning' : 'bg-primary');
+                return `<span class="badge ${cls}">${est}</span>`;
+            };
+
+            const pagoTexto = (mp) => {
+                const v = (mp || '').toLowerCase();
+                if (v === 'qr' || v === 'digital') return 'QR/Digital';
+                if (v === 'tarjeta') return 'Tarjeta';
+                if (v === 'transferencia') return 'Transferencia';
+                return 'Efectivo';
+            };
+
+            const filas = conMovimiento
+                .slice()
+                .sort((a, b) => new Date((fechaCierreEfectiva(b) || b.fecha_inicio || 0)).getTime() - new Date((fechaCierreEfectiva(a) || a.fecha_inicio || 0)).getTime())
+                .map(s => {
+                    const cierre = fechaCierreEfectiva(s);
+                    const venta = cierresPorSesion.get(s.id) || null;
+                    const metodoPago = s.metodoPago || (venta?.metodo_pago === 'digital' ? 'qr' : venta?.metodo_pago) || null;
+
+                    const total = Number(s.totalGeneral ?? 0);
+                    const totalMostrar = (venta && Number.isFinite(venta.total) && venta.total > 0)
+                        ? venta.total
+                        : (Number.isFinite(total) && total > 0
+                            ? total
+                            : (Number(s.tarifa_base ?? s.tarifa ?? 0)
+                                + Number(s.costoAdicional ?? 0)
+                                + (Array.isArray(s.productos)
+                                    ? s.productos.reduce((sum, p) => sum + Number(p?.subtotal ?? (Number(p?.cantidad ?? 1) * Number(p?.precio ?? 0))), 0)
+                                    : 0)
+                                - Number(s.descuento ?? 0)));
+
+                    return `
+                        <tr>
+                            <td>${fmtHora(s.fecha_inicio)}</td>
+                            <td>${fmtHora(cierre)}</td>
+                            <td>${mapSalaNombre(s.salaId)}</td>
+                            <td>${s.estacion || '--'}</td>
+                            <td>${s.cliente || '--'}</td>
+                            <td>${estadoBadge(s)}</td>
+                            <td>${pagoTexto(metodoPago)}</td>
+                            <td class="text-end">${formatearMoneda(Number.isFinite(totalMostrar) ? totalMostrar : 0)}</td>
+                        </tr>
+                    `;
+                })
+                .join('');
+
+            body.innerHTML = filas || `<tr><td colspan="8" class="text-center py-3 text-muted">No hay movimiento registrado hoy.</td></tr>`;
+        } catch (e) {
+            console.warn('⚠️ No se pudo calcular movimiento de hoy:', e?.message || e);
         }
     }
     
@@ -1671,8 +2017,14 @@ class GestorSalas {
         sesion.totalProductos = totalProductos;
         sesion.totalGeneral = totalGeneral;
 
-        // Guardar cambios
-        await guardarSesiones(this.sesiones);
+        // Guardar cambios (sesión) y registrar venta contable en Supabase
+        // Nota: aunque falle el guardado de sesiones (por RLS), intentamos igualmente registrar la venta contable.
+        try {
+            await guardarSesiones(this.sesiones);
+        } catch (e) {
+            console.warn('⚠️ No se pudo guardar sesiones al finalizar:', e?.message || e);
+        }
+        await guardarVentaContableDesdeSesion(this.sesiones[sesionIndex]);
         // Limpiar estados de alarma al finalizar
         try {
             this._alertasTiempoDisparadas.delete(sesionId);
@@ -1744,6 +2096,12 @@ class GestorSalas {
         // Manejar búsqueda
         if (this.busqueda) {
             this.busqueda.addEventListener('input', () => this.actualizarSalas());
+        }
+
+        // Movimiento de hoy
+        const btnMov = document.getElementById('btnActualizarMovimientoHoy');
+        if (btnMov) {
+            btnMov.addEventListener('click', () => this.actualizarMovimientoHoy());
         }
         
         // Manejar botón de configurar tarifas
@@ -3299,9 +3657,13 @@ class GestorSalas {
         const productosRechazados = [];
         let productosProcesados = 0;
         
-        productos.forEach(producto => {
+        // Usar for...of para permitir operaciones asíncronas secuenciales
+        for (const producto of productos) {
+            let ventaExitosa = false;
+            
             if (window.gestorStock && typeof window.gestorStock.registrarVentaDesdeSalas === 'function') {
-                const ventaExitosa = window.gestorStock.registrarVentaDesdeSalas({
+                // Ahora registrarVentaDesdeSalas es async para asegurar persistencia en Supabase
+                ventaExitosa = await window.gestorStock.registrarVentaDesdeSalas({
                     productoId: producto.id,
                     cantidad: producto.cantidad,
                     precioUnitario: producto.precio,
@@ -3311,18 +3673,17 @@ class GestorSalas {
                     cliente: sesion.cliente || 'Cliente',
                     productoNombre: producto.nombre
                 });
-                
-                if (ventaExitosa) {
-                    productosProcesados++;
-                } else {
-                    productosRechazados.push(producto.nombre);
-                }
             } else {
-                // Fallback para productos de ejemplo o sistema de stock no disponible
-                console.log('  - Usando fallback para producto:', producto.nombre);
-                productosProcesados++;
+                // Fallback si no hay gestor de stock
+                ventaExitosa = true; 
             }
-        });
+
+            if (ventaExitosa) {
+                productosProcesados++;
+            } else {
+                productosRechazados.push(producto.nombre);
+            }
+        }
 
         // Si hay productos rechazados, mostrar error
         if (productosRechazados.length > 0) {

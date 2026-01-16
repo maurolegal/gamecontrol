@@ -7952,3 +7952,192 @@ canvas {
         display: none;
     }
 }
+/*
+  Global Dark Theme (ported from salas-mejora-theme.css)
+  Automatically applied when [data-theme="dark"] is set on html
+*/
+
+[data-theme="dark"] body {
+  --bg-color: #0f172a;
+  --card-bg: #1e293b;
+  --card-bg-2: #111c33;
+  --border: #334155;
+
+  --accent-color: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.45);
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+
+  background: var(--bg-color) !important;
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+/* Fix for body overrides from corporate theme */
+[data-theme="dark"] body.corporate {
+  background: var(--bg-color) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .container-fluid,
+[data-theme="dark"] .main-content {
+  background: transparent !important;
+}
+
+/* Bootstrap text/background overrides (scope only) */
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-light {
+  background: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .text-dark {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .text-muted {
+  color: var(--text-muted) !important;
+}
+
+[data-theme="dark"] .border,
+[data-theme="dark"] .border-top,
+[data-theme="dark"] .border-bottom,
+[data-theme="dark"] .border-start,
+[data-theme="dark"] .border-end {
+  border-color: var(--border) !important;
+}
+
+/* Sidebar */
+[data-theme="dark"] .sidebar {
+  background: rgba(30, 41, 59, 0.75) !important;
+  backdrop-filter: saturate(1.2) blur(10px);
+  -webkit-backdrop-filter: saturate(1.2) blur(10px);
+  border-right: 1px solid var(--border) !important;
+}
+
+[data-theme="dark"] .sidebar .logo h4 {
+  color: var(--text-main) !important;
+  letter-spacing: 0.6px;
+}
+
+[data-theme="dark"] .sidebar .nav-link {
+  color: rgba(248, 250, 252, 0.78) !important;
+}
+
+[data-theme="dark"] .sidebar .nav-link:hover {
+  background: rgba(59, 130, 246, 0.10) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .sidebar .nav-link.active {
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: var(--text-main) !important;
+  border-left: 3px solid var(--accent-color);
+}
+
+/* Header (top) */
+[data-theme="dark"] .header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding-bottom: 18px !important;
+}
+
+[data-theme="dark"] .header h3 {
+  color: var(--text-main) !important;
+  letter-spacing: 0.6px;
+}
+
+[data-theme="dark"] .header p {
+  color: var(--text-muted) !important;
+}
+
+/* User dropdown button */
+[data-theme="dark"] .header .dropdown-toggle,
+[data-theme="dark"] .header .btn.btn-light {
+  background: rgba(30, 41, 59, 0.75) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .header .user-avatar {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .dropdown-menu {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+}
+
+[data-theme="dark"] .dropdown-item {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .dropdown-item:hover {
+  background: rgba(59, 130, 246, 0.10) !important;
+}
+
+[data-theme="dark"] .dropdown-divider {
+  border-color: var(--border) !important;
+}
+
+/* KPI cards */
+[data-theme="dark"] .row.mb-3 .card,
+[data-theme="dark"] .dashboard-card {
+  background-color: var(--card-bg) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* Module containers */
+[data-theme="dark"] .module-container {
+  background: transparent !important;
+}
+
+[data-theme="dark"] .module-container h5 {
+  color: var(--text-main) !important;
+}
+
+/* Inputs / filters */
+[data-theme="dark"] .input-group-text,
+[data-theme="dark"] .form-control,
+[data-theme="dark"] .form-select {
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .form-control::placeholder {
+  color: rgba(148, 163, 184, 0.75) !important;
+}
+
+/* Salas specific elements acting globally if present */
+[data-theme="dark"] .sala-card-minimal {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Table overrides */
+[data-theme="dark"] .table {
+  color: var(--text-main) !important;
+}
+
+[data-theme="dark"] .table thead th {
+  color: rgba(248, 250, 252, 0.82) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme="dark"] .table td {
+  border-color: rgba(51, 65, 85, 0.7) !important;
+}
+
+[data-theme="dark"] .table-hover tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08) !important;
+}

@@ -10,8 +10,7 @@
     <script>
         (function(){
             try {
-                var store = window.__GC_THEME_STORE || {};
-                var t = store.theme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                var t = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.setAttribute('data-theme', t);
             } catch(e) {}
         })();
@@ -28,10 +27,6 @@
     <!-- Mobile Responsive CSS -->
     <link rel="stylesheet" href="../css/mobile-responsive-pro.css">
     
-    
-    
-    <!-- Librería Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <!-- Estilos móviles corporativos para Salas -->
     <link rel="stylesheet" href="../css/salas-mobile-corporate.css">
     <!-- Estilos corporativos generales para Salas -->
@@ -262,6 +257,69 @@
                             <i class="fas fa-clock fa-2x text-muted mb-2"></i>
                             <p class="text-muted">No hay sesiones activas</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Movimiento Real (Hoy) -->
+                <div class="module-container" id="moduloMovimientoHoy">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Movimiento de Hoy</h5>
+                        <button class="btn btn-outline-secondary btn-sm" id="btnActualizarMovimientoHoy" type="button">
+                            <i class="fas fa-rotate me-1"></i>Actualizar
+                        </button>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-primary mb-1"><i class="fas fa-play fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyIniciadas" style="font-size: 1rem;">0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Iniciadas</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-success mb-1"><i class="fas fa-flag-checkered fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyCerradas" style="font-size: 1rem;">0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Cerradas</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-info mb-1"><i class="fas fa-list fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyRegistros" style="font-size: 1rem;">0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Registros</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-warning mb-1"><i class="fas fa-cash-register fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyTotalCobrado" style="font-size: 0.95rem;">$0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Cobrado hoy</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Inicio</th>
+                                    <th>Cierre</th>
+                                    <th>Sala</th>
+                                    <th>Estación</th>
+                                    <th>Cliente</th>
+                                    <th>Estado</th>
+                                    <th>Pago</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaMovimientoHoyBody">
+                                <tr>
+                                    <td colspan="8" class="text-center py-3 text-muted">Cargando movimiento de hoy...</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

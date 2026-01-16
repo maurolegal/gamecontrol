@@ -10,8 +10,7 @@
     <script>
         (function(){
             try {
-                var store = window.__GC_THEME_STORE || {};
-                var t = store.theme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                var t = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.setAttribute('data-theme', t);
             } catch(e) {}
         })();

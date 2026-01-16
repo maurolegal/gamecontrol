@@ -55,6 +55,7 @@ class GestorVentas {
         this.sesiones = [];
         this.salas = [];
         this.config = obtenerConfiguracion();
+        this.lastLoadError = null;
         this.filtrosActivos = {
             periodo: 'mes',
             fechaInicio: null,
@@ -66,6 +67,9 @@ class GestorVentas {
     }
 
     init() {
+        // Mostrar un estado inicial aunque Supabase tarde/falle
+        try { this.actualizarHistorialVentas(); } catch (_) {}
+
         // Cargar datos desde Supabase y activar tiempo real
         this.cargarDesdeSupabase().then(() => {
             this.cargarOpcionesSalas();
@@ -79,12 +83,10 @@ class GestorVentas {
 
     async cargarDesdeSupabase() {
         try {
+            this.lastLoadError = null;
             if (typeof window !== 'undefined' && window.databaseService) {
-                const [resSalas, resSesiones] = await Promise.all([
-                    window.databaseService.select('salas', { ordenPor: { campo: 'nombre', direccion: 'asc' }, noCache: true }),
-                    window.databaseService.select('sesiones', { ordenPor: { campo: 'fecha_inicio', direccion: 'desc' }, noCache: true })
-                ]);
-
+                // 1. Cargar Salas primero para referencias
+                const resSalas = await window.databaseService.select('salas', { ordenPor: { campo: 'nombre', direccion: 'asc' }, noCache: true });
                 if (resSalas && resSalas.success && Array.isArray(resSalas.data)) {
                     this.salas = resSalas.data.map(s => ({
                         id: s.id || s.uuid || s.slug || s.nombre,
@@ -92,33 +94,86 @@ class GestorVentas {
                     }));
                 }
 
-                if (resSesiones && resSesiones.success && Array.isArray(resSesiones.data)) {
-                    this.sesiones = resSesiones.data.map(row => {
-                        const metodoPagoRaw = row.metodo_pago || row.metodoPago || 'efectivo';
-                        const metodoPago = metodoPagoRaw === 'digital' ? 'qr' : metodoPagoRaw;
-                        return ({
-                        id: row.id,
-                        salaId: row.sala_id || row.salaId,
-                        salaNombre: row.sala_nombre || row.salaNombre || null,
-                        estacion: row.estacion,
-                        cliente: row.cliente,
-                        fecha_inicio: row.fecha_inicio,
-                        fecha_fin: row.fecha_fin,
-                        metodoPago,
-                        tarifa_base: row.tarifa_base ?? row.tarifa ?? 0,
-                        tarifa: row.tarifa_base ?? row.tarifa ?? 0,
-                        costoAdicional: row.costo_adicional ?? 0,
-                        tiemposAdicionales: row.tiempos_adicionales || [],
-                        productos: row.productos || [],
-                        totalGeneral: row.total_general ?? row.totalGeneral,
-                        finalizada: row.finalizada === true || row.estado === 'finalizada' || row.estado === 'cerrada',
-                        estado: row.estado || (row.finalizada ? 'finalizada' : 'activa')
-                        });
+                // 2. Cargar Historial: Directamente de Sesiones Finalizadas
+                console.log('🔄 Cargando historial de ventas desde sesiones finalizadas...');
+                
+                try {
+                     const resSesiones = await window.databaseService.select('sesiones', {
+                        filtros: { finalizada: true },
+                        // ORDEN DE LLEGADA (Cronológico): Fecha de inicio ASC o DESC?
+                        // "Orden de llegada" generalmente significa ver lo más reciente arriba (LIFO para el usuario) 
+                        // o lo más antiguo arriba (FIFO).
+                        // En contextos de logs/historial, "Orden de llegada" puede interpretarse como
+                        // el orden en que ocurrieron (Cronológico inverso para ver lo último primero).
+                        // Vamos a asegurar el orden descendente por fecha de fin (cuando la venta se concretó).
+                        ordenPor: { campo: 'fecha_fin', direccion: 'desc' }, 
+                        noCache: true 
                     });
+                    
+                    if (resSesiones && resSesiones.success && Array.isArray(resSesiones.data)) {
+                        this.sesiones = resSesiones.data.map(row => {
+                            const metodoPagoRaw = row.metodo_pago || row.metodoPago || 'efectivo';
+                            const metodoPago = metodoPagoRaw === 'digital' ? 'qr' : metodoPagoRaw;
+                            let salaNombre = 'Sala Desconocida';
+                            
+                            // Resolver nombre sala
+                            if (row.salaId || row.sala_id) {
+                                const salaObj = this.salas.find(s => s.id === (row.salaId || row.sala_id));
+                                if (salaObj) salaNombre = salaObj.nombre;
+                            }
+
+                            // Normalizar productos
+                            let productos = [];
+                            if (Array.isArray(row.productos)) {
+                                productos = row.productos;
+                            } else if (typeof row.productos === 'string') {
+                                try { productos = JSON.parse(row.productos); } catch (_) {}
+                            }
+
+                            return {
+                                id: row.id,
+                                ventaId: row.id, 
+                                sesionId: row.id,
+                                salaId: row.sala_id || row.salaId,
+                                salaNombre: salaNombre,
+                                estacion: row.estacion || 'General',
+                                cliente: row.cliente || 'Cliente Casual',
+                                fecha_inicio: row.fecha_inicio || row.inicio,
+                                fecha_fin: row.fecha_fin || row.fin || new Date().toISOString(),
+                                metodoPago: metodoPago,
+                                tarifa_base: Number(row.tarifa_base || row.total_tiempo || 0),
+                                tarifa: Number(row.tarifa_base || row.total_tiempo || 0),
+                                costoAdicional: Number(row.costo_adicional || 0),
+                                tiemposAdicionales: row.tiempos_adicionales || [],
+                                productos: productos,
+                                totalProductos: Number(row.total_productos || 0),
+                                totalGeneral: Number(row.total_general || row.totalGeneral || 0),
+                                finalizada: true,
+                                estado: 'finalizada',
+                                origen: 'sesiones_directo'
+                            };
+                        });
+                        
+                        // Reordenar explícitamente en el cliente por si acaso
+                        this.sesiones.sort((a, b) => new Date(b.fecha_fin) - new Date(a.fecha_fin));
+                        
+                        console.log(`✅ ${this.sesiones.length} ventas cargadas correctamente.`);
+                    } else {
+                        console.log('ℹ️ No se encontraron sesiones finalizadas.');
+                        this.sesiones = [];
+                    }
+                } catch (errCarga) {
+                    console.error('❌ Error cargando sesiones:', errCarga);
+                    this.lastLoadError = errCarga.message;
+                    this.sesiones = [];
                 }
+
+                this.actualizarHistorialVentas();
             }
-        } catch (e) {
-            console.warn('No fue posible cargar datos desde Supabase:', e?.message || e);
+        } catch (error) {
+            console.error('❌ Error fatal cargando historial:', error);
+            this.lastLoadError = error.message;
+            this.actualizarHistorialVentas(); 
         }
     }
 
@@ -337,6 +392,21 @@ class GestorVentas {
         const sesiones = this.aplicarFiltros();
 
         if (sesiones.length === 0) {
+            if (this.lastLoadError) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center py-4">
+                            <i class="fas fa-triangle-exclamation fa-2x text-warning mb-2"></i>
+                            <p class="text-muted mb-2">${this.lastLoadError}</p>
+                            <div class="small text-muted">
+                                <div>Solución típica: ejecutar <strong>sql/migracion_ventas_contables.sql</strong> y/o <strong>sql/fix_rls_sesiones.sql</strong> en Supabase.</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                this.actualizarInfoPaginacion(0);
+                return;
+            }
             tbody.innerHTML = `
                 <tr>
                     <td colspan="11" class="text-center py-4">
@@ -423,7 +493,15 @@ class GestorVentas {
 
         try {
             if (window.databaseService) {
-                await window.databaseService.delete('sesiones', sesionId);
+                // Si viene del modelo contable, NO borrar: anular.
+                if (sesion.ventaId) {
+                    await window.databaseService.update('ventas', sesion.ventaId, {
+                        estado: 'anulada',
+                        updated_at: new Date().toISOString()
+                    });
+                } else {
+                    await window.databaseService.delete('sesiones', sesionId);
+                }
             }
             // Actualizar memoria local y UI
             this.sesiones = this.sesiones.filter(s => s.id !== sesionId);

@@ -1041,7 +1041,7 @@ class GestorStock {
     // === MOVIMIENTOS ===
     registrarMovimiento(datos) {
         const movimiento = {
-            id: generarId(),
+            id: generarId(), // ID temporal local
             fecha: new Date().toISOString(),
             productoId: datos.productoId,
             productoNombre: datos.productoNombre || 'Producto',
@@ -1049,7 +1049,7 @@ class GestorStock {
             cantidad: datos.cantidad,
             precioUnitario: datos.precioUnitario || 0,
             precioTotal: datos.precioTotal || 0,
-            observaciones: datos.observaciones || '',
+            observaciones: datos.observaciones || '', // Guardado como 'motivo' en DB
             usuario: datos.usuario || 'Usuario actual',
             // Información adicional para trazabilidad
             sesionId: datos.sesionId || null,
@@ -1066,6 +1066,28 @@ class GestorStock {
         guardarMovimientos(this.movimientos);
         this.cargarMovimientos();
         
+        // Registrar en Supabase
+        if (window.databaseService) {
+            // Mapear al esquema de DB: movimientos_stock
+            const payload = {
+                producto_id: datos.productoId,
+                tipo: datos.tipo, // 'venta', 'entrada', etc.
+                cantidad: datos.cantidad,
+                stock_anterior: datos.stockAnterior,
+                stock_nuevo: datos.stockNuevo,
+                costo_unitario: datos.precioUnitario || 0,
+                valor_total: datos.precioTotal || 0,
+                motivo: datos.motivo || datos.observaciones || '', 
+                referencia: datos.referencia || (datos.sesionId ? `Sesión: ${datos.sesionId}` : null),
+                fecha_movimiento: new Date().toISOString()
+                // usuario_id idealmente vendría del auth actual
+            };
+            
+            window.databaseService.insert('movimientos_stock', payload)
+                .then(res => console.log('✅ Movimiento registrado en Supabase', res))
+                .catch(err => console.error('❌ Error registrando movimiento en Supabase', err));
+        }
+
         // Disparar evento para notificar cambios
         window.dispatchEvent(new CustomEvent('movimientoRegistrado', {
             detail: movimiento
@@ -1077,7 +1099,7 @@ class GestorStock {
      * @param {Object} datosVenta - Datos completos de la venta
      * @returns {boolean} true si la venta fue exitosa
      */
-    registrarVentaDesdeSalas(datosVenta) {
+    async registrarVentaDesdeSalas(datosVenta) {
         const {
             productoId,
             cantidad,
@@ -1104,9 +1126,23 @@ class GestorStock {
         const stockAnterior = producto.stock;
         const precioTotal = cantidad * precioUnitario;
 
-        // Reducir stock
+        // Reducir stock localmente
         producto.stock -= cantidad;
         
+        // Actualizar en Supabase (producto)
+        if (window.databaseService) {
+            try {
+                await window.databaseService.update('productos', productoId, { 
+                    stock: producto.stock,
+                    fecha_actualizacion: new Date().toISOString()
+                });
+            } catch (error) {
+                console.error('Error actualizando stock en Supabase:', error);
+                // Revertir cambio local si falla DB? 
+                // Por ahora no revertimos para no bloquear UX, pero logueamos el error.
+            }
+        }
+
         // Registrar movimiento con trazabilidad completa
         this.registrarMovimiento({
             tipo: 'venta',
@@ -1126,7 +1162,7 @@ class GestorStock {
             stockNuevo: producto.stock
         });
 
-        // Guardar cambios
+        // Guardar cambios locales
         guardarProductos(this.productos);
         
         // Actualizar interfaz si estamos en la página de stock
