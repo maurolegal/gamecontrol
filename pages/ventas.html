@@ -10,6 +10,14 @@
     <script>
         (function(){
             try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+            
+            // Mobile Redirect
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            // Solo redirigir si NO estamos ya en la página mobile (prevención de bucle si el nombre cambiara)
+            if (isMobile && !window.location.href.includes('ventas_mobile.html')) {
+                // Redirigir a ventas_mobile.html
+                window.location.href = 'ventas_mobile.html';
+            }
         })();
     </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">

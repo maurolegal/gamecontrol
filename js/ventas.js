@@ -346,12 +346,20 @@ class GestorVentas {
         const ticketPromedio = transacciones > 0 ? totalVentas / transacciones : 0;
         const clientesUnicos = new Set(sesiones.map(s => s.cliente)).size;
 
-        // Actualizar tarjetas de estadísticas
+        // Actualizar tarjetas de estadísticas (Desktop)
         const tarjetas = document.querySelectorAll('.dashboard-card h2');
         if (tarjetas[0]) tarjetas[0].textContent = formatearMoneda(totalVentas);
         if (tarjetas[1]) tarjetas[1].textContent = transacciones;
         if (tarjetas[2]) tarjetas[2].textContent = formatearMoneda(ticketPromedio);
         if (tarjetas[3]) tarjetas[3].textContent = clientesUnicos;
+
+        // Estilos Mobile
+        const mvTotal = document.getElementById('mvTotalVentas');
+        const mvTrans = document.getElementById('mvTransacciones');
+        const mvTicket = document.getElementById('mvTicketPromedio');
+        if (mvTotal) mvTotal.textContent = formatearMoneda(totalVentas);
+        if (mvTrans) mvTrans.textContent = transacciones;
+        if (mvTicket) mvTicket.textContent = formatearMoneda(ticketPromedio);
 
         // Calcular cambios (comparar con período anterior)
         this.calcularCambiosPeriodo();
@@ -382,11 +390,68 @@ class GestorVentas {
         });
     }
 
+    crearHTMLCardMobile(sesion) {
+        const { etiqueta: salaInfo } = this.resolverInfoSala(sesion);
+        const inicio = new Date(sesion.fecha_inicio || sesion.inicio);
+        const total = this.calcularTotalSesion(sesion);
+        const metodoPago = this.obtenerNombreMetodoPago(sesion.metodoPago || 'efectivo');
+        
+        return `
+        <div class="venta-card">
+            <div class="venta-header">
+                <div>
+                    <span class="venta-id">#${sesion.id.slice(-4)}</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary ms-2">${salaInfo}</span>
+                </div>
+                <div class="small text-muted">${formatearFecha(inicio)}</div>
+            </div>
+            <div class="venta-body">
+                <div class="venta-row" style="grid-column: 1 / -1; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user text-secondary me-2"></i>
+                    <span class="fw-medium">${sesion.cliente}</span>
+                </div>
+                <div class="venta-row">
+                    <i class="fas fa-clock text-secondary me-2"></i>
+                    <span>${formatearHora(inicio)}</span>
+                </div>
+                 <div class="venta-row justify-content-end">
+                     <span class="metodo-pago-badge ${this.obtenerClaseMetodoPago(sesion.metodoPago || 'efectivo')} py-0" style="font-size: 0.8rem">
+                        <i class="${this.obtenerIconoMetodoPago(sesion.metodoPago || 'efectivo')}"></i>
+                        ${metodoPago}
+                    </span>
+                </div>
+                <div class="venta-total">
+                    <span class="text-white-50 small">Total</span>
+                    <span>${formatearMoneda(total)}</span>
+                </div>
+            </div>
+        </div>`;
+    }
+
     actualizarHistorialVentas() {
         const tbody = document.getElementById('tablaVentasBody');
-        if (!tbody) return;
-
+        const containerMobile = document.getElementById('contenedorVentasMobile');
+        
         const sesiones = this.aplicarFiltros();
+
+        // --- MOBILE RENDERER ---
+        if (containerMobile) {
+            if (sesiones.length === 0) {
+                 containerMobile.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-secondary mb-3 opacity-50"></i>
+                        <p class="text-white-50">No hay ventas registradas</p>
+                    </div>`;
+                 this.actualizarInfoPaginacion(0);
+                 return;
+            }
+            containerMobile.innerHTML = sesiones.map(s => this.crearHTMLCardMobile(s)).join('');
+            this.actualizarInfoPaginacion(sesiones.length);
+            return;
+        }
+        // --- DESKTOP RENDERER ---
+
+        if (!tbody) return;
 
         if (sesiones.length === 0) {
             if (this.lastLoadError) {

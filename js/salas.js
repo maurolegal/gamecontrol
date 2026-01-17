@@ -968,28 +968,45 @@ class GestorSalas {
                 estacionesHTML += `
                     <div class="col-6">
                         <div class="d-flex flex-column h-100 p-2 position-relative overflow-hidden" 
+                             data-sesion-id="${sesion.id}"
                              style="background: rgba(16, 185, 129, 0.08); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.3);">
                             
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25" style="font-size: 0.65rem;">${estacion}</span>
+                                <span class="badge bg-dark bg-opacity-50 text-light border border-secondary border-opacity-25" style="font-size: 0.6rem;">${sesion.tiempo_contratado}m</span>
                             </div>
 
                             <div class="fw-bold text-white text-truncate mb-1" style="font-size: 0.85rem;">
                                 ${sesion.cliente || 'Anonimo'}
                             </div>
 
-                            <div class="mt-auto">
-                                <div class="fw-bold ${colorTexto}" style="font-size: 1.1rem; line-height: 1;">
+                            <div>
+                                <div class="fw-bold ${colorTexto} timer-mobile-update" style="font-size: 1.1rem; line-height: 1;">
                                     ${tiempoInfo.formato}
                                 </div>
                                 <div class="d-flex justify-content-between align-items-end mt-1">
-                                    <span class="text-secondary" style="font-size: 0.65rem;">${tiempoInfo.excedido ? 'Extra' : 'Restante'}</span>
-                                    <span class="badge bg-dark bg-opacity-50 text-light border border-secondary border-opacity-25" style="font-size: 0.6rem;">${sesion.tiempo_contratado}m</span>
+                                    <span class="text-secondary timer-mobile-status" style="font-size: 0.65rem;">${tiempoInfo.excedido ? 'Extra' : 'Restante'}</span>
                                 </div>
                             </div>
-                             
-                             <!-- Actions Overlay (Click Area) -->
-                             <a href="#" onclick="window.gestorSalas.finalizarSesion('${sesion.id}')" class="stretched-link" style="z-index: 1;"></a>
+
+                            <!-- Mobile Actions Grid -->
+                            <div class="d-flex gap-1 mt-auto pt-2" style="z-index: 2;">
+                                <button class="btn btn-sm btn-dark bg-opacity-50 border-0 p-0 flex-grow-1 d-flex align-items-center justify-content-center" 
+                                        style="height: 32px;"
+                                        onclick="window.gestorSalas.agregarProductos('${sesion.id}')">
+                                    <i class="fas fa-shopping-basket text-warning" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <button class="btn btn-sm btn-dark bg-opacity-50 border-0 p-0 flex-grow-1 d-flex align-items-center justify-content-center" 
+                                        style="height: 32px;"
+                                        onclick="window.gestorSalas.agregarTiempo('${sesion.id}')">
+                                    <i class="fas fa-clock text-info" style="font-size: 0.8rem;"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger bg-opacity-75 border-0 p-0 flex-grow-1 d-flex align-items-center justify-content-center" 
+                                        style="height: 32px;"
+                                        onclick="window.gestorSalas.finalizarSesion('${sesion.id}')">
+                                    <i class="fas fa-stop" style="font-size: 0.8rem;"></i>
+                                </button>
+                            </div>
 
                             <div class="position-absolute bottom-0 start-0 w-100" style="height: 3px; background: rgba(255,255,255,0.1);">
                                 <div class="h-100 bg-success" style="width: ${progreso}%;"></div>
@@ -1613,6 +1630,30 @@ class GestorSalas {
             this._ultimaAlarmaMinuto.delete(sesion.id);
                 }
             }
+
+            // Actualizar temporizadores en móvil nativo
+            const elementoMobile = document.querySelector(`[data-sesion-id="${sesion.id}"] .timer-mobile-update`);
+            if (elementoMobile) {
+                const tiempoInfo = this.formatearTemporizadorPreciso(sesion);
+                const statusMobile = elementoMobile.parentElement.querySelector('.timer-mobile-status');
+                
+               if (tiempoInfo.excedido) {
+                    elementoMobile.textContent = '00:00:00';
+                    elementoMobile.classList.remove('text-success');
+                    elementoMobile.classList.add('text-danger');
+                    
+                    if (statusMobile) statusMobile.textContent = minutosExcedidos > 0 ? `Extra (+${minutosExcedidos}m)` : 'Tiempo cumplido';
+                    
+                    this._alertarTiempoCumplido(sesion);
+                    this._tickAlarmaMinuto(sesion, minutosExcedidos);
+                } else {
+                    elementoMobile.textContent = tiempoInfo.formato;
+                    elementoMobile.classList.remove('text-danger');
+                    elementoMobile.classList.add('text-success');
+                    if (statusMobile) statusMobile.textContent = 'Restante';
+                    this._ultimaAlarmaMinuto.delete(sesion.id);
+                }
+            }
         });
     }
     
@@ -1680,33 +1721,52 @@ class GestorSalas {
             // Template para móvil horizontal
             if (isMobileNative) {
                 contenedorOpciones.innerHTML = `
+                   <!-- 15 Min -->
+                   <!--
+                   <div class="col-6">
+                       <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-3 bg-dark bg-opacity-25 option-card cursor-pointer w-100 h-100" style="border-color: rgba(255,255,255,0.1) !important;">
+                           <input type="radio" name="tiempoTarifa" value="15" class="d-none" onchange="actualizarSeleccionMobile(this)">
+                           <div class="fw-bold text-white">15m</div>
+                           <div class="text-secondary fw-bold small">${formatearMoneda(tarifas.t15 || 0)}</div>
+                       </label>
+                   </div>
+                   -->
+
                    <!-- 30 Min -->
-                   <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-2 bg-dark bg-opacity-25 option-card cursor-pointer" style="min-width: 80px; flex-shrink: 0; border-color: rgba(255,255,255,0.1) !important;">
-                       <input type="radio" name="tiempoTarifa" value="30" class="d-none" onchange="actualizarSeleccionMobile(this)">
-                       <div class="fw-bold small text-white">30m</div>
-                       <div class="text-primary fw-bold" style="font-size: 0.9rem;">${formatearMoneda(tarifas.t30 || 0)}</div>
-                   </label>
+                   <div class="col-6">
+                       <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-3 bg-dark bg-opacity-25 option-card cursor-pointer w-100 h-100" style="border-color: rgba(255,255,255,0.1) !important;">
+                           <input type="radio" name="tiempoTarifa" value="30" class="d-none" onchange="actualizarSeleccionMobile(this)">
+                           <div class="fw-bold text-white">30m</div>
+                           <div class="text-primary fw-bold small">${formatearMoneda(tarifas.t30 || 0)}</div>
+                       </label>
+                   </div>
                    
                    <!-- 60 Min (Default) -->
-                   <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-2 bg-primary bg-opacity-25 option-card cursor-pointer border-primary" style="min-width: 80px; flex-shrink: 0;">
-                       <input type="radio" name="tiempoTarifa" value="60" class="d-none" checked onchange="actualizarSeleccionMobile(this)">
-                       <div class="fw-bold small text-white">1h</div>
-                       <div class="text-success fw-bold" style="font-size: 0.9rem;">${formatearMoneda(tarifas.t60 || 0)}</div>
-                   </label>
+                   <div class="col-6">
+                       <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-3 bg-primary bg-opacity-25 option-card cursor-pointer border-primary w-100 h-100">
+                           <input type="radio" name="tiempoTarifa" value="60" class="d-none" checked onchange="actualizarSeleccionMobile(this)">
+                           <div class="fw-bold text-white">1h</div>
+                           <div class="text-success fw-bold small">${formatearMoneda(tarifas.t60 || 0)}</div>
+                       </label>
+                   </div>
                    
                    <!-- 90 Min -->
-                   <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-2 bg-dark bg-opacity-25 option-card cursor-pointer" style="min-width: 80px; flex-shrink: 0; border-color: rgba(255,255,255,0.1) !important;">
-                       <input type="radio" name="tiempoTarifa" value="90" class="d-none" onchange="actualizarSeleccionMobile(this)">
-                       <div class="fw-bold small text-white">1.5h</div>
-                       <div class="text-warning fw-bold" style="font-size: 0.9rem;">${formatearMoneda(tarifas.t90 || 0)}</div>
-                   </label>
+                   <div class="col-6">
+                       <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-3 bg-dark bg-opacity-25 option-card cursor-pointer w-100 h-100" style="border-color: rgba(255,255,255,0.1) !important;">
+                           <input type="radio" name="tiempoTarifa" value="90" class="d-none" onchange="actualizarSeleccionMobile(this)">
+                           <div class="fw-bold text-white">1.5h</div>
+                           <div class="text-warning fw-bold small">${formatearMoneda(tarifas.t90 || 0)}</div>
+                       </label>
+                   </div>
                    
                    <!-- 120 Min -->
-                   <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-2 bg-dark bg-opacity-25 option-card cursor-pointer" style="min-width: 80px; flex-shrink: 0; border-color: rgba(255,255,255,0.1) !important;">
-                       <input type="radio" name="tiempoTarifa" value="120" class="d-none" onchange="actualizarSeleccionMobile(this)">
-                       <div class="fw-bold small text-white">2h</div>
-                       <div class="text-info fw-bold" style="font-size: 0.9rem;">${formatearMoneda(tarifas.t120 || 0)}</div>
-                   </label>
+                   <div class="col-6">
+                       <label class="d-flex flex-column align-items-center justify-content-center border rounded-3 p-3 bg-dark bg-opacity-25 option-card cursor-pointer w-100 h-100" style="border-color: rgba(255,255,255,0.1) !important;">
+                           <input type="radio" name="tiempoTarifa" value="120" class="d-none" onchange="actualizarSeleccionMobile(this)">
+                           <div class="fw-bold text-white">2h</div>
+                           <div class="text-info fw-bold small">${formatearMoneda(tarifas.t120 || 0)}</div>
+                       </label>
+                   </div>
                 `;
 
                 // Helper global para el cambio de selección en móvil (inyectado si no existe)
