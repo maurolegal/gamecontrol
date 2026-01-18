@@ -151,26 +151,47 @@ class GestorStock {
         try {
             if (!window.databaseService) return;
             
-            const resultado = await window.databaseService.select('movimientos_stock', {
+            // Intentar carga con joins
+            let resultado = await window.databaseService.select('movimientos_stock', {
                 select: '*, producto:productos(nombre), usuario:usuarios(nombre)',
                 ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
                 limite: 50
             });
             
+            // Si falla, intentar carga simple
+            if (!resultado.success) {
+                console.warn('⚠️ Falló carga de movimientos con JOIN, intentando simple...', resultado);
+                resultado = await window.databaseService.select('movimientos_stock', {
+                    select: '*', // Sin joins
+                    ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
+                    limite: 50
+                });
+            }
+
             if (resultado && resultado.success && resultado.data) {
-                this.movimientos = resultado.data.map(m => ({
-                    id: m.id,
-                    productoId: m.producto_id,
-                    tipo: m.tipo,
-                    fecha: m.fecha_movimiento,
-                    cantidad: m.cantidad,
-                    usuario: m.usuario?.nombre || 'Sistema',
-                    precio: Number(m.costo_unitario) || 0,
-                    stock: Number(m.stock_nuevo) || 0,
-                    observaciones: m.motivo || m.referencia || '',
-                    precioTotal: Number(m.valor_total) || 0, // Corregido: mapear a precioTotal para la vista
-                    valorTotal: Number(m.valor_total) || 0
-                }));
+                this.movimientos = resultado.data.map(m => {
+                    // Resolver nombre de producto manualmente si falta (cache local)
+                    let nombreProducto = m.producto?.nombre;
+                    if (!nombreProducto && m.producto_id) {
+                        const pLocal = this.productos.find(p => p.id === m.producto_id);
+                        if (pLocal) nombreProducto = pLocal.nombre;
+                    }
+
+                    return {
+                        id: m.id,
+                        productoId: m.producto_id,
+                        productoNombre: nombreProducto || m.producto_nombre || 'Producto',
+                        tipo: m.tipo,
+                        fecha: m.fecha_movimiento,
+                        cantidad: m.cantidad,
+                        usuario: m.usuario?.nombre || 'Sistema',
+                        precio: Number(m.costo_unitario) || 0,
+                        stock: Number(m.stock_nuevo) || 0,
+                        observaciones: m.motivo || m.referencia || '',
+                        precioTotal: Number(m.valor_total) || 0,
+                        valorTotal: Number(m.valor_total) || 0
+                    };
+                });
                 
                 this.cargarMovimientos();
                 console.log(`✅ Movimientos sincronizados: ${this.movimientos.length}`);
@@ -182,28 +203,77 @@ class GestorStock {
 
     async cargarVentasHoy() {
         try {
-            if (!window.databaseService) return 0;
+            if (!window.databaseService) {
+                console.warn('⚠️ databaseService no disponible para cargar ventas hoy');
+                return 0;
+            }
             
+            // Calcular inicio del día en UTC para garantizar cobertura completa
+            // Usamos la fecha local 00:00:00 y la convertimos a ISO
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
             
-            // Consultar ventas de hoy con detalle
-            const resultado = await window.databaseService.select('movimientos_stock', {
+            // Logging para depuración
+            console.log('📅 Cargando ventas del día. Fecha filtro (ISO GTE):', hoy.toISOString());
+
+            // 1. Mostrar estado de carga en la tabla pequeña si es posible
+            const tbody = document.querySelector('#tablaVentasDia tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Actualizando...</td></tr>';
+            }
+
+            // 2. Consulta principal (JOIN)
+            let resultado = await window.databaseService.select('movimientos_stock', {
                 filtros: { 
                     tipo: 'venta',
                     'fecha_movimiento': { operador: 'gte', valor: hoy.toISOString() }
                 },
-                select: '*, producto:productos(nombre)', // Traer todo + nombre producto
+                select: '*, producto:productos(nombre)',
                 ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
-                limite: 200 // Límite razonable para visualización
+                limite: 100
             });
+
+            // 3. Fallback a consulta simple si falla la compleja
+            if (!resultado.success) {
+                 console.warn('⚠️ Falló consulta detallada de ventas hoy, intentando simple...', resultado.error);
+                 resultado = await window.databaseService.select('movimientos_stock', {
+                    filtros: { 
+                        tipo: 'venta',
+                        'fecha_movimiento': { operador: 'gte', valor: hoy.toISOString() }
+                    },
+                    select: '*', // Sin relaciones
+                    ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
+                    limite: 100
+                });
+            }
 
             let totalVentasHoy = 0;
             let ventas = [];
 
-            if (resultado && resultado.success && resultado.data) {
-                ventas = resultado.data;
+            if (resultado && resultado.success) {
+                // Manejar posibilidad de data null
+                ventas = resultado.data || [];
+                
+                console.log(`✅ Ventas encontradas hoy: ${ventas.length}`);
+
+                // Enriquecimiento robusto de nombres de productos
+                ventas.forEach(v => {
+                    // Si no vino el producto poblado (fallback o join fallido)
+                    if (!v.producto || !v.producto.nombre) {
+                        // Buscar en memoria local
+                        const pLocal = this.productos.find(p => p.id === v.producto_id);
+                        if (pLocal) {
+                            v.producto = { nombre: pLocal.nombre };
+                        } else {
+                            // Intento de recuperar nombre guardado en movimiento (si existe columna)
+                            if (v.producto_nombre) v.producto = { nombre: v.producto_nombre };
+                        }
+                    }
+                });
+
                 totalVentasHoy = ventas.reduce((sum, m) => sum + (Number(m.valor_total) || 0), 0);
+            } else {
+                console.error('❌ Error crítico recuperando ventas hoy:', resultado.error);
             }
 
             // Actualizar Widgets Superiores
@@ -223,7 +293,7 @@ class GestorStock {
             
             return totalVentasHoy;
         } catch (error) {
-            console.warn('⚠️ Error calculando ventas de hoy:', error);
+            console.error('❌ Excepción en cargarVentasHoy:', error);
             return 0;
         }
     }
@@ -1163,7 +1233,7 @@ class GestorStock {
     }
 
     // === MOVIMIENTOS ===
-    registrarMovimiento(datos) {
+    async registrarMovimiento(datos) {
         const movimiento = {
             id: generarId(), // ID temporal local
             fecha: new Date().toISOString(),
@@ -1207,15 +1277,16 @@ class GestorStock {
                 // usuario_id idealmente vendría del auth actual
             };
             
-            window.databaseService.insert('movimientos_stock', payload)
-                .then(res => console.log('✅ Movimiento registrado en Supabase', res))
-                .catch(err => console.error('❌ Error registrando movimiento en Supabase', err));
+            try {
+                const res = await window.databaseService.insert('movimientos_stock', payload);
+                console.log('✅ Movimiento registrado en Supabase', res);
+                return true;
+            } catch (err) {
+                console.error('❌ Error registrando movimiento en Supabase', err);
+                return false;
+            }
         }
-
-        // Disparar evento para notificar cambios
-        window.dispatchEvent(new CustomEvent('movimientoRegistrado', {
-            detail: movimiento
-        }));
+        return true; // Si no hay databaseService, asumimos éxito local
     }
 
     /**
@@ -1268,7 +1339,7 @@ class GestorStock {
         }
 
         // Registrar movimiento con trazabilidad completa
-        this.registrarMovimiento({
+        await this.registrarMovimiento({
             tipo: 'venta',
             productoId: producto.id,
             productoNombre: producto.nombre,
@@ -1351,8 +1422,10 @@ class GestorStock {
         }
 
         tbody.innerHTML = movimientosRecientes.map(movimiento => {
-            const producto = this.productos.find(p => p.id === movimiento.productoId);
-            const nombreProducto = producto ? producto.nombre : 'Producto eliminado';
+            // Prioridad al nombre guardado en snapshot, fallback a búsqueda actual, fallback final
+            const nombreProducto = movimiento.productoNombre || 
+                                 (this.productos.find(p => p.id === movimiento.productoId)?.nombre) || 
+                                 'Producto eliminado';
             
             const tipoInfo = {
                 'entrada': { icono: 'fas fa-arrow-up', clase: 'text-success', texto: 'Entrada' },
@@ -1365,56 +1438,62 @@ class GestorStock {
             
             // Información de trazabilidad para ventas desde salas
             let infoTrazabilidad = '';
-            if (movimiento.tipo === 'venta' && movimiento.sesionId) {
+            // Detectar si proviene de salas (por motivo o referencia)
+            const esVentaSalas = movimiento.tipo === 'venta' && 
+                                (movimiento.sesionId || 
+                                (movimiento.observaciones && movimiento.observaciones.includes('sesión')));
+            
+            if (esVentaSalas) {
+                // Obtener detalles del objeto movimiento o parsear observaciones si es necesario
+                const detalle = movimiento.observaciones || '';
+                // Extraer cliente si no está en propiedad directa
+                const cliente = movimiento.cliente || (detalle.includes('Cliente') ? detalle.split('Cliente')[1]?.trim() : 'Cliente desconoc.');
+                
                 infoTrazabilidad = `
-                    <div class="small text-muted">
-                        <i class="fas fa-gamepad me-1"></i>
-                        ${movimiento.salaId ? `Sala: ${movimiento.salaId}` : ''}
-                        ${movimiento.estacion ? `• Est: ${movimiento.estacion}` : ''}
-                        ${movimiento.cliente ? `• Cliente: ${movimiento.cliente}` : ''}
+                    <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                        <i class="fas fa-gamepad me-1 text-primary"></i> Ventas Salas
+                        ${movimiento.estacion ? `• ${movimiento.estacion}` : ''}
+                        <br>
+                        <i class="fas fa-user me-1 text-secondary"></i> ${cliente}
                     </div>
                 `;
+            } else if (movimiento.observaciones) {
+                // Para otros movimientos, mostrar observación simple
+                infoTrazabilidad = `<div class="small text-muted fst-italic mt-1">${movimiento.observaciones}</div>`;
             }
             
             // Información de precios para ventas
-            let infoPrecios = '';
-            if (movimiento.tipo === 'venta' && movimiento.precioTotal > 0) {
-                infoPrecios = `
-                    <div class="small text-success">
-                        <i class="fas fa-dollar-sign me-1"></i>
-                        ${formatearMoneda(movimiento.precioTotal)}
-                    </div>
-                `;
+            let infoPrecioUsuario = '';
+            if (movimiento.tipo === 'venta') {
+                 infoPrecioUsuario = `<div class="fw-bold text-success">${formatearMoneda(movimiento.precioTotal || 0)}</div>`;
+            } else {
+                 infoPrecioUsuario = movimiento.usuario || 'Sistema';
             }
             
             return `
                 <tr>
-                    <td>${formatearFecha(movimiento.fecha)}</td>
+                    <td class="small">${new Date(movimiento.fecha).toLocaleString()}</td>
                     <td>
-                        <div>
-                            <strong>${nombreProducto}</strong>
+                        <div class="d-flex flex-column">
+                            <span class="fw-medium">${nombreProducto}</span>
                             ${infoTrazabilidad}
                         </div>
                     </td>
                     <td>
-                        <span class="${info.clase}">
+                        <span class="badge bg-light border ${info.clase.replace('text-', 'text-')}">
                             <i class="${info.icono} me-1"></i>${info.texto}
                         </span>
                     </td>
-                    <td class="fw-bold">${movimiento.cantidad}</td>
+                    <td class="fw-bold text-center">${movimiento.cantidad}</td>
                     <td>
-                        <div>
-                            ${movimiento.usuario}
-                            ${infoPrecios}
-                        </div>
+                        ${infoPrecioUsuario}
                     </td>
-                    <td>
-                        <div class="small">
-                            ${movimiento.stockAnterior > 0 ? `Antes: ${movimiento.stockAnterior}` : ''}
-                            ${movimiento.stockNuevo > 0 ? `<br>Después: ${movimiento.stockNuevo}` : ''}
-                        </div>
+                    <td class="text-center">
+                        <span class="badge bg-light text-dark border">
+                            ${movimiento.stock || movimiento.stockNuevo}
+                        </span>
                     </td>
-                    <td>${movimiento.observaciones || '-'}</td>
+                    <td><small class="text-muted text-truncate d-block" style="max-width: 150px;" title="${movimiento.observaciones || ''}">${movimiento.observaciones || '-'}</small></td>
                 </tr>
             `;
         }).join('');

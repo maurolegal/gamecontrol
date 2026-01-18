@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Ventas Sesiones</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="js/supabase-config.js"></script>
+    <script src="js/database-service.js"></script>
+</head>
+<body class="p-4">
+    <h1>Diagnóstico de Sesiones Finalizadas</h1>
+    <div id="output" class="bg-light p-3 border rounded font-monospace" style="white-space: pre-wrap;"></div>
+
+    <script>
+        function log(msg) {
+            document.getElementById('output').innerHTML += `<div>${msg}</div>`;
+            console.log(msg);
+        }
+
+        async function runTest() {
+            try {
+                window.databaseService = new DatabaseService();
+                await window.databaseService.inicializar();
+                
+                log('✅ DatabaseService inicializado');
+
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                const hoyISO = hoy.toISOString();
+                
+                log(`📅 Fecha Corte: ${hoyISO}`);
+
+                // 1. Consultar sesiones finalizadas de hoy
+                log('🔍 Consultando sesiones finalized: true de hoy...');
+                const res = await window.databaseService.select('sesiones', {
+                    filtros: { 
+                        finalizada: true,
+                        'fecha_fin': { operador: 'gte', valor: hoyISO }
+                    },
+                    select: '*',
+                    ordenPor: { campo: 'fecha_fin', direccion: 'desc' },
+                    limite: 10
+                });
+
+                if (res.success) {
+                    log(`✅ Encontradas: ${res.data.length}`);
+                    log(JSON.stringify(res.data, null, 2));
+                } else {
+                    log(`❌ Error: ${res.error}`);
+                }
+
+                // 2. Consultar sin filtro fecha
+                log('🔍 Consultando ultimas 5 sesiones finalized: true (cualquier fecha)...');
+                const resAny = await window.databaseService.select('sesiones', {
+                    filtros: { finalizada: true },
+                    select: 'id, fecha_fin, total_general',
+                    ordenPor: { campo: 'fecha_fin', direccion: 'desc' },
+                    limite: 5
+                });
+                
+                if (resAny.success) {
+                    log(`✅ Encontradas (historico): ${resAny.data.length}`);
+                    log(JSON.stringify(resAny.data, null, 2));
+                }
+
+            } catch (e) {
+                log(`❌ Excepción: ${e.message}`);
+                console.error(e);
+            }
+        }
+
+        window.addEventListener('load', runTest);
+    </script>
+</body>
+</html>

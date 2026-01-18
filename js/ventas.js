@@ -57,7 +57,7 @@ class GestorVentas {
         this.config = obtenerConfiguracion();
         this.lastLoadError = null;
         this.filtrosActivos = {
-            periodo: 'mes',
+            periodo: 'hoy',
             fechaInicio: null,
             fechaFin: null,
             sala: '',
@@ -98,15 +98,25 @@ class GestorVentas {
                 console.log('🔄 Cargando historial de ventas desde sesiones finalizadas...');
                 
                 try {
+                     // Intentar carga robusta: traer últimas 100 sesiones y filtrar en memoria
+                     // Esto evita problemas si el flag 'finalizada' o el estado no coinciden exactamente en la query
                      const resSesiones = await window.databaseService.select('sesiones', {
-                        filtros: { finalizada: true },
-                        select: '*, usuario:usuarios(nombre)', // Incluir relación usuario para tener nombre de vendedor si falta
+                        select: '*, usuario:usuarios(nombre)', 
                         ordenPor: { campo: 'fecha_fin', direccion: 'desc' }, 
+                        limite: 100,
                         noCache: true 
                     });
                     
                     if (resSesiones && resSesiones.success && Array.isArray(resSesiones.data)) {
-                        this.sesiones = resSesiones.data.map(row => {
+                        // Filtrar en memoria para mayor seguridad
+                        const rawData = resSesiones.data.filter(s => 
+                            s.finalizada === true || 
+                            s.estado === 'finalizada' || 
+                            s.estado === 'cerrada' ||
+                            (s.fecha_fin && new Date(s.fecha_fin) < new Date()) // Fallback por fecha si tiene fecha fin
+                        );
+
+                        this.sesiones = rawData.map(row => {
                             const metodoPagoRaw = row.metodo_pago || row.metodoPago || 'efectivo';
                             const metodoPago = metodoPagoRaw === 'digital' ? 'qr' : metodoPagoRaw;
                             let salaNombre = 'Sala Desconocida';
@@ -144,7 +154,7 @@ class GestorVentas {
                                 totalProductos: Number(row.total_productos || 0),
                                 totalGeneral: Number(row.total_general || row.totalGeneral || 0),
                                 finalizada: true,
-                                estado: 'finalizada',
+                                estado: row.estado || 'finalizada', // Mantener estado original o default
                                 vendedor: (row.usuario && row.usuario.nombre) || row.vendedor || row.usuario_nombre || 'Sistema',
                                 origen: 'sesiones_directo'
                             };
@@ -721,8 +731,8 @@ class GestorVentas {
     }
 
     aplicarFiltrosPorDefecto() {
-        // Aplicar filtro por defecto (este mes)
-        this.filtrosActivos.periodo = 'mes';
+        // Aplicar filtro por defecto (hoy)
+        this.filtrosActivos.periodo = 'hoy';
         this.mostrarOcultarRangoFechas();
         this.actualizarTagsResumen();
     }
