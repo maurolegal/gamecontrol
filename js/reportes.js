@@ -474,6 +474,109 @@ class GestorReportes {
         return productosOrdenados;
     }
 
+    // Calcular métricas detalladas de ventas de stock
+    calcularMetricasStock() {
+        const sesiones = this.filtrarDatos(this.sesiones.filter(s => s.finalizada && s.productos), 'fecha_inicio');
+        
+        const ventasProductos = {};
+        let totalUnidadesVendidas = 0;
+        let totalIngresosStock = 0;
+        const categorias = new Set();
+        
+        sesiones.forEach(sesion => {
+            if (sesion.productos && Array.isArray(sesion.productos)) {
+                sesion.productos.forEach(producto => {
+                    const nombre = producto.nombre || 'Sin nombre';
+                    const ingresos = producto.subtotal || (producto.cantidad * producto.precio);
+                    
+                    if (!ventasProductos[nombre]) {
+                        ventasProductos[nombre] = {
+                            nombre: nombre,
+                            cantidad: 0,
+                            ingresos: 0,
+                            precioPromedio: producto.precio || 0,
+                            categoria: producto.categoria || 'Sin categoría'
+                        };
+                    }
+                    
+                    ventasProductos[nombre].cantidad += producto.cantidad;
+                    ventasProductos[nombre].ingresos += ingresos;
+                    totalUnidadesVendidas += producto.cantidad;
+                    totalIngresosStock += ingresos;
+                    
+                    if (producto.categoria) {
+                        categorias.add(producto.categoria);
+                    }
+                });
+            }
+        });
+
+        const productosArray = Object.values(ventasProductos);
+        const ticketPromedio = productosArray.length > 0 ? totalIngresosStock / sesiones.length : 0;
+        
+        // Calcular porcentajes
+        productosArray.forEach(producto => {
+            producto.porcentaje = totalIngresosStock > 0 ? (producto.ingresos / totalIngresosStock) * 100 : 0;
+        });
+        
+        // Ordenar por ingresos
+        productosArray.sort((a, b) => b.ingresos - a.ingresos);
+
+        return {
+            productos: productosArray,
+            totalUnidadesVendidas,
+            totalIngresosStock,
+            ticketPromedio,
+            totalCategorias: categorias.size
+        };
+    }
+
+    // Actualizar métricas de ventas de stock
+    actualizarMetricasStock() {
+        const metricas = this.calcularMetricasStock();
+        
+        this.actualizarElemento('#totalProductosVendidos', metricas.totalUnidadesVendidas);
+        this.actualizarElemento('#ingresosStock', formatearMoneda(metricas.totalIngresosStock));
+        this.actualizarElemento('#ticketPromedioStock', formatearMoneda(metricas.ticketPromedio));
+        this.actualizarElemento('#categoriasVendidas', metricas.totalCategorias);
+        
+        // Actualizar tabla
+        const tbody = document.querySelector('#tablaVentasStock tbody');
+        if (!tbody) return;
+
+        if (metricas.productos.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                        <p class="text-muted mb-0">No hay ventas de productos en el período seleccionado</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = metricas.productos.map(producto => `
+            <tr>
+                <td>
+                    <strong>${producto.nombre}</strong>
+                    <br><small class="text-muted">${producto.categoria}</small>
+                </td>
+                <td><span class="badge bg-primary">${producto.cantidad}</span></td>
+                <td>${formatearMoneda(producto.precioPromedio)}</td>
+                <td><strong>${formatearMoneda(producto.ingresos)}</strong></td>
+                <td>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: ${producto.porcentaje}%">
+                            ${formatearPorcentaje(producto.porcentaje)}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
     // Obtener datos del período anterior para comparación
     obtenerDatosPeriodoAnterior(datos, campoFecha) {
         // Esta función calcularía los datos del período anterior
@@ -906,6 +1009,7 @@ class GestorReportes {
             
             // Actualizar datos
             this.actualizarKPIs();
+            this.actualizarMetricasStock();
             this.actualizarTablaProductos();
             this.actualizarTablaOcupacion();
             
