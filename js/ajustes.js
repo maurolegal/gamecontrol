@@ -91,13 +91,18 @@ class SistemaAjustes {
                 .then(res => {
                     if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
                         const row = res.data[0];
-                        const rowId = row.id;
-                        const dataToSave = (Object.prototype.hasOwnProperty.call(row, 'datos')) ? { datos: payload } : (Object.prototype.hasOwnProperty.call(row, 'valor') ? { valor: payload } : { datos: payload });
-                        return window.databaseService.update('configuracion', rowId, dataToSave);
+                        // Usar esquema singleton (datos JSONB)
+                        return window.databaseService.update('configuracion', row.id, { 
+                            datos: payload,
+                            updated_at: new Date().toISOString()
+                        });
                     } else {
-                        // Insertar una fila nueva; preferir 'datos', fallback a key-value
-                        return window.databaseService.insert('configuracion', { datos: payload })
-                            .catch(() => window.databaseService.insert('configuracion', { clave: 'global_config', valor: payload, tipo: 'json', editable: true, publico: false }));
+                        // Insertar fila nueva con esquema singleton
+                        return window.databaseService.insert('configuracion', { 
+                            id: 1,
+                            datos: payload,
+                            updated_at: new Date().toISOString()
+                        });
                     }
                 })
                 .then(r2 => {

@@ -89,7 +89,7 @@ const fechaInicio = new Date(sesion.fecha_inicio);
 ${new Date(sesion.inicio).toLocaleString('es-ES')}
 
 // DESPUÉS
-${new Date(sesion.fecha_inicio).toLocaleString('es-ES')}
+${new Date(sesion.fecha_inicio).toLocaleString('es-ES', {hour12: true})}
 ```
 
 ## Archivos Creados para Diagnóstico

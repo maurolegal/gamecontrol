@@ -22,47 +22,26 @@ function guardarConfiguracion(config) {
     // Cache en memoria (para la UI). No persistir en localStorage.
     window.__GC_CONFIG_CACHE = (config && typeof config === 'object') ? config : obtenerConfiguracion();
     
-    // Sincronizar con Supabase en segundo plano (detectar esquema dinámicamente)
+    // Sincronizar con Supabase en segundo plano (esquema singleton)
     if (window.databaseService) {
         window.databaseService
             .select('configuracion', { limite: 1, noCache: true })
             .then(async (res) => {
-                // Si existe esquema key-value (clave/valor), SIEMPRE apuntar a 'global_config'
                 if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-                    const row0 = res.data[0];
-                    if (row0 && Object.prototype.hasOwnProperty.call(row0, 'clave')) {
-                        try {
-                            const resKV = await window.databaseService.select('configuracion', {
-                                filtros: { clave: 'global_config' },
-                                limite: 1,
-                                noCache: true
-                            });
-                            if (resKV && resKV.success && Array.isArray(resKV.data) && resKV.data.length > 0) {
-                                const row = resKV.data[0];
-                                return window.databaseService.update('configuracion', row.id, { valor: config });
-                            }
-                        } catch (_) {}
-                        // No existe fila global_config: insertar
-                        return window.databaseService.insert('configuracion', {
-                            clave: 'global_config',
-                            valor: config,
-                            tipo: 'json',
-                            editable: true,
-                            publico: false
-                        });
-                    }
-
-                    // Esquema "fila única" (datos/valor)
-                    const row = row0;
-                    const payload = (row && Object.prototype.hasOwnProperty.call(row, 'datos'))
-                        ? { datos: config }
-                        : (Object.prototype.hasOwnProperty.call(row, 'valor') ? { valor: config } : { datos: config });
-                    return window.databaseService.update('configuracion', row.id, payload);
+                    // Actualizar registro existente
+                    const row = res.data[0];
+                    return window.databaseService.update('configuracion', row.id, { 
+                        datos: config,
+                        updated_at: new Date().toISOString()
+                    });
                 }
 
-                // Tabla vacía: intentar insertar con 'datos', fallback a key-value
-                return window.databaseService.insert('configuracion', { datos: config })
-                    .catch(() => window.databaseService.insert('configuracion', { clave: 'global_config', valor: config, tipo: 'json', editable: true, publico: false }));
+                // Tabla vacía: insertar con esquema singleton
+                return window.databaseService.insert('configuracion', { 
+                    id: 1,
+                    datos: config,
+                    updated_at: new Date().toISOString()
+                });
             })
             .then((res2) => {
                 if (res2 && res2.success) {
@@ -1414,7 +1393,7 @@ class GestorSalas {
             const fmtHora = (isoString) => {
                 if (!isoString) return '--';
                 const d = new Date(isoString);
-                return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true });
             };
 
             const estadoBadge = (s) => {
@@ -2757,6 +2736,12 @@ class GestorSalas {
             btnTarifas.addEventListener('click', () => this.mostrarModalTarifas());
         }
 
+        // Botón TIENDA (venta directa de productos)
+        const btnTienda = document.getElementById('btnTienda');
+        if (btnTienda) {
+            btnTienda.addEventListener('click', () => this.abrirTienda());
+        }
+
         // Manejar el evento show.bs.modal para el modal de nueva sala
         const modalNuevaSala = document.getElementById('modalNuevaSala');
         if (modalNuevaSala) {
@@ -4031,6 +4016,7 @@ class GestorSalas {
                             nombre: r.nombre,
                             precio: Number(r.precio) || 0,
                             stock: Number(r.stock) || 0,
+                            imagenUrl: r.imagen_url || r.imagen || '',
                             categoria: r.categoria || 'General',
                             categoriaNombre: r.categoria || 'General'
                         }));
@@ -4144,11 +4130,20 @@ class GestorSalas {
                 <div class="list-group shadow-sm rounded-3 border-0">
                     ${productos.map(producto => `
                         <div class="list-group-item border-0 border-bottom p-2 d-flex align-items-center justify-content-between bg-white producto-item" data-nombre="${producto.nombre.toLowerCase()}">
-                            <div class="d-flex flex-column" style="max-width: 60%;">
-                                <span class="fw-medium text-dark text-truncate">${producto.nombre}</span>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="text-primary fw-bold small">${formatearMoneda(producto.precio)}</span>
-                                    <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.65rem;">Stock: ${producto.stock}</span>
+                            <div class="d-flex align-items-center gap-2" style="max-width: 65%;">
+                                ${producto.imagenUrl ? `
+                                    <img src="${producto.imagenUrl}" alt="${producto.nombre}" class="rounded border" style="width: 44px; height: 44px; object-fit: cover;" />
+                                ` : `
+                                    <div class="rounded border bg-light d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                        <i class="fas fa-image text-muted"></i>
+                                    </div>
+                                `}
+                                <div class="d-flex flex-column" style="min-width:0;">
+                                    <span class="fw-medium text-dark text-truncate">${producto.nombre}</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-primary fw-bold small">${formatearMoneda(producto.precio)}</span>
+                                        <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.65rem;">Stock: ${producto.stock}</span>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -4426,6 +4421,542 @@ class GestorSalas {
         mostrarNotificacion(`Productos agregados: ${resumen} | Total: ${formatearMoneda(total)}`, 'success');
     }
 
+    // === TIENDA (venta directa de productos sin sesión) ===
+    abrirTienda() {
+        const modalExistente = document.getElementById('modalTienda');
+        if (modalExistente) modalExistente.remove();
+
+        const modalHtml = `
+            <div class="modal fade" id="modalTienda" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+                    <div class="modal-content border-0 shadow-lg store-modal">
+                        <style>
+                            .store-modal {
+                                background-color: #f3f4f6;
+                                width: 100%;
+                                max-width: 900px;
+                                height: 90vh;
+                                border-radius: 16px;
+                                box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+                                display: flex;
+                                flex-direction: column;
+                                overflow: hidden;
+                            }
+                            .store-modal .modal-header { background: #2da16d; color: #fff; padding: 16px 20px; }
+                            .store-modal .search-container { padding: 12px 20px; background: #fff; border-bottom: 1px solid #e5e7eb; }
+                            .store-modal .search-box input { width: 100%; padding: 10px 10px 10px 35px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; font-size: 0.95rem; }
+                            .store-modal .product-scroll-area { flex: 1; overflow-y: auto; padding: 20px; }
+                            .store-modal .category-title { grid-column: 1 / -1; margin: 10px 0 15px 0; color: #6b7280; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+                            .store-modal .product-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+                            .store-modal .product-card { background: #fff; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid transparent; }
+                            .store-modal .product-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-color: #2da16d; }
+                            .store-modal .product-img-box { width: 100%; aspect-ratio: 1 / 1; background: #f3f4f6; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #d1d5db; overflow: hidden; }
+                            .store-modal .product-img-box img { width: 100%; height: 100%; object-fit: cover; }
+                            .store-modal .product-name { font-weight: 600; color: #1f2937; font-size: 0.9rem; margin-bottom: 4px; line-height: 1.2; height: 2.4em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+                            .store-modal .price { color: #2da16d; font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+                            .store-modal .stock { font-size: 0.75rem; color: #6b7280; margin-bottom: 10px; background: #eef2ff; padding: 2px 8px; border-radius: 10px; }
+                            .store-modal .stock-low { color: #ef4444; background: #fee2e2; }
+                            .store-modal .qty-control { display: flex; width: 100%; justify-content: space-between; align-items: center; background: #f9fafb; border-radius: 8px; padding: 4px; border: 1px solid #e5e7eb; }
+                            .store-modal .qty-btn { width: 28px; height: 28px; border: none; background: #fff; border-radius: 6px; font-weight: bold; color: #1f2937; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+                            .store-modal .qty-btn:hover { background: #2da16d; color: #fff; }
+                            .store-modal .qty-val { font-weight: 600; font-size: 0.9rem; border: none; background: transparent; width: 30px; text-align: center; }
+                            .store-modal .modal-footer { background: #fff; border-top: 1px solid #e5e7eb; padding: 16px 20px; }
+                            @media (max-width: 600px) { .store-modal .product-grid { grid-template-columns: repeat(2, 1fr); } }
+                        </style>
+
+                        <!-- Header estilo corporativo -->
+                        <div class="modal-header text-white" style="background: #2da16d; padding: 16px 20px;">
+                            <div class="d-flex align-items-center gap-3 w-100">
+                                <div class="d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2);">
+                                    <i class="fas fa-store"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0 fw-bold" style="font-size: 1.1rem;">Tienda</h6>
+                                    <small class="opacity-75" style="font-size: 0.8rem;">Venta directa sin estación</small>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+
+                        <!-- Buscador -->
+                        <div class="search-container">
+                            <div class="search-box position-relative">
+                                <i class="fas fa-search search-icon position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                                <input type="text" id="buscadorProductosTienda" placeholder="Buscar producto (ej. CocaCola)..."
+                                       autocomplete="off" onkeyup="window.gestorSalas.filtrarProductosModalTienda(this.value)">
+                                <button class="btn btn-link text-muted position-absolute top-50 end-0 translate-middle-y me-2 p-0 d-none text-decoration-none"
+                                        id="btnLimpiarBusquedaTienda"
+                                        onclick="document.getElementById('buscadorProductosTienda').value = ''; window.gestorSalas.filtrarProductosModalTienda(''); document.getElementById('buscadorProductosTienda').focus();"
+                                        style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de productos -->
+                        <div id="listaProductosTienda" class="product-scroll-area">
+                            <!-- Productos se cargan dinámicamente -->
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="modal-footer bg-white border-top" style="padding: 16px 20px;">
+                            <div class="d-flex flex-column w-100">
+                                <div class="d-flex justify-content-between align-items-center mb-3" style="font-size: 0.9rem; color: #6b7280;">
+                                    <span id="resumenProductosTienda">0 items seleccionados</span>
+                                    <span class="fw-bold" style="font-size: 1.4rem; color: #1f2937;" id="totalProductosTienda">$0</span>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="button" class="btn w-100 fw-bold" id="btnContinuarPagoTienda" disabled
+                                            style="background: #2da16d; color: #fff;">
+                                        <i class="fas fa-cash-register me-2"></i>Ir a pago
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const modalWrapper = document.createElement('div');
+        modalWrapper.innerHTML = modalHtml;
+        document.body.appendChild(modalWrapper);
+
+        this.cargarProductosEnModalTienda();
+
+        const modal = new bootstrap.Modal(document.getElementById('modalTienda'));
+        modal.show();
+
+        const btnContinuar = document.getElementById('btnContinuarPagoTienda');
+        if (btnContinuar) {
+            btnContinuar.addEventListener('click', () => this.mostrarModalPagoTienda());
+        }
+
+        document.getElementById('modalTienda').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    cargarProductosEnModalTienda() {
+        const listaProductos = document.getElementById('listaProductosTienda');
+        if (!listaProductos) return;
+
+        let productosDisponibles = [];
+        if (window.gestorStock && typeof window.gestorStock.obtenerProductosDisponibles === 'function') {
+            productosDisponibles = window.gestorStock.obtenerProductosDisponibles();
+        }
+
+        if (productosDisponibles.length === 0 && window.databaseService && window.databaseService.select) {
+            try {
+                window.databaseService.select('productos', {
+                    filtros: { activo: true },
+                    ordenPor: { campo: 'nombre', direccion: 'asc' }
+                }).then(res => {
+                    const remotos = res && res.success ? (res.data || []) : [];
+                    const list = remotos
+                        .filter(r => Number(r.stock) > 0)
+                        .map(r => ({
+                            id: r.id,
+                            nombre: r.nombre,
+                            precio: Number(r.precio) || 0,
+                            stock: Number(r.stock) || 0,
+                            categoria: r.categoria || 'General',
+                            categoriaNombre: r.categoria || 'General'
+                        }));
+                    this.renderizarProductosEnModalTienda(list);
+                }).catch(() => {
+                    this.renderizarProductosEnModalTienda([]);
+                });
+                return;
+            } catch (_) {}
+        }
+
+        this.renderizarProductosEnModalTienda(productosDisponibles);
+    }
+
+    renderizarProductosEnModalTienda(productosDisponibles) {
+        const listaProductos = document.getElementById('listaProductosTienda');
+        if (!listaProductos) return;
+
+        if (productosDisponibles.length === 0) {
+            listaProductos.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-shopping-cart fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No hay productos disponibles en stock</p>
+                    <small class="text-muted">Configura productos en la sección de Stock</small>
+                </div>
+            `;
+            return;
+        }
+
+        const productosPorCategoria = productosDisponibles.reduce((acc, producto) => {
+            const categoria = producto.categoriaNombre || producto.categoria || 'Sin categoría';
+            if (!acc[categoria]) acc[categoria] = [];
+            acc[categoria].push(producto);
+            return acc;
+        }, {});
+
+        const iconosCategoria = {};
+        if (window.gestorStock && window.gestorStock.categorias) {
+            window.gestorStock.categorias.forEach(categoria => {
+                iconosCategoria[categoria.nombre] = categoria.icono;
+            });
+        }
+
+        const iconosDefault = {
+            'Bebidas': 'fas fa-coffee',
+            'Snacks': 'fas fa-cookie-bite',
+            'Dulces': 'fas fa-candy-cane',
+            'Accesorios': 'fas fa-gamepad',
+            'Sin categoría': 'fas fa-box'
+        };
+
+        listaProductos.innerHTML = Object.entries(productosPorCategoria).map(([categoria, productos]) => `
+            <div class="product-grid">
+                <div class="category-title">
+                    <i class="${iconosCategoria[categoria] || iconosDefault[categoria] || 'fas fa-box'}"></i>
+                    ${categoria}
+                </div>
+                ${productos.map(producto => {
+                    const stockClass = Number(producto.stock) <= 5 ? 'stock stock-low' : 'stock';
+                    return `
+                        <div class="product-card producto-item-tienda" data-nombre="${producto.nombre.toLowerCase()}">
+                            <div class="product-img-box">
+                                ${producto.imagenUrl ? `<img src="${producto.imagenUrl}" alt="${producto.nombre}">` : `<i class="fas fa-image"></i>`}
+                            </div>
+                            <div class="product-name">${producto.nombre}</div>
+                            <div class="price">${formatearMoneda(producto.precio)}</div>
+                            <div class="${stockClass}">Stock: ${producto.stock}</div>
+                            <div class="qty-control">
+                                <button class="qty-btn" onclick="this.nextElementSibling.stepDown(); window.gestorSalas.actualizarTotalProductosTienda()">-</button>
+                                <input type="number" class="qty-val" min="0" max="${producto.stock}" value="0"
+                                       data-producto-id="${producto.id}"
+                                       data-precio="${producto.precio}"
+                                       data-nombre="${producto.nombre}"
+                                       data-stock="${producto.stock}"
+                                       onchange="window.gestorSalas.actualizarTotalProductosTienda()"
+                                       oninput="window.gestorSalas.validarCantidadProducto(this)">
+                                <button class="qty-btn" onclick="this.previousElementSibling.stepUp(); window.gestorSalas.actualizarTotalProductosTienda()">+</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `).join('');
+    }
+
+    filtrarProductosModalTienda(texto) {
+        const busqueda = texto.toLowerCase().trim();
+        const items = document.querySelectorAll('.producto-item-tienda');
+        const categorias = document.querySelectorAll('.categoria-container-tienda');
+        const btnLimpiar = document.getElementById('btnLimpiarBusquedaTienda');
+        const listaProductos = document.getElementById('listaProductosTienda');
+
+        if (btnLimpiar) {
+            if (busqueda.length > 0) {
+                btnLimpiar.classList.remove('d-none');
+                btnLimpiar.style.display = 'flex';
+            } else {
+                btnLimpiar.classList.add('d-none');
+                btnLimpiar.style.display = 'none';
+            }
+        }
+
+        let totalVisibles = 0;
+        items.forEach(item => {
+            const nombre = item.dataset.nombre;
+            if (nombre.includes(busqueda)) {
+                item.classList.remove('d-none');
+                totalVisibles++;
+            } else {
+                item.classList.add('d-none');
+            }
+        });
+
+        categorias.forEach(cat => {
+            const itemsVisibles = cat.querySelectorAll('.producto-item-tienda:not(.d-none)');
+            if (itemsVisibles.length === 0) {
+                cat.classList.add('d-none');
+            } else {
+                cat.classList.remove('d-none');
+            }
+        });
+
+        let noResultsMsg = document.getElementById('noResultsMsgTienda');
+        if (totalVisibles === 0 && busqueda.length > 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.id = 'noResultsMsgTienda';
+                noResultsMsg.className = 'text-center py-5 text-muted';
+                noResultsMsg.innerHTML = `
+                    <div class="bg-white rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 64px; height: 64px;">
+                        <i class="fas fa-search fa-lg text-secondary opacity-50"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">No encontrado</h6>
+                    <p class="small text-muted mb-0">No hay productos que coincidan con "${texto}"</p>
+                `;
+                listaProductos.appendChild(noResultsMsg);
+            } else {
+                noResultsMsg.querySelector('p').textContent = `No hay productos que coincidan con "${texto}"`;
+                noResultsMsg.classList.remove('d-none');
+            }
+        } else if (noResultsMsg) {
+            noResultsMsg.classList.add('d-none');
+        }
+    }
+
+    actualizarTotalProductosTienda() {
+        const inputs = document.querySelectorAll('#listaProductosTienda input[type="number"]');
+        let total = 0;
+        let cantidadItems = 0;
+        let totalUnidades = 0;
+
+        inputs.forEach(input => {
+            const cantidad = parseInt(input.value) || 0;
+            const precio = parseFloat(input.dataset.precio) || 0;
+            total += cantidad * precio;
+            totalUnidades += cantidad;
+            if (cantidad > 0) cantidadItems++;
+        });
+
+        const totalElement = document.getElementById('totalProductosTienda');
+        if (totalElement) totalElement.textContent = formatearMoneda(total);
+
+        const resumenElement = document.getElementById('resumenProductosTienda');
+        if (resumenElement) {
+            resumenElement.textContent = cantidadItems === 0 ? '0 items' : `${totalUnidades} items`;
+        }
+
+        const btnContinuar = document.getElementById('btnContinuarPagoTienda');
+        if (btnContinuar) btnContinuar.disabled = cantidadItems === 0;
+    }
+
+    mostrarModalPagoTienda() {
+        const inputs = document.querySelectorAll('#listaProductosTienda input[type="number"]');
+        const items = [];
+        let totalBruto = 0;
+
+        inputs.forEach(input => {
+            const cantidad = parseInt(input.value) || 0;
+            if (cantidad > 0) {
+                const precio = parseFloat(input.dataset.precio) || 0;
+                const productoId = input.dataset.productoId;
+                const nombre = input.dataset.nombre;
+                items.push({
+                    productoId,
+                    nombre,
+                    cantidad,
+                    precioUnitario: precio
+                });
+                totalBruto += cantidad * precio;
+            }
+        });
+
+        if (items.length === 0) {
+            mostrarNotificacion('Selecciona al menos un producto', 'warning');
+            return;
+        }
+
+        this.ventaTiendaActual = { items, totalBruto };
+
+        const modalExistente = document.getElementById('modalPagoTienda');
+        if (modalExistente) modalExistente.remove();
+
+        const modalHtml = `
+            <div class="modal fade" id="modalPagoTienda" tabindex="-1" data-bs-backdrop="static">
+                <div class="modal-dialog modal-dialog-centered modal-md">
+                    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                        <div class="modal-header bg-dark text-white p-3 border-0">
+                            <h6 class="mb-0 fw-bold"><i class="fas fa-credit-card me-2"></i>Pago Tienda</h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body bg-light p-3">
+                            <div class="bg-white rounded-3 p-3 shadow-sm mb-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted">Total bruto</span>
+                                    <span class="fw-bold">${formatearMoneda(totalBruto)}</span>
+                                </div>
+                                <div class="mt-2">
+                                    <label class="form-label small text-muted">Descuento</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input type="number" class="form-control" id="descuentoTienda" min="0" step="1" placeholder="0">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <span class="text-muted">Total a cobrar</span>
+                                    <span class="fw-bold text-success" id="totalFinalTienda">${formatearMoneda(totalBruto)}</span>
+                                </div>
+                            </div>
+
+                            <label class="small text-muted fw-bold mb-2 d-block">MÉTODO DE PAGO</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="metodoPagoTienda" id="tiendaEfectivo" value="efectivo" checked>
+                                    <label class="btn btn-outline-secondary w-100 btn-sm py-2 border-0 shadow-sm bg-white text-start" for="tiendaEfectivo">
+                                        <i class="fas fa-money-bill-wave text-success me-2"></i>Efectivo
+                                    </label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="metodoPagoTienda" id="tiendaTarjeta" value="tarjeta">
+                                    <label class="btn btn-outline-secondary w-100 btn-sm py-2 border-0 shadow-sm bg-white text-start" for="tiendaTarjeta">
+                                        <i class="fas fa-credit-card text-primary me-2"></i>Tarjeta
+                                    </label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="metodoPagoTienda" id="tiendaTransferencia" value="transferencia">
+                                    <label class="btn btn-outline-secondary w-100 btn-sm py-2 border-0 shadow-sm bg-white text-start" for="tiendaTransferencia">
+                                        <i class="fas fa-university text-info me-2"></i>Transferencia
+                                    </label>
+                                </div>
+                                <div class="col-6">
+                                    <input type="radio" class="btn-check" name="metodoPagoTienda" id="tiendaQR" value="qr">
+                                    <label class="btn btn-outline-secondary w-100 btn-sm py-2 border-0 shadow-sm bg-white text-start" for="tiendaQR">
+                                        <i class="fas fa-qrcode text-dark me-2"></i>QR/Digital
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Detalles de Transferencia (Oculto por defecto) -->
+                            <div id="detallesTransferenciaTienda" class="mt-3 d-none animate__animated animate__fadeIn">
+                                <div class="bg-light p-3 rounded-3 border border-info bg-opacity-10">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-info-circle text-info me-2"></i>
+                                        <span class="fw-bold text-dark small">Datos para Transferencia</span>
+                                    </div>
+                                    <div class="text-center bg-white p-2 rounded border mb-2">
+                                        <span class="badge bg-primary me-1">NEQUI</span>
+                                        <span class="badge bg-danger me-1">DAVIPLATA</span>
+                                        <span class="badge bg-warning text-dark">LLAVE</span>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded border">
+                                        <span class="text-muted small">Número de cuenta:</span>
+                                        <div class="d-flex align-items-center">
+                                            <span class="fw-bold text-dark me-2 font-monospace">3045528042</span>
+                                            <button class="btn btn-link btn-sm p-0 text-primary" onclick="navigator.clipboard.writeText('3045528042'); window.mostrarNotificacion('Copiado al portapapeles', 'success');" title="Copiar">
+                                                <i class="far fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-white border-0 p-3">
+                            <button type="button" class="btn btn-outline-secondary w-100" data-bs-dismiss="modal">Volver</button>
+                            <button type="button" class="btn btn-success w-100 fw-bold" id="btnConfirmarVentaTienda">
+                                <i class="fas fa-check me-2"></i>Cobrar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const modalWrapper = document.createElement('div');
+        modalWrapper.innerHTML = modalHtml;
+        document.body.appendChild(modalWrapper);
+
+        const modal = new bootstrap.Modal(document.getElementById('modalPagoTienda'));
+        modal.show();
+
+        const descuentoInput = document.getElementById('descuentoTienda');
+        if (descuentoInput) {
+            descuentoInput.addEventListener('input', () => this.actualizarTotalesPagoTienda());
+            descuentoInput.addEventListener('change', () => this.actualizarTotalesPagoTienda());
+        }
+
+        const btnConfirmar = document.getElementById('btnConfirmarVentaTienda');
+        if (btnConfirmar) {
+            btnConfirmar.addEventListener('click', () => this.confirmarVentaTienda());
+        }
+
+        this.configurarEventosMetodoPagoTienda();
+
+        document.getElementById('modalPagoTienda').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    configurarEventosMetodoPagoTienda() {
+        const radiosPago = document.querySelectorAll('input[name="metodoPagoTienda"]');
+        const detallesTransferencia = document.getElementById('detallesTransferenciaTienda');
+
+        const actualizarUI = () => {
+            radiosPago.forEach(radio => {
+                const label = document.querySelector(`label[for="${radio.id}"]`);
+                if (label) label.classList.toggle('active', radio.checked);
+            });
+
+            const seleccionado = document.querySelector('input[name="metodoPagoTienda"]:checked')?.value || 'efectivo';
+            if (detallesTransferencia) {
+                if (seleccionado === 'transferencia') {
+                    detallesTransferencia.classList.remove('d-none');
+                } else {
+                    detallesTransferencia.classList.add('d-none');
+                }
+            }
+        };
+
+        radiosPago.forEach(radio => {
+            radio.addEventListener('change', actualizarUI);
+        });
+
+        actualizarUI();
+    }
+
+    actualizarTotalesPagoTienda() {
+        const descuento = Math.max(0, Number(document.getElementById('descuentoTienda')?.value) || 0);
+        const totalBruto = Number(this.ventaTiendaActual?.totalBruto) || 0;
+        const totalFinal = Math.max(0, totalBruto - descuento);
+        const totalFinalEl = document.getElementById('totalFinalTienda');
+        if (totalFinalEl) totalFinalEl.textContent = formatearMoneda(totalFinal);
+    }
+
+    async confirmarVentaTienda() {
+        if (!this.ventaTiendaActual || !Array.isArray(this.ventaTiendaActual.items)) {
+            mostrarNotificacion('No hay venta en curso', 'warning');
+            return;
+        }
+
+        const descuento = Math.max(0, Number(document.getElementById('descuentoTienda')?.value) || 0);
+        const metodoPago = document.querySelector('input[name="metodoPagoTienda"]:checked')?.value || 'efectivo';
+        const totalBruto = Number(this.ventaTiendaActual.totalBruto) || 0;
+
+        if (descuento > totalBruto) {
+            mostrarNotificacion('El descuento no puede superar el total', 'warning');
+            return;
+        }
+
+        if (!window.gestorStock || typeof window.gestorStock.registrarVentaTienda !== 'function') {
+            mostrarNotificacion('Sistema de stock no disponible', 'error');
+            return;
+        }
+
+        const resultado = await window.gestorStock.registrarVentaTienda({
+            items: this.ventaTiendaActual.items,
+            descuento,
+            metodoPago
+        });
+
+        if (!resultado || !resultado.ok) {
+            const detalle = resultado?.rechazados?.length ? `: ${resultado.rechazados.join(', ')}` : '';
+            mostrarNotificacion(`No se pudo completar la venta${detalle}`, 'error');
+            return;
+        }
+
+        const totalFinal = Math.max(0, totalBruto - descuento);
+        mostrarNotificacion(`Venta registrada. Total cobrado: ${formatearMoneda(totalFinal)}`, 'success');
+
+        const modalPago = bootstrap.Modal.getInstance(document.getElementById('modalPagoTienda'));
+        if (modalPago) modalPago.hide();
+
+        const modalTienda = bootstrap.Modal.getInstance(document.getElementById('modalTienda'));
+        if (modalTienda) modalTienda.hide();
+
+        this.ventaTiendaActual = null;
+    }
+
     verDetalleConsumo(sesionId) {
         const sesion = this.sesiones.find(s => s.id === sesionId);
         if (!sesion) return;
@@ -4471,7 +5002,7 @@ class GestorSalas {
                                             <h6 class="card-title">
                                                 <i class="fas fa-clock me-2"></i>Inicio
                                             </h6>
-                                            <p class="mb-0">${new Date(sesion.fecha_inicio).toLocaleString('es-ES')}</p>
+                                            <p class="mb-0">${new Date(sesion.fecha_inicio).toLocaleString('es-ES', {hour12: true})}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -4544,7 +5075,7 @@ class GestorSalas {
                                                         <td class="text-end fw-bold">${formatearMoneda(producto.subtotal || (producto.cantidad * producto.precio))}</td>
                                                         <td class="text-center">
                                                             <small class="text-muted">
-                                                                ${producto.fechaAgregado ? new Date(producto.fechaAgregado).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '-'}
+                                                                ${producto.fechaAgregado ? new Date(producto.fechaAgregado).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true}) : '-'}
                                                             </small>
                                                         </td>
                                                     </tr>
@@ -5275,34 +5806,15 @@ async function inicializarSincronizacionConfiguracion() {
         return merged;
     };
 
-    // 1. Obtener configuración inicial desde Supabase
+    // 1. Obtener configuración inicial desde Supabase (esquema singleton)
     try {
-        // Leer primera fila y detectar esquema (datos/valor vs clave/valor)
         let remoteConfig = null;
         let resAny = await window.databaseService.select('configuracion', { limite: 1, noCache: true });
+        
         if (resAny.success && resAny.data && resAny.data.length > 0) {
-            const row0 = resAny.data[0];
-            if (row0 && Object.prototype.hasOwnProperty.call(row0, 'clave')) {
-                // Esquema key-value: preferir global_config
-                try {
-                    const resKV = await window.databaseService.select('configuracion', { filtros: { clave: 'global_config' }, limite: 1, noCache: true });
-                    if (resKV.success && resKV.data && resKV.data.length > 0) {
-                        const row = resKV.data[0];
-                        remoteConfig = row.valor || row.datos || null;
-                    }
-                } catch (_) {}
-            } else {
-                remoteConfig = (Object.prototype.hasOwnProperty.call(row0, 'datos') ? row0.datos : (row0.valor || null));
-            }
-        } else {
-            // Intentar key-value específica
-            try {
-                const resKV = await window.databaseService.select('configuracion', { filtros: { clave: 'global_config' }, limite: 1, noCache: true });
-                if (resKV.success && resKV.data && resKV.data.length > 0) {
-                    const row = resKV.data[0];
-                    remoteConfig = row.valor || row.datos || null;
-                }
-            } catch (_) {}
+            const row = resAny.data[0];
+            // Usar esquema singleton con campo datos JSONB
+            remoteConfig = row.datos || null;
         }
 
         if (remoteConfig && typeof remoteConfig === 'object' && Object.keys(remoteConfig).length > 0) {

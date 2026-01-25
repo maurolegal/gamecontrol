@@ -23,7 +23,7 @@ jpblomejia@gmail.comjpblomejia@gmail.com <!DOCTYPE html>
         function log(msg, type = 'info') {
             const div = document.createElement('div');
             div.className = `log ${type}`;
-            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            div.textContent = `[${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true})}] ${msg}`;
             document.getElementById('log').appendChild(div);
             console.log(msg);
         }

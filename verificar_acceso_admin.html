@@ -228,7 +228,7 @@
         // Función para agregar logs
         function addLog(message, type = 'info') {
             const logContainer = document.getElementById('logContainer');
-            const timestamp = new Date().toLocaleTimeString();
+            const timestamp = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true});
             
             const logEntry = document.createElement('div');
             logEntry.className = `log-entry ${type}`;

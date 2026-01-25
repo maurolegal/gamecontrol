@@ -295,6 +295,16 @@
                                             <label class="form-label-custom">Descripción</label>
                                             <textarea class="form-control" name="descripcion" rows="2" placeholder="Descripción del producto..."></textarea>
                                         </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label class="form-label-custom">Imagen del Producto</label>
+                                            <input type="file" class="form-control" id="imagenProducto" name="imagen" accept="image/*">
+                                            <input type="hidden" id="imagenUrl" name="imagenUrl">
+                                            <small class="form-text text-muted">Sube una imagen (JPG/PNG/WebP). Se cargará en Cloudinary.</small>
+                                            <div class="mt-2 d-flex align-items-center gap-3">
+                                                <img id="previewImagenProducto" src="" alt="Vista previa" style="display:none; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                                <span class="text-muted small" id="estadoImagenProducto">Sin imagen seleccionada</span>
+                                            </div>
+                                        </div>
                                         <div class="col-md-12">
                                             <button type="submit" class="btn btn-primary-custom w-100">
                                                 <i class="fas fa-plus me-2"></i> Agregar Producto
@@ -357,6 +367,7 @@
                         <table class="table table-custom table-hover" id="tablaProductos">
                             <thead>
                                 <tr>
+                                    <th>Imagen</th>
                                     <th>Producto</th>
                                     <th>Categoría</th>
                                     <th>Costo</th>

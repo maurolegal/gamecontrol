@@ -149,7 +149,7 @@ ON public.categorias_productos(nombre);</pre>
         const btnVerificar = document.getElementById('btnVerificar');
 
         function addLog(message, type = 'info') {
-            const timestamp = new Date().toLocaleTimeString();
+            const timestamp = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true});
             const icon = {
                 'success': 'fas fa-check-circle',
                 'error': 'fas fa-times-circle',

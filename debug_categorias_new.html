@@ -21,7 +21,7 @@
     <script>
         function log(msg, data = null) {
             const div = document.getElementById('logs');
-            const time = new Date().toLocaleTimeString();
+            const time = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true});
             let html = `<div><span class="text-muted">[${time}]</span> ${msg}</div>`;
             if (data) {
                 html += `<pre class="text-primary small ms-4">${JSON.stringify(data, null, 2)}</pre>`;

@@ -38,9 +38,9 @@ async function enviarEmailCambioPassword(email, nombre, passwordNueva) {
         to_email: email,
         to_name: nombre,
         nueva_password: passwordNueva,
-        fecha_cambio: new Date().toLocaleString('es-ES'),
+        fecha_cambio: new Date().toLocaleString('es-ES', {hour12: true}),
         sistema_nombre: 'GameControl - Sistema Gaming',
-        mensaje_seguridad: `Tu contraseña ha sido cambiada exitosamente el ${new Date().toLocaleString('es-ES')}. Si no realizaste este cambio, contacta al administrador inmediatamente.`,
+        mensaje_seguridad: `Tu contraseña ha sido cambiada exitosamente el ${new Date().toLocaleString('es-ES', {hour12: true})}. Si no realizaste este cambio, contacta al administrador inmediatamente.`,
         
         // Información adicional del sistema
         from_name: 'GameControl Sistema',
@@ -85,7 +85,7 @@ async function simularEnvioEmail(email, nombre, passwordNueva) {
     console.log('📧 Para:', email);
     console.log('👤 Nombre:', nombre);
     console.log('🔐 Nueva contraseña:', passwordNueva);
-    console.log('📅 Fecha:', new Date().toLocaleString('es-ES'));
+    console.log('📅 Fecha:', new Date().toLocaleString('es-ES', {hour12: true}));
     
     // Simular delay de envío
     await new Promise(resolve => setTimeout(resolve, 2000));

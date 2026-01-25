@@ -109,7 +109,7 @@
         const logArea = document.getElementById('logArea');
         
         function log(message) {
-            const timestamp = new Date().toLocaleTimeString();
+            const timestamp = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true});
             logArea.innerHTML += `[${timestamp}] ${message}\n`;
             logArea.scrollTop = logArea.scrollHeight;
             console.log(message);

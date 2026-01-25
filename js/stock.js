@@ -6,6 +6,13 @@ function formatearMoneda(cantidad) {
     }).format(cantidad);
 }
 
+// Configuración Cloudinary (puede definirse por localStorage)
+const CLOUDINARY_CONFIG = {
+    cloudName: localStorage.getItem('cloudinary_cloud_name') || 'dftbhxwaa',
+    uploadPreset: localStorage.getItem('cloudinary_upload_preset') || 'gamehub',
+    folder: localStorage.getItem('cloudinary_folder') || 'productos'
+};
+
 function formatearFecha(fecha) {
     return new Date(fecha).toLocaleDateString('es-CO');
 }
@@ -111,7 +118,10 @@ class GestorStock {
                 const refresco = await window.databaseService.select('productos', {
                     ordenPor: { campo: 'nombre', direccion: 'asc' }
                 });
-                this.productos = (refresco && refresco.success ? refresco.data : []).map(r => ({
+                const cacheProductos = obtenerProductos();
+                this.productos = (refresco && refresco.success ? refresco.data : []).map(r => {
+                    const cache = cacheProductos.find(p => p.id === r.id);
+                    return {
                     id: r.id,
                     nombre: r.nombre,
                     categoria: r.categoria,
@@ -119,8 +129,10 @@ class GestorStock {
                     precio: Number(r.precio) || 0,
                     stock: Number(r.stock) || 0,
                     stockMinimo: Number(r.stock_minimo) || 0,
-                    descripcion: r.descripcion || ''
-                }));
+                    descripcion: r.descripcion || '',
+                    imagenUrl: r.imagen_url || r.imagen || cache?.imagenUrl || ''
+                    };
+                });
                 guardarProductos(this.productos);
                 this.cargarProductos();
                 this.actualizarEstadisticas();
@@ -128,7 +140,10 @@ class GestorStock {
             }
 
             // Cargar productos remotos en memoria y cache local
-            this.productos = productosRemotos.map(r => ({
+            const cacheProductos = obtenerProductos();
+            this.productos = productosRemotos.map(r => {
+                const cache = cacheProductos.find(p => p.id === r.id);
+                return {
                 id: r.id,
                 nombre: r.nombre,
                 categoria: r.categoria,
@@ -136,8 +151,10 @@ class GestorStock {
                 precio: Number(r.precio) || 0,
                 stock: Number(r.stock) || 0,
                 stockMinimo: Number(r.stock_minimo) || 0,
-                descripcion: r.descripcion || ''
-            }));
+                descripcion: r.descripcion || '',
+                imagenUrl: r.imagen_url || r.imagen || cache?.imagenUrl || ''
+                };
+            });
             guardarProductos(this.productos);
             this.cargarProductos();
             this.actualizarEstadisticas();
@@ -318,7 +335,7 @@ class GestorStock {
         }
 
         tbody.innerHTML = ventas.map(v => {
-            const hora = new Date(v.fecha_movimiento).toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit'});
+            const hora = new Date(v.fecha_movimiento).toLocaleTimeString('es-CO', {hour: '2-digit', minute:'2-digit', hour12: true});
             const nombreProd = v.producto?.nombre || 'Producto desconocido';
             const cantidad = v.cantidad;
             const totalVenta = Number(v.valor_total) || 0;
@@ -971,7 +988,7 @@ class GestorStock {
         if (productos.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" class="text-center py-4">
+                    <td colspan="10" class="text-center py-4">
                         <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
                         <p class="text-muted mb-0">No se encontraron productos</p>
                     </td>
@@ -983,9 +1000,13 @@ class GestorStock {
         tbody.innerHTML = productos.map(producto => {
             const estado = this.obtenerEstadoStock(producto);
             const ganancias = this.calcularGananciasProducto(producto);
+            const imagenHtml = producto.imagenUrl
+                ? `<img src="${producto.imagenUrl}" alt="${producto.nombre}" class="rounded border" style="width: 42px; height: 42px; object-fit: cover;" />`
+                : `<div class="rounded border bg-light d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;"><i class="fas fa-image text-muted"></i></div>`;
             
             return `
                 <tr>
+                    <td>${imagenHtml}</td>
                     <td>
                         <div>
                             <strong>${producto.nombre}</strong>
@@ -1063,7 +1084,14 @@ class GestorStock {
     }
 
     // === GESTIÓN DE PRODUCTOS ===
-    agregarProducto(formData) {
+    async agregarProducto(formData) {
+        const imagenFile = formData.get('imagen');
+        let imagenUrl = (formData.get('imagenUrl') || '').toString().trim();
+
+        if (!imagenUrl && imagenFile && imagenFile.size > 0) {
+            imagenUrl = await this.subirImagenCloudinary(imagenFile);
+        }
+
         const nuevoProducto = {
             id: generarId(),
             nombre: formData.get('nombre'),
@@ -1073,6 +1101,7 @@ class GestorStock {
             stock: parseInt(formData.get('stock')),
             stockMinimo: parseInt(formData.get('stockMinimo')),
             descripcion: formData.get('descripcion') || '',
+            imagenUrl: imagenUrl || '',
             fechaCreacion: new Date().toISOString()
         };
 
@@ -1088,7 +1117,8 @@ class GestorStock {
                 costo: Number(nuevoProducto.costo) || 0,
                 stock: Number(nuevoProducto.stock) || 0,
                 stock_minimo: Number(nuevoProducto.stockMinimo) || 0,
-                activo: true
+                activo: true,
+                imagen_url: nuevoProducto.imagenUrl || null
             };
             try {
                 const res = await window.databaseService.insert('productos', payload);
@@ -1096,54 +1126,62 @@ class GestorStock {
                     return res.data.id;
                 }
             } catch (e) {
+                // Reintento sin imagen_url si la columna no existe
+                try {
+                    const fallback = { ...payload };
+                    delete fallback.imagen_url;
+                    const res = await window.databaseService.insert('productos', fallback);
+                    if (res && res.success && res.data && res.data.id) {
+                        return res.data.id;
+                    }
+                } catch (_) {}
                 console.warn('⚠️ No se pudo insertar producto en Supabase, se usará cache local:', e?.message || e);
             }
             return null;
         };
 
-        (async () => {
-            const remoteId = await insertarRemoto();
-            if (remoteId) nuevoProducto.id = remoteId;
+        const remoteId = await insertarRemoto();
+        if (remoteId) nuevoProducto.id = remoteId;
 
-            this.productos.push(nuevoProducto);
-            guardarProductos(this.productos);
+        this.productos.push(nuevoProducto);
+        guardarProductos(this.productos);
             
-            // Registrar movimiento también en Supabase si es posible
-            try {
-                if (window.databaseService) {
-                    const movPayload = {
-                        producto_id: nuevoProducto.id,
-                        tipo: 'entrada',
-                        cantidad: Number(nuevoProducto.stock) || 0,
-                        stock_anterior: 0,
-                        stock_nuevo: Number(nuevoProducto.stock) || 0,
-                        costo_unitario: Number(nuevoProducto.costo) || 0,
-                        valor_total: (Number(nuevoProducto.costo) || 0) * (Number(nuevoProducto.stock) || 0),
-                        motivo: 'Producto creado'
-                    };
-                    await window.databaseService.insert('movimientos_stock', movPayload);
-                }
-            } catch (_) {}
+        // Registrar movimiento también en Supabase si es posible
+        try {
+            if (window.databaseService) {
+                const movPayload = {
+                    producto_id: nuevoProducto.id,
+                    tipo: 'entrada',
+                    cantidad: Number(nuevoProducto.stock) || 0,
+                    stock_anterior: 0,
+                    stock_nuevo: Number(nuevoProducto.stock) || 0,
+                    costo_unitario: Number(nuevoProducto.costo) || 0,
+                    valor_total: (Number(nuevoProducto.costo) || 0) * (Number(nuevoProducto.stock) || 0),
+                    motivo: 'Producto creado'
+                };
+                await window.databaseService.insert('movimientos_stock', movPayload);
+            }
+        } catch (_) {}
 
-            // Registrar movimiento local
-            this.registrarMovimiento({
-                productoId: nuevoProducto.id,
-                tipo: 'entrada',
-                cantidad: nuevoProducto.stock,
-                observaciones: 'Producto creado',
-                usuario: 'Usuario actual'
-            });
+        // Registrar movimiento local
+        this.registrarMovimiento({
+            productoId: nuevoProducto.id,
+            tipo: 'entrada',
+            cantidad: nuevoProducto.stock,
+            observaciones: 'Producto creado',
+            usuario: 'Usuario actual'
+        });
 
-            this.cargarProductos();
-            this.actualizarEstadisticas();
+        this.cargarProductos();
+        this.actualizarEstadisticas();
             
-            // Limpiar formulario
-            document.getElementById('formNuevoProducto').reset();
-            this.limpiarCalculoCosto();
-            this.actualizarCalculosGanancia();
+        // Limpiar formulario
+        document.getElementById('formNuevoProducto').reset();
+        this.limpiarCalculoCosto();
+        this.actualizarCalculosGanancia();
+        this.limpiarPreviewImagen();
             
-            alert('Producto agregado exitosamente');
-        })();
+        alert('Producto agregado exitosamente');
     }
 
     ajustarStock(productoId) {
@@ -1203,6 +1241,18 @@ class GestorStock {
         form.stock.value = producto.stock;
         form.stockMinimo.value = producto.stockMinimo;
         form.descripcion.value = producto.descripcion || '';
+        const hidden = document.getElementById('imagenUrl');
+        if (hidden) hidden.value = producto.imagenUrl || '';
+
+        const preview = document.getElementById('previewImagenProducto');
+        const estado = document.getElementById('estadoImagenProducto');
+        if (preview && producto.imagenUrl) {
+            preview.src = producto.imagenUrl;
+            preview.style.display = 'block';
+            if (estado) estado.textContent = 'Imagen actual cargada';
+        } else {
+            this.limpiarPreviewImagen();
+        }
         
         // Actualizar cálculos de ganancia
         this.actualizarCalculosGanancia();
@@ -1210,16 +1260,16 @@ class GestorStock {
         // Cambiar el botón para modo edición
         const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Actualizar Producto';
-        submitBtn.onclick = (e) => {
+        submitBtn.onclick = async (e) => {
             e.preventDefault();
-            this.guardarEdicionProducto(productoId, new FormData(form));
+            await this.guardarEdicionProducto(productoId, new FormData(form));
         };
 
         // Scroll al formulario
         form.scrollIntoView({ behavior: 'smooth' });
     }
 
-    guardarEdicionProducto(productoId, formData) {
+    async guardarEdicionProducto(productoId, formData) {
         const producto = this.productos.find(p => p.id === productoId);
         if (!producto) return;
 
@@ -1234,25 +1284,31 @@ class GestorStock {
         producto.stockMinimo = parseInt(formData.get('stockMinimo'));
         producto.descripcion = formData.get('descripcion') || '';
 
+        const imagenFile = formData.get('imagen');
+        let imagenUrl = (formData.get('imagenUrl') || '').toString().trim();
+        if (!imagenUrl && imagenFile && imagenFile.size > 0) {
+            imagenUrl = await this.subirImagenCloudinary(imagenFile);
+        }
+        if (imagenUrl) producto.imagenUrl = imagenUrl;
+
         guardarProductos(this.productos);
 
         // Actualizar en Supabase si es posible
-        (async () => {
-            try {
-                if (window.databaseService) {
-                    await window.databaseService.update('productos', producto.id, {
-                        nombre: producto.nombre,
-                        descripcion: producto.descripcion || null,
-                        categoria: producto.categoria || 'General',
-                        precio: Number(producto.precio) || 0,
-                        costo: Number(producto.costo) || 0,
-                        stock: Number(producto.stock) || 0,
-                        stock_minimo: Number(producto.stockMinimo) || 0,
-                        activo: true
-                    });
-                }
-            } catch (_) {}
-        })();
+        try {
+            if (window.databaseService) {
+                await window.databaseService.update('productos', producto.id, {
+                    nombre: producto.nombre,
+                    descripcion: producto.descripcion || null,
+                    categoria: producto.categoria || 'General',
+                    precio: Number(producto.precio) || 0,
+                    costo: Number(producto.costo) || 0,
+                    stock: Number(producto.stock) || 0,
+                    stock_minimo: Number(producto.stockMinimo) || 0,
+                    activo: true,
+                    imagen_url: producto.imagenUrl || null
+                });
+            }
+        } catch (_) {}
 
         // Si cambió el stock, registrar movimiento
         if (stockAnterior !== producto.stock) {
@@ -1273,6 +1329,7 @@ class GestorStock {
         document.getElementById('formNuevoProducto').reset();
         this.limpiarCalculoCosto();
         this.actualizarCalculosGanancia();
+        this.limpiarPreviewImagen();
         const submitBtn = document.querySelector('#formNuevoProducto button[type="submit"]');
         submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Agregar Producto';
         submitBtn.onclick = null;
@@ -1334,6 +1391,7 @@ class GestorStock {
             precioUnitario: datos.precioUnitario || 0,
             precioTotal: datos.precioTotal || 0,
             observaciones: datos.observaciones || '', // Guardado como 'motivo' en DB
+            referencia: datos.referencia || null,
             usuario: datos.usuario || 'Usuario actual',
             // Información adicional para trazabilidad
             sesionId: datos.sesionId || null,
@@ -1493,6 +1551,171 @@ class GestorStock {
         return true;
     }
 
+    /**
+     * Registra una venta directa (tienda) sin sesión asociada
+     * @param {Object} datosVenta - { items, descuento, metodoPago, cliente }
+     * @returns {Object} resultado con ok, rechazados, totalBruto y totalFinal
+     */
+    async registrarVentaTienda(datosVenta = {}) {
+        const items = Array.isArray(datosVenta.items) ? datosVenta.items : [];
+        const descuento = Math.max(0, Number(datosVenta.descuento) || 0);
+        const metodoPago = datosVenta.metodoPago || 'efectivo';
+        const cliente = datosVenta.cliente || null;
+        const ventaRef = `TIENDA-${generarId()}`;
+
+        if (items.length === 0) {
+            return { ok: false, mensaje: 'No hay productos seleccionados.' };
+        }
+
+        const rechazados = [];
+        const normalizados = [];
+
+        for (const item of items) {
+            const producto = this.productos.find(p => p.id === item.productoId);
+            const cantidad = Math.max(0, Number(item.cantidad) || 0);
+            const precioUnitario = Number(item.precioUnitario) || Number(item.precio) || 0;
+
+            if (!producto || cantidad <= 0) continue;
+
+            if (producto.stock < cantidad) {
+                rechazados.push(producto.nombre);
+                continue;
+            }
+
+            normalizados.push({ producto, cantidad, precioUnitario });
+        }
+
+        if (normalizados.length === 0) {
+            return { ok: false, rechazados, mensaje: 'Stock insuficiente o productos inválidos.' };
+        }
+
+        if (rechazados.length > 0) {
+            return { ok: false, rechazados, mensaje: 'Stock insuficiente para algunos productos.' };
+        }
+
+        const totalBruto = normalizados.reduce((sum, i) => sum + (i.cantidad * i.precioUnitario), 0);
+        const totalFinal = Math.max(0, totalBruto - descuento);
+        const factorDescuento = totalBruto > 0 ? totalFinal / totalBruto : 1;
+
+        for (const item of normalizados) {
+            const { producto, cantidad, precioUnitario } = item;
+            const stockAnterior = producto.stock;
+            producto.stock -= cantidad;
+
+            if (window.databaseService) {
+                try {
+                    await window.databaseService.update('productos', producto.id, {
+                        stock: producto.stock,
+                        fecha_actualizacion: new Date().toISOString()
+                    });
+                } catch (error) {
+                    console.error('Error actualizando stock en Supabase:', error);
+                }
+            }
+
+            const precioTotal = Number((cantidad * precioUnitario * factorDescuento).toFixed(2));
+            const observaciones = `Venta tienda${cliente ? ` - ${cliente}` : ''} | Pago: ${metodoPago}${descuento > 0 ? ` | Descuento: ${formatearMoneda(descuento)}` : ''} | Ref: ${ventaRef}`;
+
+            await this.registrarMovimiento({
+                tipo: 'venta',
+                productoId: producto.id,
+                productoNombre: producto.nombre,
+                cantidad: cantidad,
+                precioUnitario: precioUnitario,
+                precioTotal: precioTotal,
+                motivo: observaciones,
+                observaciones: observaciones,
+                referencia: ventaRef,
+                usuario: 'Tienda',
+                categoria: producto.categoria,
+                stockAnterior: stockAnterior,
+                stockNuevo: producto.stock
+            });
+
+            window.dispatchEvent(new CustomEvent('stockActualizado', {
+                detail: {
+                    productoId: producto.id,
+                    nuevoStock: producto.stock,
+                    cantidadVendida: cantidad,
+                    stockBajo: producto.stock <= producto.stockMinimo,
+                    agotado: producto.stock === 0,
+                    ventaDesdeTienda: true
+                }
+            }));
+        }
+
+        guardarProductos(this.productos);
+
+        if (window.location.pathname.includes('stock.html')) {
+            this.cargarProductos();
+            this.actualizarEstadisticas();
+            this.cargarVentasHoy();
+        }
+
+        // Registrar venta contable en Supabase (ventas + items)
+        if (window.databaseService) {
+            try {
+                const isUuid = (v) => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+
+                let authUid = null;
+                try {
+                    if (window.supabaseConfig?.getSupabaseClient) {
+                        const client = await window.supabaseConfig.getSupabaseClient();
+                        const { data } = await client.auth.getSession();
+                        authUid = data?.session?.user?.id || null;
+                    }
+                } catch (_) {}
+
+                const usuarioIdCandidate = (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.id) || null;
+                const usuarioId = (isUuid(usuarioIdCandidate) ? usuarioIdCandidate : null) || (isUuid(authUid) ? authUid : null);
+
+                const metodoPagoDb = metodoPago === 'qr' ? 'digital' : metodoPago;
+
+                const ventaPayload = {
+                    sesion_id: null,
+                    sala_id: null,
+                    usuario_id: usuarioId,
+                    cliente: cliente || 'Cliente tienda',
+                    estacion: 'Tienda',
+                    fecha_inicio: null,
+                    fecha_cierre: new Date().toISOString(),
+                    metodo_pago: metodoPagoDb,
+                    estado: 'cerrada',
+                    subtotal_tiempo: 0,
+                    subtotal_productos: totalBruto,
+                    descuento: descuento,
+                    total: totalFinal,
+                    notas: 'Venta tienda',
+                    vendedor: (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.nombre) || 'Tienda'
+                };
+
+                const insertRes = await window.databaseService.insert('ventas', ventaPayload);
+                const ventaId = insertRes?.data?.id || null;
+
+                if (ventaId) {
+                    let lineNo = 1;
+                    for (const item of normalizados) {
+                        const subtotal = Number((item.cantidad * item.precioUnitario * factorDescuento).toFixed(2));
+                        await window.databaseService.insert('venta_items', {
+                            venta_id: ventaId,
+                            line_no: lineNo++,
+                            tipo: 'producto',
+                            producto_id: isUuid(item.producto.id) ? item.producto.id : null,
+                            descripcion: item.producto.nombre,
+                            cantidad: item.cantidad,
+                            precio_unitario: item.precioUnitario,
+                            subtotal: subtotal
+                        });
+                    }
+                }
+            } catch (e) {
+                console.warn('⚠️ No se pudo registrar venta contable de tienda:', e?.message || e);
+            }
+        }
+
+        return { ok: true, totalBruto, totalFinal };
+    }
+
     cargarMovimientos() {
         const tbody = document.querySelector('#tablaMovimientos tbody');
         if (!tbody) return;
@@ -1562,7 +1785,7 @@ class GestorStock {
             
             return `
                 <tr>
-                    <td class="small">${new Date(movimiento.fecha).toLocaleString()}</td>
+                    <td class="small">${new Date(movimiento.fecha).toLocaleString('es-ES', {hour12: true})}</td>
                     <td>
                         <div class="d-flex flex-column">
                             <span class="fw-medium">${nombreProducto}</span>
@@ -1928,6 +2151,7 @@ class GestorStock {
                 nombre: producto.nombre,
                 precio: producto.precio,
                 stock: producto.stock,
+                imagenUrl: producto.imagenUrl || '',
                 categoria: producto.categoria,
                 categoriaNombre: categoria ? categoria.nombre : 'Sin categoría',
                 categoriaColor: categoria ? categoria.color : 'secondary',
@@ -2110,11 +2334,17 @@ class GestorStock {
         // Eventos del formulario de nuevo producto
         const formNuevoProducto = document.getElementById('formNuevoProducto');
         if (formNuevoProducto) {
-            formNuevoProducto.addEventListener('submit', (e) => {
+            formNuevoProducto.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(formNuevoProducto);
-                this.agregarProducto(formData);
+                await this.agregarProducto(formData);
             });
+        }
+
+        // Imagen de producto (preview)
+        const inputImagen = document.getElementById('imagenProducto');
+        if (inputImagen) {
+            inputImagen.addEventListener('change', () => this.actualizarPreviewImagen(inputImagen));
         }
 
         // Eventos de filtros
@@ -2190,6 +2420,84 @@ class GestorStock {
                     productoFila.classList.add('stock-bajo');
                 }
             }
+        }
+    }
+
+    actualizarPreviewImagen(input) {
+        const preview = document.getElementById('previewImagenProducto');
+        const estado = document.getElementById('estadoImagenProducto');
+        const hidden = document.getElementById('imagenUrl');
+
+        if (!preview || !estado) return;
+
+        const file = input?.files?.[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            preview.src = url;
+            preview.style.display = 'block';
+            estado.textContent = `Imagen seleccionada: ${file.name}`;
+            if (hidden) hidden.value = '';
+        } else {
+            this.limpiarPreviewImagen();
+        }
+    }
+
+    limpiarPreviewImagen() {
+        const preview = document.getElementById('previewImagenProducto');
+        const estado = document.getElementById('estadoImagenProducto');
+        const hidden = document.getElementById('imagenUrl');
+        const input = document.getElementById('imagenProducto');
+
+        if (preview) {
+            preview.src = '';
+            preview.style.display = 'none';
+        }
+        if (estado) estado.textContent = 'Sin imagen seleccionada';
+        if (hidden) hidden.value = '';
+        if (input) input.value = '';
+    }
+
+    async subirImagenCloudinary(file) {
+        if (!file) return '';
+        const { cloudName, uploadPreset, folder } = CLOUDINARY_CONFIG;
+
+        if (!cloudName || !uploadPreset) {
+            const msg = 'Cloudinary no configurado. Define cloudinary_cloud_name y cloudinary_upload_preset en localStorage.';
+            console.warn(msg);
+            if (typeof window.mostrarNotificacion === 'function') {
+                window.mostrarNotificacion(msg, 'warning');
+            }
+            return '';
+        }
+
+        const estado = document.getElementById('estadoImagenProducto');
+        if (estado) estado.textContent = 'Subiendo imagen...';
+
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+        const data = new FormData();
+        data.append('file', file);
+        data.append('upload_preset', uploadPreset);
+        if (folder) data.append('folder', folder);
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                body: data
+            });
+            const json = await res.json();
+
+            if (json.secure_url) {
+                const hidden = document.getElementById('imagenUrl');
+                if (hidden) hidden.value = json.secure_url;
+                if (estado) estado.textContent = 'Imagen cargada correctamente';
+                return json.secure_url;
+            }
+            if (estado) estado.textContent = 'No se pudo cargar la imagen';
+            return '';
+        } catch (e) {
+            console.warn('⚠️ Error subiendo imagen a Cloudinary:', e?.message || e);
+            if (estado) estado.textContent = 'Error al subir imagen';
+            return '';
         }
     }
 }

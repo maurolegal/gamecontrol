@@ -149,7 +149,7 @@
         // Función para agregar logs
         function addLog(message, type = 'info') {
             const container = document.getElementById('debugLogs');
-            const time = new Date().toLocaleTimeString();
+            const time = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true});
             
             const log = document.createElement('div');
             log.className = type;

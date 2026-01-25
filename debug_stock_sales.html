@@ -32,7 +32,7 @@
                 const hoy = new Date();
                 hoy.setHours(0, 0, 0, 0);
                 const hoyISO = hoy.toISOString();
-                log(`📅 Fecha de corte (hoy 00:00 local): ${hoy.toLocaleString()} -> ${hoyISO}`);
+                log(`📅 Fecha de corte (hoy 00:00 local): ${hoy.toLocaleString('es-ES', {hour12: true})} -> ${hoyISO}`);
 
                 // 3. Consultar SOLO movimientos (sin join) para ver si hay datos
                 log('🔍 Consultando tabla movimientos_stock (simple)...');
