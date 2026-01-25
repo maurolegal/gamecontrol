@@ -579,6 +579,18 @@ class GestorSalas {
             console.log('🔍 Ventana vuelve a tener foco, verificando datos...');
             this.verificarIntegridadDatos();
         });
+
+        // Fallback global para botón Tienda (evitar fallos de binding en producción)
+        if (!window.__tiendaClickFallback) {
+            window.__tiendaClickFallback = true;
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('#btnTienda');
+                if (btn && window.gestorSalas?.abrirTienda) {
+                    e.preventDefault();
+                    window.gestorSalas.abrirTienda();
+                }
+            });
+        }
     }
 
     recargarConfiguracion() {
