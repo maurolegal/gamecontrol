@@ -419,6 +419,14 @@ html[data-theme="dark"] .table .dropdown-item:hover { background: var(--light-co
     font-size: 1.5rem;
 }
 
+.card-icon img.card-icon-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
 /* Botones modernos */
 .btn {
     padding: 0.625rem 1.25rem;

@@ -17,6 +17,13 @@ function formatearFecha(fecha) {
     return new Date(fecha).toLocaleDateString('es-CO');
 }
 
+function obtenerFechaLocalYYYYMMDD(fecha = new Date()) {
+    const anio = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    return `${anio}-${mes}-${dia}`;
+}
+
 function generarId() {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
@@ -219,107 +226,136 @@ class GestorStock {
     }
 
     async cargarVentasHoy() {
+        const hoyISO = obtenerFechaLocalYYYYMMDD(new Date());
+        return this.cargarVentasPorFecha(hoyISO, { actualizarResumen: true });
+    }
+
+    async cargarVentasPorFecha(fechaISO, opciones = {}) {
         try {
             if (!window.databaseService) {
-                console.warn('⚠️ databaseService no disponible para cargar ventas hoy');
+                console.warn('⚠️ databaseService no disponible para cargar ventas');
                 return 0;
             }
-            
-            // Calcular inicio del día en UTC para garantizar cobertura completa
-            // Usamos la fecha local 00:00:00 y la convertimos a ISO
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            
-            // Logging para depuración
-            console.log('📅 Cargando ventas del día. Fecha filtro (ISO GTE):', hoy.toISOString());
 
-            // 1. Mostrar estado de carga en la tabla pequeña si es posible
-            const tbody = document.querySelector('#tablaVentasDia tbody');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Actualizando...</td></tr>';
+            const hoyISO = obtenerFechaLocalYYYYMMDD(new Date());
+            const fechaFiltro = fechaISO || hoyISO;
+            const esHoy = fechaFiltro === hoyISO;
+
+            const inicio = new Date(`${fechaFiltro}T00:00:00`);
+            inicio.setHours(0, 0, 0, 0);
+            const fin = new Date(inicio);
+            fin.setDate(fin.getDate() + 1);
+            const finMenos = new Date(fin.getTime() - 1);
+
+            const etiquetaFecha = esHoy ? 'Hoy' : inicio.toLocaleDateString('es-CO');
+
+            const labelFecha = document.getElementById('ventasFechaLabel');
+            if (labelFecha) labelFecha.textContent = etiquetaFecha;
+
+            console.log('📅 Cargando ventas por fecha. Filtro:', inicio.toISOString(), finMenos.toISOString());
+
+            this.mostrarVentasDiaCargando(etiquetaFecha);
+
+            const client = await window.databaseService.getClient();
+
+            let { data, error } = await client
+                .from('movimientos_stock')
+                .select('*, producto:productos(nombre)')
+                .eq('tipo', 'venta')
+                .gte('fecha_movimiento', inicio.toISOString())
+                .lte('fecha_movimiento', finMenos.toISOString())
+                .order('fecha_movimiento', { ascending: false })
+                .limit(200);
+
+            let resultado = { success: !error, data };
+
+            if (error) {
+                console.warn('⚠️ Falló consulta detallada de ventas, intentando simple...', error);
+                const simple = await client
+                    .from('movimientos_stock')
+                    .select('*')
+                    .eq('tipo', 'venta')
+                    .gte('fecha_movimiento', inicio.toISOString())
+                    .lte('fecha_movimiento', finMenos.toISOString())
+                    .order('fecha_movimiento', { ascending: false })
+                    .limit(200);
+
+                resultado = { success: !simple.error, data: simple.data, error: simple.error };
             }
 
-            // 2. Consulta principal (JOIN)
-            let resultado = await window.databaseService.select('movimientos_stock', {
-                filtros: { 
-                    tipo: 'venta',
-                    'fecha_movimiento': { operador: 'gte', valor: hoy.toISOString() }
-                },
-                select: '*, producto:productos(nombre)',
-                ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
-                limite: 100
-            });
-
-            // 3. Fallback a consulta simple si falla la compleja
-            if (!resultado.success) {
-                 console.warn('⚠️ Falló consulta detallada de ventas hoy, intentando simple...', resultado.error);
-                 resultado = await window.databaseService.select('movimientos_stock', {
-                    filtros: { 
-                        tipo: 'venta',
-                        'fecha_movimiento': { operador: 'gte', valor: hoy.toISOString() }
-                    },
-                    select: '*', // Sin relaciones
-                    ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
-                    limite: 100
-                });
-            }
-
-            let totalVentasHoy = 0;
             let ventas = [];
-
             if (resultado && resultado.success) {
-                // Manejar posibilidad de data null
                 ventas = resultado.data || [];
-                
-                console.log(`✅ Ventas encontradas hoy: ${ventas.length}`);
 
-                // Enriquecimiento robusto de nombres de productos
                 ventas.forEach(v => {
-                    // Si no vino el producto poblado (fallback o join fallido)
                     if (!v.producto || !v.producto.nombre) {
-                        // Buscar en memoria local
                         const pLocal = this.productos.find(p => p.id === v.producto_id);
                         if (pLocal) {
                             v.producto = { nombre: pLocal.nombre };
-                        } else {
-                            // Intento de recuperar nombre guardado en movimiento (si existe columna)
-                            if (v.producto_nombre) v.producto = { nombre: v.producto_nombre };
+                        } else if (v.producto_nombre) {
+                            v.producto = { nombre: v.producto_nombre };
                         }
                     }
                 });
-
-                totalVentasHoy = ventas.reduce((sum, m) => sum + (Number(m.valor_total) || 0), 0);
             } else {
-                console.error('❌ Error crítico recuperando ventas hoy:', resultado.error);
+                console.error('❌ Error crítico recuperando ventas:', resultado.error);
             }
 
-            // Actualizar Widgets Superiores
-            const ventasHoyElement = document.getElementById('ventasHoyStock');
-            const ventasHoyDetalle = document.getElementById('ventasHoyDetalle');
+            const totalVentas = ventas.reduce((sum, m) => sum + (Number(m.valor_total) || 0), 0);
 
-            if (ventasHoyElement) {
-                ventasHoyElement.textContent = formatearMoneda(totalVentasHoy);
-            }
-            if (ventasHoyDetalle) {
-                ventasHoyDetalle.innerHTML = `<i class="fas fa-clock"></i> ${ventas.length} ventas hoy`;
-                ventasHoyDetalle.className = ventas.length > 0 ? 'text-success mb-0' : 'text-muted mb-0';
+            if (opciones.actualizarResumen) {
+                const ventasHoyElement = document.getElementById('ventasHoyStock');
+                const ventasHoyDetalle = document.getElementById('ventasHoyDetalle');
+
+                if (ventasHoyElement) ventasHoyElement.textContent = formatearMoneda(totalVentas);
+                if (ventasHoyDetalle) {
+                    ventasHoyDetalle.innerHTML = `<i class="fas fa-clock"></i> ${ventas.length} ventas hoy`;
+                    ventasHoyDetalle.className = ventas.length > 0 ? 'text-success mb-0' : 'text-muted mb-0';
+                }
             }
 
-            // Actualizar Tabla de Detalle
-            this.renderizarTablaVentasDia(ventas, totalVentasHoy);
-            
-            return totalVentasHoy;
+            this.renderizarTablaVentasDia(ventas, totalVentas, etiquetaFecha);
+
+            return totalVentas;
         } catch (error) {
-            console.error('❌ Excepción en cargarVentasHoy:', error);
+            console.error('❌ Excepción en cargarVentasPorFecha:', error);
+            const hoyISO = obtenerFechaLocalYYYYMMDD(new Date());
+            const fechaFallback = fechaISO || hoyISO;
+            const etiquetaFallback = fechaFallback === hoyISO
+                ? 'Hoy'
+                : new Date(`${fechaFallback}T00:00:00`).toLocaleDateString('es-CO');
+
+            if (opciones.actualizarResumen) {
+                const ventasHoyElement = document.getElementById('ventasHoyStock');
+                const ventasHoyDetalle = document.getElementById('ventasHoyDetalle');
+
+                if (ventasHoyElement) ventasHoyElement.textContent = formatearMoneda(0);
+                if (ventasHoyDetalle) {
+                    ventasHoyDetalle.innerHTML = '<i class="fas fa-clock"></i> 0 ventas hoy';
+                    ventasHoyDetalle.className = 'text-muted mb-0';
+                }
+            }
+
+            this.renderizarTablaVentasDia([], 0, etiquetaFallback);
             return 0;
         }
     }
 
-    renderizarTablaVentasDia(ventas, total) {
+    mostrarVentasDiaCargando(etiquetaFecha) {
+        const tbody = document.querySelector('#tablaVentasDia tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Actualizando...</td></tr>';
+        }
+
+        const badge = document.getElementById('badgeTotalVentasDia');
+        if (badge) badge.textContent = `Total ${etiquetaFecha}: ${formatearMoneda(0)}`;
+    }
+
+    renderizarTablaVentasDia(ventas, total, etiquetaFecha = 'Hoy') {
         const tbody = document.querySelector('#tablaVentasDia tbody');
         const badge = document.getElementById('badgeTotalVentasDia');
         
-        if (badge) badge.textContent = `Total Compra: ${formatearMoneda(total)}`;
+        if (badge) badge.textContent = `Total ${etiquetaFecha}: ${formatearMoneda(total)}`;
         if (!tbody) return;
 
         if (ventas.length === 0) {
@@ -327,7 +363,7 @@ class GestorStock {
                 <tr>
                     <td colspan="4" class="text-center py-4 text-muted">
                         <i class="fas fa-receipt mb-2 text-secondary" style="font-size: 1.5rem;"></i>
-                        <p class="mb-0 small">No hay ventas registradas hoy<br>Las ventas del día aparecerán aquí</p>
+                        <p class="mb-0 small">No hay ventas registradas ${etiquetaFecha === 'Hoy' ? 'hoy' : 'ese día'}<br>Las ventas aparecerán aquí</p>
                     </td>
                 </tr>
             `;
@@ -1850,7 +1886,7 @@ class GestorStock {
             const valorCard = stockCards[2].closest('.dashboard-card');
             if (valorCard) {
                 const titulo = valorCard.querySelector('.card-title');
-                if (titulo) titulo.textContent = 'Valor Inventario';
+                if (titulo) titulo.textContent = 'EN USO';
                 
                 // Agregar información de ganancia potencial
                 const textoExtra = valorCard.querySelector('p');
@@ -2362,6 +2398,36 @@ class GestorStock {
             buscarProducto.addEventListener('input', () => this.aplicarFiltros());
         }
 
+        // Filtro de ventas por fecha
+        const ventasFechaFiltro = document.getElementById('ventasFechaFiltro');
+        const btnFiltrarVentasFecha = document.getElementById('btnFiltrarVentasFecha');
+        const btnVentasHoy = document.getElementById('btnVentasHoy');
+
+        if (ventasFechaFiltro && !ventasFechaFiltro.value) {
+            ventasFechaFiltro.value = obtenerFechaLocalYYYYMMDD(new Date());
+        }
+
+        const aplicarFiltroVentas = () => {
+            if (!ventasFechaFiltro) return;
+            const fecha = ventasFechaFiltro.value || obtenerFechaLocalYYYYMMDD(new Date());
+            this.cargarVentasPorFecha(fecha, { actualizarResumen: false });
+        };
+
+        if (ventasFechaFiltro) {
+            ventasFechaFiltro.addEventListener('change', aplicarFiltroVentas);
+        }
+        if (btnFiltrarVentasFecha) {
+            btnFiltrarVentasFecha.addEventListener('click', aplicarFiltroVentas);
+        }
+        if (btnVentasHoy) {
+            btnVentasHoy.addEventListener('click', () => {
+                if (ventasFechaFiltro) {
+                    ventasFechaFiltro.value = obtenerFechaLocalYYYYMMDD(new Date());
+                }
+                this.cargarVentasPorFecha(obtenerFechaLocalYYYYMMDD(new Date()), { actualizarResumen: false });
+            });
+        }
+
         // Escuchar eventos de stock actualizado desde salas
         window.addEventListener('stockActualizado', (event) => {
             console.log('🔄 Stock actualizado desde salas:', event.detail);
@@ -2502,7 +2568,13 @@ class GestorStock {
     }
 }
 
-// Inicializar cuando el DOM esté listo
+// Inicializar solo en la página de stock
 document.addEventListener('DOMContentLoaded', () => {
+    const isStockPage = !!document.getElementById('tablaProductos')
+        || !!document.getElementById('formNuevoProducto')
+        || !!document.getElementById('tablaMovimientos');
+
+    if (!isStockPage) return;
+
     window.gestorStock = new GestorStock();
 }); 

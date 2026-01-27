@@ -2015,7 +2015,13 @@ class GestorVentas {
     }
 }
 
-// Inicializar el gestor de ventas cuando se carga la página
+// Inicializar el gestor de ventas solo en la página de ventas
 document.addEventListener('DOMContentLoaded', function() {
+    const isVentasPage = !!document.getElementById('tablaVentasBody')
+        || !!document.getElementById('filtroPeriodo')
+        || !!document.getElementById('aplicarFiltros');
+
+    if (!isVentasPage) return;
+
     window.gestorVentas = new GestorVentas();
 }); 
