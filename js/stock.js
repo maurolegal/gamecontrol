@@ -476,6 +476,7 @@ class GestorStock {
             
             this.actualizarSelectCategorias();
             this.actualizarTablaCategorias();
+            this.cargarProductos();
         } catch (e) {
             console.error('⚠️ Error en cargarCategoriasRemotas:', e?.message || e);
             console.error('⚠️ Stack:', e);
@@ -976,7 +977,22 @@ class GestorStock {
     }
 
     obtenerBadgeCategoria(categoriaId) {
-        const categoria = this.categorias.find(cat => cat.id === categoriaId);
+        const categorias = Array.isArray(this.categorias) ? this.categorias : [];
+        const valor = typeof categoriaId === 'object'
+            ? (categoriaId?.id || categoriaId?.nombre || '')
+            : (categoriaId || '');
+
+        let categoria = categorias.find(cat => cat.id === valor);
+
+        if (!categoria && valor) {
+            const normalizado = this.generarIdCategoria(String(valor));
+            categoria = categorias.find(cat =>
+                cat.id === normalizado ||
+                this.generarIdCategoria(String(cat.nombre || '')) === normalizado ||
+                String(cat.nombre || '').toLowerCase() === String(valor).toLowerCase()
+            );
+        }
+
         if (!categoria) {
             return '<span class="badge bg-secondary">Sin categoría</span>';
         }
@@ -1876,9 +1892,17 @@ class GestorStock {
         const totalCard = document.querySelector('.dashboard-card h2');
         if (totalCard) totalCard.textContent = totalProductos;
 
+        const totalCardContainer = totalCard?.closest('.dashboard-card');
+        const totalDescripcion = totalCardContainer?.querySelector('p');
+        if (totalDescripcion) totalDescripcion.textContent = 'Productos registrados';
+
         // Stock bajo
         const stockCards = document.querySelectorAll('.dashboard-card h2');
         if (stockCards[1]) stockCards[1].textContent = stockBajo;
+
+        const stockBajoContainer = stockCards[1]?.closest('.dashboard-card');
+        const stockBajoDescripcion = stockBajoContainer?.querySelector('p');
+        if (stockBajoDescripcion) stockBajoDescripcion.textContent = 'Productos con stock bajo';
 
         // Valor del inventario (costo)
         if (stockCards[2]) {
