@@ -417,7 +417,28 @@
 
                 <!-- Movimientos de Stock -->
                 <div class="module-container">
-                    <h5>Últimos Movimientos</h5>
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0">Últimos Movimientos</h5>
+                        <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="collapse" data-bs-target="#panelRollbackMovimientos" aria-expanded="false" aria-controls="panelRollbackMovimientos">
+                            <i class="fas fa-rotate-left me-1"></i>Revertir ventas (emergencia)
+                        </button>
+                    </div>
+                    <div class="collapse mt-3" id="panelRollbackMovimientos">
+                        <div class="alert alert-warning small mb-3">
+                            <strong>⚠️ Uso solo en emergencia:</strong> Reversa movimientos tipo <strong>venta</strong> por ID en Supabase y devuelve stock al inventario.
+                        </div>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-9">
+                                <label class="form-label fw-semibold">IDs de movimientos (uno por línea)</label>
+                                <textarea class="form-control" id="rollbackMovimientosIds" rows="3" placeholder="ej: ecfac957-e16b-450a-b3f7-b49ebcd0a042"></textarea>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-danger w-100" id="btnRollbackMovimientos">
+                                    <i class="fas fa-undo me-1"></i>Revertir y devolver stock
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-custom table-hover" id="tablaMovimientos">
                             <thead>

@@ -1720,7 +1720,8 @@ class GestorStock {
                 } catch (_) {}
 
                 const usuarioIdCandidate = (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.id) || null;
-                const usuarioId = (isUuid(usuarioIdCandidate) ? usuarioIdCandidate : null) || (isUuid(authUid) ? authUid : null);
+                // Priorizar auth.uid para cumplir políticas RLS en Supabase
+                const usuarioId = (isUuid(authUid) ? authUid : null) || (isUuid(usuarioIdCandidate) ? usuarioIdCandidate : null);
 
                 const metodoPagoDb = metodoPago === 'qr' ? 'digital' : metodoPago;
 
@@ -1767,6 +1768,116 @@ class GestorStock {
         }
 
         return { ok: true, totalBruto, totalFinal };
+    }
+
+    // === ROLLBACK EMERGENCIA ===
+    async revertirMovimientosPorIds(ids = []) {
+        if (!window.databaseService) {
+            if (typeof mostrarNotificacion === 'function') {
+                mostrarNotificacion('DatabaseService no disponible', 'error');
+            }
+            return { ok: false, mensaje: 'DatabaseService no disponible' };
+        }
+
+        const idsLimpios = Array.from(new Set(
+            (Array.isArray(ids) ? ids : [])
+                .map(v => String(v || '').trim())
+                .filter(Boolean)
+        ));
+
+        if (idsLimpios.length === 0) {
+            if (typeof mostrarNotificacion === 'function') {
+                mostrarNotificacion('No hay IDs para procesar', 'warning');
+            }
+            return { ok: false, mensaje: 'Sin IDs' };
+        }
+
+        let movimientos = [];
+        try {
+            const res = await window.databaseService.select('movimientos_stock', {
+                filtros: { id: idsLimpios },
+                noCache: true
+            });
+            movimientos = res?.data || [];
+        } catch (e) {
+            console.error('Error consultando movimientos:', e);
+            if (typeof mostrarNotificacion === 'function') {
+                mostrarNotificacion('No se pudieron consultar movimientos', 'error');
+            }
+            return { ok: false, mensaje: 'Error consultando movimientos' };
+        }
+
+        if (movimientos.length === 0) {
+            if (typeof mostrarNotificacion === 'function') {
+                mostrarNotificacion('No se encontraron movimientos con esos IDs', 'warning');
+            }
+            return { ok: false, mensaje: 'Sin movimientos' };
+        }
+
+        let revertidos = 0;
+        const omitidos = [];
+        const errores = [];
+
+        for (const mov of movimientos) {
+            try {
+                if (mov.tipo !== 'venta') {
+                    omitidos.push(mov.id);
+                    continue;
+                }
+
+                const productoId = mov.producto_id;
+                const cantidad = Number(mov.cantidad) || 0;
+                if (!productoId || cantidad <= 0) {
+                    omitidos.push(mov.id);
+                    continue;
+                }
+
+                const resProd = await window.databaseService.select('productos', {
+                    filtros: { id: productoId },
+                    limite: 1,
+                    noCache: true
+                });
+                const productoDb = resProd?.data?.[0];
+                if (!productoDb) {
+                    omitidos.push(mov.id);
+                    continue;
+                }
+
+                const stockActual = Number(productoDb.stock) || 0;
+                const stockNuevo = stockActual + cantidad;
+
+                await window.databaseService.update('productos', productoId, {
+                    stock: stockNuevo,
+                    fecha_actualizacion: new Date().toISOString()
+                });
+
+                // Eliminar movimiento
+                await window.databaseService.delete('movimientos_stock', mov.id);
+
+                // Actualizar cache local
+                const localProd = this.productos.find(p => p.id === productoId);
+                if (localProd) localProd.stock = stockNuevo;
+
+                this.movimientos = this.movimientos.filter(m => m.id !== mov.id);
+                guardarMovimientos(this.movimientos);
+
+                revertidos++;
+            } catch (err) {
+                console.error('Error revirtiendo movimiento:', mov?.id, err);
+                errores.push(mov?.id);
+            }
+        }
+
+        this.cargarProductos();
+        this.cargarMovimientos();
+        this.actualizarEstadisticas();
+
+        if (typeof mostrarNotificacion === 'function') {
+            const msg = `Revertidos: ${revertidos}. Omitidos: ${omitidos.length}. Errores: ${errores.length}.`;
+            mostrarNotificacion(msg, errores.length ? 'warning' : 'success');
+        }
+
+        return { ok: errores.length === 0, revertidos, omitidos, errores };
     }
 
     cargarMovimientos() {
@@ -2469,6 +2580,29 @@ class GestorStock {
                 this.actualizarEstadisticas();
             }
         });
+
+        // Rollback emergencia de movimientos
+        const btnRollback = document.getElementById('btnRollbackMovimientos');
+        if (btnRollback) {
+            btnRollback.addEventListener('click', async () => {
+                const input = document.getElementById('rollbackMovimientosIds');
+                const raw = input ? input.value : '';
+                const ids = raw.split(/\r?\n|,|;/).map(v => v.trim()).filter(Boolean);
+                if (ids.length === 0) {
+                    if (typeof mostrarNotificacion === 'function') {
+                        mostrarNotificacion('Ingresa al menos un ID', 'warning');
+                    }
+                    return;
+                }
+
+                const confirmar = window.confirm('¿Confirmas revertir estos movimientos y devolver el stock?');
+                if (!confirmar) return;
+
+                await this.revertirMovimientosPorIds(ids);
+
+                if (input) input.value = '';
+            });
+        }
     }
 
     /**

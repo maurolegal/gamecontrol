@@ -5,6 +5,26 @@
 
 console.log('📦 Cargando notifications.js...');
 
+// === Almacenamiento seguro (evitar bloqueo Supabase-only) ===
+function safeStorageGet(key) {
+    try {
+        if (window.SUPABASE_ONLY) return null;
+        return localStorage.getItem(key);
+    } catch (e) {
+        return null;
+    }
+}
+
+function safeStorageSet(key, value) {
+    try {
+        if (window.SUPABASE_ONLY) return false;
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 // Función global para agregar notificaciones (exportar INMEDIATAMENTE)
 window.mostrarNotificacion = function(message, type = 'info', title = 'Sistema') {
     if (window.notificationSystem) {
@@ -160,9 +180,9 @@ class NotificationSystem {
 
     checkSystemStatus() {
         try {
-            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
-            const productos = JSON.parse(localStorage.getItem('productos_stock') || '[]');
-            const salas = JSON.parse(localStorage.getItem('salas') || '[]');
+            const sesiones = JSON.parse(safeStorageGet('sesiones') || '[]');
+            const productos = JSON.parse(safeStorageGet('productos_stock') || '[]');
+            const salas = JSON.parse(safeStorageGet('salas') || '[]');
             
             const sesionesActivas = sesiones.filter(s => !s.finalizada).length;
             const totalProductos = productos.length;
@@ -180,7 +200,7 @@ class NotificationSystem {
 
     checkStockBajo() {
         try {
-            const productos = JSON.parse(localStorage.getItem('productos_stock') || '[]');
+            const productos = JSON.parse(safeStorageGet('productos_stock') || '[]');
             const productosStockBajo = productos.filter(p => p.stock < this.settings.stockMinimo);
             
             if (productosStockBajo.length > 0) {
@@ -197,7 +217,7 @@ class NotificationSystem {
 
     checkSesionesProximasVencer() {
         try {
-            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            const sesiones = JSON.parse(safeStorageGet('sesiones') || '[]');
             const sesionesActivas = sesiones.filter(s => !s.finalizada);
 
             sesionesActivas.forEach(sesion => {
@@ -230,7 +250,7 @@ class NotificationSystem {
 
     checkIngresosDelDia() {
         try {
-            const sesiones = JSON.parse(localStorage.getItem('sesiones') || '[]');
+            const sesiones = JSON.parse(safeStorageGet('sesiones') || '[]');
             const hoy = new Date().toISOString().split('T')[0];
             
             const sesionesHoy = sesiones.filter(s => {
@@ -455,12 +475,12 @@ class NotificationSystem {
     }
 
     saveNotifications() {
-        localStorage.setItem('notifications', JSON.stringify(this.notifications));
+        safeStorageSet('notifications', JSON.stringify(this.notifications));
     }
 
     loadStoredNotifications() {
         try {
-            const stored = localStorage.getItem('notifications');
+            const stored = safeStorageGet('notifications');
             if (stored) {
                 this.notifications = JSON.parse(stored);
                 this.updateUI();

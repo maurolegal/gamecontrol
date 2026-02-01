@@ -618,7 +618,7 @@ class GestorVentas {
                     <span>${formatearHora(inicio)}</span>
                 </div>
                  <div class="venta-row justify-content-end">
-                            <span class="metodo-pago-badge ${metodoVisual.clase} py-0" style="font-size: 0.8rem">
+                            <span class="metodo-pago-badge ${metodoVisual.clase} py-1" style="font-size: 0.75rem; max-width: 100%; white-space: normal; line-height: 1.4; text-align: right;">
                                 <i class="${metodoVisual.icono}"></i>
                                 ${metodoVisual.texto}
                     </span>
@@ -723,10 +723,10 @@ class GestorVentas {
                     <td>${formatearTiempo(duracionMinutos)}</td>
                     <td>${productosTexto}</td>
                     <td>
-                        <span class="metodo-pago-badge ${metodoVisual.clase}">
+                        <div class="metodo-pago-badge ${metodoVisual.clase}">
                             <i class="${metodoVisual.icono}"></i>
-                            ${metodoVisual.texto}
-                        </span>
+                            <span class="d-inline-block" style="max-width: 200px; white-space: normal; line-height: 1.3;">${metodoVisual.texto}</span>
+                        </div>
                     </td>
                     <td class="fw-bold text-success">${formatearMoneda(total)}</td>
                     <td class="text-center">
@@ -1018,18 +1018,18 @@ class GestorVentas {
         if (metodo === 'parcial' && sesion) {
             const partes = [];
             if (sesion.monto_efectivo > 0) {
-                partes.push(`Ef: ${formatearMoneda(sesion.monto_efectivo)}`);
+                partes.push(`💵 ${formatearMoneda(sesion.monto_efectivo)}`);
             }
             if (sesion.monto_transferencia > 0) {
-                partes.push(`Trans: ${formatearMoneda(sesion.monto_transferencia)}`);
+                partes.push(`🏦 ${formatearMoneda(sesion.monto_transferencia)}`);
             }
             if (sesion.monto_tarjeta > 0) {
-                partes.push(`Tarj: ${formatearMoneda(sesion.monto_tarjeta)}`);
+                partes.push(`💳 ${formatearMoneda(sesion.monto_tarjeta)}`);
             }
             if (sesion.monto_digital > 0) {
-                partes.push(`Dig: ${formatearMoneda(sesion.monto_digital)}`);
+                partes.push(`📱 ${formatearMoneda(sesion.monto_digital)}`);
             }
-            return partes.length > 0 ? `Parcial (${partes.join(' + ')})` : 'Pago Parcial';
+            return partes.length > 0 ? `${partes.join(' + ')}` : 'Pago Parcial';
         }
         
         const nombres = {
