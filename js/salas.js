@@ -3808,7 +3808,7 @@ class GestorSalas {
                         </div>
                         <div class="modal-footer border-top-0 pt-0">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary px-4" onclick="window.gestorSalas.confirmarAgregarTiempo('${sesionId}')">
+                            <button type="button" class="btn btn-primary px-4" id="btnConfirmarAgregarTiempo" onclick="window.gestorSalas.confirmarAgregarTiempo('${sesionId}')">
                                 Agregar
                             </button>
                         </div>
@@ -3968,6 +3968,22 @@ class GestorSalas {
     }
 
     async confirmarAgregarTiempo(sesionId) {
+        const btnConfirmar = document.getElementById('btnConfirmarAgregarTiempo');
+        const htmlOriginal = btnConfirmar ? btnConfirmar.innerHTML : '';
+        const setLoading = (activo) => {
+            if (!btnConfirmar) return;
+            if (activo) {
+                if (btnConfirmar.dataset.loading === 'true') return;
+                btnConfirmar.dataset.loading = 'true';
+                btnConfirmar.disabled = true;
+                btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando...';
+            } else {
+                btnConfirmar.dataset.loading = 'false';
+                btnConfirmar.disabled = false;
+                btnConfirmar.innerHTML = htmlOriginal || 'Agregar';
+            }
+        };
+
         const tiempoSeleccionado = document.querySelector('input[name="tiempoAdicional"]:checked');
         if (!tiempoSeleccionado) {
             mostrarNotificacion('Por favor seleccione un tiempo adicional', 'error');
@@ -4013,6 +4029,8 @@ class GestorSalas {
             }
         }
 
+        setLoading(true);
+
         // Actualizar la sesión con el tiempo y costo adicional
         if (!sesion.tiemposAdicionales) {
             sesion.tiemposAdicionales = [];
@@ -4028,27 +4046,31 @@ class GestorSalas {
         sesion.tiempoAdicional = (sesion.tiempoAdicional || 0) + tiempoAdicional;
         sesion.costoAdicional = (sesion.costoAdicional || 0) + costoAdicional;
 
-        await guardarSesiones(this.sesiones);
+        try {
+            await guardarSesiones(this.sesiones);
 
-        // Cerrar el modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarTiempo'));
-        if (modal) {
-            modal.hide();
-        }
+            // Cerrar el modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregarTiempo'));
+            if (modal) {
+                modal.hide();
+            }
 
-        // Actualizar vista recargando desde Supabase
-        console.log('🔍 DEBUG agregar tiempo - recargando datos...');
-        const refrescado = await this.recargarSesionesRemoto();
-        if (!refrescado) {
-            this.actualizarSalas();
-            this.actualizarSesiones();
-            this.actualizarEstadisticas();
+            // Actualizar vista recargando desde Supabase
+            console.log('🔍 DEBUG agregar tiempo - recargando datos...');
+            const refrescado = await this.recargarSesionesRemoto();
+            if (!refrescado) {
+                this.actualizarSalas();
+                this.actualizarSesiones();
+                this.actualizarEstadisticas();
+            }
+            
+            mostrarNotificacion(
+                `Se agregaron ${tiempoAdicional} minutos por ${formatearMoneda(costoAdicional)} a la sesión`, 
+                'success'
+            );
+        } finally {
+            setLoading(false);
         }
-        
-        mostrarNotificacion(
-            `Se agregaron ${tiempoAdicional} minutos por ${formatearMoneda(costoAdicional)} a la sesión`, 
-            'success'
-        );
     }
 
     agregarProductos(sesionId) {
@@ -4596,7 +4618,7 @@ class GestorSalas {
                             .tienda-modal .modal-header { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); color: #fff; }
                             .tienda-toolbar { background: #fff; border-bottom: 1px solid #e5e7eb; }
                             .tienda-toolbar .form-control, .tienda-toolbar .form-select { border-radius: 10px; }
-                            .tienda-body { display: flex; gap: 16px; padding: 16px; }
+                            .tienda-body { display: flex; gap: 16px; padding: 16px; max-height: calc(100vh - 210px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
                             .tienda-productos { flex: 1; min-width: 0; }
                             .tienda-resumen { width: 320px; background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08); position: sticky; top: 0; height: fit-content; }
                             .tienda-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
@@ -4616,7 +4638,8 @@ class GestorSalas {
                             .tienda-resumen-item { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-bottom: 1px dashed #e5e7eb; }
                             .tienda-total { font-size: 1.3rem; font-weight: 800; color: #0f172a; }
                             .tienda-empty { padding: 24px; text-align: center; color: #94a3b8; }
-                            @media (max-width: 992px) { .tienda-body { flex-direction: column; } .tienda-resumen { width: 100%; position: static; } }
+                            @media (max-width: 992px) { .tienda-body { flex-direction: column; max-height: calc(100vh - 200px); } .tienda-resumen { width: 100%; position: static; } }
+                            @media (max-width: 640px) { .tienda-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
                         </style>
 
                         <div class="modal-header px-4 py-3">
@@ -4763,7 +4786,7 @@ class GestorSalas {
             return `
                 <div class="tienda-card tienda-producto-item" data-nombre="${producto.nombre.toLowerCase()}" data-categoria="${(producto.categoriaNombre || producto.categoria || 'Sin categoría').toLowerCase()}">
                     <div class="tienda-img">
-                        ${producto.imagenUrl ? `<img src="${producto.imagenUrl}" alt="${producto.nombre}">` : `<i class="fas fa-image"></i>`}
+                        ${producto.imagenUrl ? `<img src="${producto.imagenUrl}" alt="${producto.nombre}" loading="lazy" decoding="async" fetchpriority="low">` : `<i class="fas fa-image"></i>`}
                     </div>
                     <div class="tienda-nombre">${producto.nombre}</div>
                     <div class="tienda-precio">${formatearMoneda(producto.precio)}</div>

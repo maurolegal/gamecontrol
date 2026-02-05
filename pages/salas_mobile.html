@@ -207,7 +207,7 @@
                         <button type="button" class="btn btn-outline-light btn-sm px-4 rounded-pill" data-bs-dismiss="modal">
                             Cancelar
                         </button>
-                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill shadow-lg">
+                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill shadow-lg" id="btnIniciarSesionMobile">
                             <i class="fas fa-play me-2"></i>Iniciar
                         </button>
                     </div>
@@ -236,6 +236,30 @@
             // Recargar también cuando la pestaña vuelve a estar visible
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden) cargarMovimientosMobile();
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('formIniciarSesion');
+            const btn = document.getElementById('btnIniciarSesionMobile');
+            if (!form || !btn) return;
+
+            const htmlOriginal = btn.innerHTML;
+
+            form.addEventListener('submit', () => {
+                if (btn.disabled) return;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando...';
+
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = htmlOriginal;
+                }, 8000);
+            });
+
+            document.getElementById('modalIniciarSesion')?.addEventListener('hidden.bs.modal', () => {
+                btn.disabled = false;
+                btn.innerHTML = htmlOriginal;
             });
         });
 

@@ -34,12 +34,11 @@
     stockTicket: null,
     stockCategorias: null,
     stockTableBody: null,
-    chartIngresos: null,
-    chartDistribucion: null
+    tablaHorasBody: null,
+    chartIngresos: null
   };
 
   let chartIngresos = null;
-  let chartDistribucion = null;
 
   const formatearMoneda = (valor) => {
     const numero = Number(valor || 0);
@@ -164,6 +163,51 @@
       const fecha = parseFecha(obtenerFechaGasto(gasto));
       return fecha ? enRango(fecha, rango) : false;
     });
+  };
+
+  const obtenerNombreSala = (salaId) => {
+    if (!salaId) return null;
+    const sala = state.salas.find((s) => String(s.id) === String(salaId));
+    return sala?.nombre || sala?.nombre_sala || null;
+  };
+
+  const obtenerFechaInicioSesion = (sesion) => {
+    const raw = sesion?.fecha_inicio || sesion?.fechaInicio || sesion?.inicio || null;
+    return parseFecha(raw);
+  };
+
+  const obtenerFechaFinSesion = (sesion) => {
+    const raw = sesion?.fecha_fin || sesion?.fechaFin || sesion?.fecha_cierre || sesion?.fin || null;
+    const parsed = parseFecha(raw);
+    if (parsed) return parsed;
+
+    const horaFin = sesion?.hora_fin || sesion?.horaFin;
+    const inicio = sesion?.fecha_inicio || sesion?.fechaInicio || sesion?.inicio || null;
+    if (horaFin && inicio) {
+      const base = String(inicio).split('T')[0];
+      const iso = `${base}T${horaFin}`;
+      const d = new Date(iso);
+      if (!isNaN(d.getTime())) return d;
+    }
+    return null;
+  };
+
+  const obtenerDuracionMinutos = (sesion) => {
+    if (!sesion) return 0;
+    const base = Number(
+      sesion.duracion_minutos ?? sesion.tiempo_contratado ?? sesion.tiempoContratado ?? 0
+    );
+    const extra = Number(sesion.tiempo_adicional ?? sesion.tiempoAdicional ?? 0);
+    const total = base + extra;
+    if (total > 0) return total;
+
+    const inicio = obtenerFechaInicioSesion(sesion);
+    const fin = obtenerFechaFinSesion(sesion);
+    if (inicio && fin) {
+      const diffMs = Math.max(0, fin.getTime() - inicio.getTime());
+      return Math.round(diffMs / 60000);
+    }
+    return 0;
   };
 
   const esSesionFinalizada = (sesion) => {
@@ -521,43 +565,57 @@
     });
   };
 
-  const crearChartDistribucion = (productos) => {
-    const top = productos.slice(0, 6);
-    const labels = top.map((p) => p.categoria || p.nombre);
-    const valores = top.map((p) => p.ingresos);
+  const obtenerHorasPorSala = (rango) => {
+    const sesionesBase = state.sesiones.filter(esSesionFinalizada);
+    const sesionesFiltradas = filtrarPorFecha(sesionesBase, 'fecha_inicio', rango);
+    const sesionesPorSala = filtrarPorSala(sesionesFiltradas, 'sala_id', state.filtros.sala);
 
-    if (chartDistribucion) chartDistribucion.destroy();
+    const horasPorSala = {};
 
-    chartDistribucion = new Chart(dom.chartDistribucion, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Ventas',
-            data: valores,
-            backgroundColor: ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e', '#60a5fa']
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          x: {
-            ticks: { color: '#94a3b8' },
-            grid: { display: false }
-          },
-          y: {
-            ticks: { color: '#94a3b8' },
-            grid: { color: 'rgba(148, 163, 184, 0.15)' }
-          }
-        }
-      }
+    sesionesPorSala.forEach((sesion) => {
+      const minutos = obtenerDuracionMinutos(sesion);
+      if (!minutos) return;
+      const salaId = sesion.sala_id ?? sesion.salaId ?? sesion.sala ?? null;
+      const salaNombre = sesion.sala_nombre || sesion.salaNombre || obtenerNombreSala(salaId) || 'Sin sala';
+      horasPorSala[salaNombre] = (horasPorSala[salaNombre] || 0) + (minutos / 60);
     });
+
+    return Object.entries(horasPorSala)
+      .map(([nombre, horas]) => ({ nombre, horas }))
+      .sort((a, b) => b.horas - a.horas);
+  };
+
+  const renderHorasPorSala = (rango) => {
+    if (!dom.tablaHorasBody) return;
+    const data = obtenerHorasPorSala(rango);
+
+    if (data.length === 0) {
+      dom.tablaHorasBody.innerHTML = `
+        <tr>
+          <td colspan="3" class="empty-state">No hay sesiones registradas en este periodo.</td>
+        </tr>
+      `;
+      return;
+    }
+
+    const maxHoras = Math.max(...data.map((d) => d.horas));
+
+    dom.tablaHorasBody.innerHTML = data.map((item) => {
+      const score = maxHoras > 0 ? (item.horas / maxHoras) * 100 : 0;
+      const porcentaje = Math.max(0, Math.min(100, score));
+      return `
+        <tr>
+          <td>${item.nombre}</td>
+          <td style="text-align:right;">${item.horas.toFixed(2)} h</td>
+          <td>
+            <div class="rating-bar">
+              <span style="width:${porcentaje}%;"></span>
+            </div>
+            <small>${score.toFixed(0)}/100</small>
+          </td>
+        </tr>
+      `;
+    }).join('');
   };
 
   const renderStockTabla = (productos) => {
@@ -613,7 +671,7 @@
 
     renderStockTabla(stock.productos);
     if (dom.chartIngresos) crearChartIngresos(rango);
-    if (dom.chartDistribucion) crearChartDistribucion(stock.productos);
+    renderHorasPorSala(rango);
   };
 
   const llenarSalas = () => {
@@ -676,7 +734,7 @@
     dom.stockCategorias = document.querySelector('#stockCategorias');
     dom.stockTableBody = document.querySelector('#tablaStock tbody');
     dom.chartIngresos = document.querySelector('#chartIngresos');
-    dom.chartDistribucion = document.querySelector('#chartDistribucion');
+    dom.tablaHorasBody = document.querySelector('#tablaHorasSalas tbody');
   };
 
   const init = async () => {

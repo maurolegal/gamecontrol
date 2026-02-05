@@ -231,10 +231,21 @@
             </section>
 
             <section class="panel">
-                <h3><i class="fas fa-chart-bar" style="color:#facc15;margin-right:8px;"></i> Distribución de ventas por categoría</h3>
-                <div class="chart-container">
-                    <canvas id="chartDistribucion"></canvas>
-                </div>
+                <h3><i class="fas fa-chart-bar" style="color:#facc15;margin-right:8px;"></i> Horas usadas por sala</h3>
+                <table class="hours-table" id="tablaHorasSalas">
+                    <thead>
+                        <tr>
+                            <th>Nombre de la sala</th>
+                            <th style="text-align:right;">Cant/horas</th>
+                            <th style="text-align:left;">Nivel (0 - 100)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="3" class="empty-state">Cargando horas por sala...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </section>
 
                     <div class="footer-space"></div>
