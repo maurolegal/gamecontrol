@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Corregir Trigger Stats Cliente</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #0B0F19 0%, #1A1C23 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: rgba(26, 28, 35, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    
+    h1 {
+      color: #fff;
+      margin-bottom: 12px;
+      font-size: 28px;
+    }
+    
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 32px;
+      font-size: 15px;
+    }
+    
+    .info-box {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      color: #fca5a5;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: white;
+      border: none;
+      padding: 16px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+    }
+    
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(139, 92, 246, 0.4);
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .result {
+      margin-top: 24px;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+    
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚠️ Corregir Trigger Stats Cliente</h1>
+    <p class="subtitle">Reparar el trigger que actualiza estadísticas de clientes</p>
+    
+    <div class="info-box">
+      <strong>🔧 Este script corregirá:</strong><br>
+      • Error: reference to non-existent field <code>total_pagado</code><br>
+      • Usar campos correctos: <code>total_general</code> y <code>tarifa_base</code><br>
+      • Permitir que sesiones se actualicen sin errores<br><br>
+      <strong>⏱️ Ejecuta esto ahora</strong> después de que hayas recibido el error.
+    </div>
+    
+    <button id="executeBtn" onclick="ejecutarScript()">
+      Ejecutar Corrección SQL
+    </button>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://jrbnaoxpvujyswlkfyut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyYm5hb3hwdnVqeXN3bGtmeXV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1NzE5MjgsImV4cCI6MjA1MzE0NzkyOH0.YaJXKm0_IIKSAWqCQDGr8ZLCI2kWcC9NLW9bpqn-Fy8';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function ejecutarScript() {
+      const btn = document.getElementById('executeBtn');
+      const resultDiv = document.getElementById('result');
+      
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Ejecutando...';
+      resultDiv.innerHTML = '';
+
+      try {
+        // Leer el archivo SQL
+        const sqlResponse = await fetch('./sql/actualizar_trigger_stats_cliente.sql');
+        if (!sqlResponse.ok) {
+          throw new Error('No se pudo cargar el archivo SQL');
+        }
+        
+        const sqlContent = await sqlResponse.text();
+        
+        // Ejecutar el script
+        const { data, error } = await supabase.rpc('exec_sql', { 
+          sql_query: sqlContent 
+        });
+
+        if (error) {
+          throw new Error(
+            'Por favor ejecuta el script manualmente en el SQL Editor de Supabase:\n\n' +
+            '1. Ve a https://supabase.com/dashboard\n' +
+            '2. Selecciona tu proyecto\n' +
+            '3. Abre el SQL Editor\n' +
+            '4. Copia y pega el contenido del archivo sql/actualizar_trigger_stats_cliente.sql\n' +
+            '5. Ejecuta el script\n\n' +
+            'Error: ' + error.message
+          );
+        }
+        
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = `
+          ✅ <strong>Trigger corregido exitosamente</strong><br><br>
+          El trigger ahora usa los campos correctos:<br>
+          • <code>total_general</code> para monto total<br>
+          • <code>tarifa_base</code> como fallback<br><br>
+          <strong>Próximos pasos:</strong><br>
+          • Las sesiones ahora se actualizarán sin errores<br>
+          • Las estadísticas de clientes se registrarán correctamente<br>
+          • Puedes intentar nuevamente actualizar sesiones
+        `;
+        
+        btn.innerHTML = '✓ Completado';
+        btn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+        
+      } catch (err) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          ❌ <strong>Error al ejecutar el script</strong><br><br>
+          ${err.message}
+        `;
+        
+        btn.disabled = false;
+        btn.innerHTML = 'Reintentar';
+        btn.style.background = 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)';
+      }
+    }
+  </script>
+</body>
+</html>

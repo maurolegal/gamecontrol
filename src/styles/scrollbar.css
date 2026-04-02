@@ -1,0 +1,50 @@
+/* ===================================================================
+ * ESTILOS PERSONALIZADOS DE SCROLLBAR
+ * Opcional: Importa este archivo en tu index.css o main.jsx
+ * ===================================================================
+ */
+
+/* Scrollbar personalizado estilo corporativo */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 214, 86, 0.3);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 214, 86, 0.5);
+}
+
+/* Scrollbar para Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 214, 86, 0.3) rgba(255, 255, 255, 0.05);
+}
+
+/* Scrollbar global para toda la aplicación (opcional) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 214, 86, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 214, 86, 0.4);
+}

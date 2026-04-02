@@ -734,6 +734,285 @@ body.salas-mobile-native #modalIniciarSesion #opcionesTiempo .border-light {
   border-color: rgba(148,163,184,0.14) !important;
 }
 
+/* ===== UNIVERSAL: Todos los modales dinámicos (dark native) ===== */
+
+/* Fullscreen en móvil para todos los modales del sistema */
+@media (max-width: 576px) {
+  body.salas-mobile-native .modal .modal-dialog {
+    margin: 0 !important;
+    max-width: 100% !important;
+    min-height: 100% !important;
+  }
+  body.salas-mobile-native .modal .modal-content {
+    border-radius: 0 !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
+  }
+  body.salas-mobile-native .modal .modal-header {
+    padding-top: calc(14px + env(safe-area-inset-top)) !important;
+  }
+  body.salas-mobile-native .modal .modal-footer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Fondo dark glassmorphism para todos los modales */
+body.salas-mobile-native .modal .modal-content {
+  background: radial-gradient(1200px 420px at 20% -10%, rgba(59,130,246,0.25), transparent 60%),
+              radial-gradient(900px 380px at 110% 20%, rgba(16,185,129,0.14), transparent 60%),
+              linear-gradient(180deg, rgba(11,18,32,0.98) 0%, rgba(7,10,18,0.98) 100%) !important;
+  border: 1px solid rgba(148,163,184,0.18) !important;
+  color: var(--text) !important;
+  border-radius: 18px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow) !important;
+}
+
+/* Headers de modales */
+body.salas-mobile-native .modal .modal-header {
+  background: rgba(255,255,255,0.04) !important;
+  border-bottom: 1px solid rgba(148,163,184,0.14) !important;
+  backdrop-filter: saturate(1.2) blur(14px);
+  -webkit-backdrop-filter: saturate(1.2) blur(14px);
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .modal-header h5,
+body.salas-mobile-native .modal .modal-header h6,
+body.salas-mobile-native .modal .modal-header .modal-title {
+  color: var(--text) !important;
+  font-weight: 900 !important;
+}
+
+body.salas-mobile-native .modal .btn-close,
+body.salas-mobile-native .modal .btn-close-white {
+  filter: invert(1) grayscale(1) !important;
+  opacity: 0.9 !important;
+}
+
+/* Bodies de modales: convertir bg-light/bg-white a dark */
+body.salas-mobile-native .modal .modal-body {
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .modal-body .bg-light,
+body.salas-mobile-native .modal .modal-body .bg-white {
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .modal-body .text-muted {
+  color: rgba(226,232,240,0.55) !important;
+}
+
+body.salas-mobile-native .modal .modal-body .text-dark {
+  color: var(--text) !important;
+}
+
+/* Cards internas */
+body.salas-mobile-native .modal .card {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(148,163,184,0.14) !important;
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .card-body,
+body.salas-mobile-native .modal .card-header {
+  color: var(--text) !important;
+  background: transparent !important;
+}
+
+/* Borders */
+body.salas-mobile-native .modal .border-bottom,
+body.salas-mobile-native .modal .border-top,
+body.salas-mobile-native .modal .border-light {
+  border-color: rgba(148,163,184,0.14) !important;
+}
+
+/* Inputs universales */
+body.salas-mobile-native .modal .form-control,
+body.salas-mobile-native .modal .form-select {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(148,163,184,0.18) !important;
+  color: var(--text) !important;
+  border-radius: 14px !important;
+}
+
+body.salas-mobile-native .modal .input-group-text {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(148,163,184,0.18) !important;
+  color: rgba(226,232,240,0.75) !important;
+}
+
+body.salas-mobile-native .modal .input-group .form-control {
+  border-top-right-radius: 14px !important;
+  border-bottom-right-radius: 14px !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+body.salas-mobile-native .modal .input-group .input-group-text {
+  border-top-left-radius: 14px !important;
+  border-bottom-left-radius: 14px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+body.salas-mobile-native .modal textarea.form-control {
+  border-radius: 14px !important;
+}
+
+body.salas-mobile-native .modal .form-label {
+  color: rgba(226,232,240,0.6) !important;
+}
+
+body.salas-mobile-native .modal .form-text {
+  color: rgba(226,232,240,0.45) !important;
+}
+
+/* Botones de selección (radio/check con .btn-outline-*) */
+body.salas-mobile-native .modal .btn-check + .btn-outline-secondary {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(148,163,184,0.18) !important;
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .btn-check:checked + .btn-outline-secondary {
+  background: rgba(59,130,246,0.22) !important;
+  border-color: rgba(59,130,246,0.45) !important;
+  color: #eaf2ff !important;
+  box-shadow: 0 8px 18px rgba(59,130,246,0.16);
+}
+
+/* Alerts */
+body.salas-mobile-native .modal .alert-info {
+  background: rgba(59,130,246,0.12) !important;
+  border: 1px solid rgba(59,130,246,0.25) !important;
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .alert-warning {
+  background: rgba(245,158,11,0.12) !important;
+  border: 1px solid rgba(245,158,11,0.25) !important;
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .alert-success {
+  background: rgba(16,185,129,0.12) !important;
+  border: 1px solid rgba(16,185,129,0.25) !important;
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .alert-danger {
+  background: rgba(239,68,68,0.12) !important;
+  border: 1px solid rgba(239,68,68,0.25) !important;
+  color: var(--text) !important;
+}
+
+/* Tablas dentro de modales */
+body.salas-mobile-native .modal .table {
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .table th,
+body.salas-mobile-native .modal .table td {
+  border-color: rgba(148,163,184,0.14) !important;
+  color: var(--text) !important;
+}
+
+/* Accordion dentro de modales */
+body.salas-mobile-native .modal .accordion-button {
+  background: transparent !important;
+  color: rgba(226,232,240,0.7) !important;
+  box-shadow: none !important;
+}
+
+body.salas-mobile-native .modal .accordion-button::after {
+  filter: invert(1) grayscale(1);
+}
+
+body.salas-mobile-native .modal .accordion-body {
+  color: var(--text) !important;
+}
+
+body.salas-mobile-native .modal .accordion-item {
+  background: transparent !important;
+  border-color: rgba(148,163,184,0.14) !important;
+}
+
+/* Total principal (#totalAPagar) */
+body.salas-mobile-native .modal #totalAPagar {
+  color: #7ef0c8 !important;
+  text-shadow: 0 10px 24px rgba(16,185,129,0.16);
+}
+
+/* Medios de pago dinámicos */
+body.salas-mobile-native .modal #listaMediosPago .bg-white {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(148,163,184,0.18) !important;
+}
+
+body.salas-mobile-native .modal #listaMediosPago .font-monospace {
+  color: #a9c8ff !important;
+}
+
+/* QR */
+body.salas-mobile-native .modal #detallesQR .bg-white {
+  background: rgba(255,255,255,0.95) !important;
+}
+
+body.salas-mobile-native .modal #detallesQR h6 {
+  color: var(--text) !important;
+}
+
+/* Footer de modales */
+body.salas-mobile-native .modal .modal-footer {
+  background: rgba(255,255,255,0.03) !important;
+  border-top: 1px solid rgba(148,163,184,0.14) !important;
+}
+
+body.salas-mobile-native .modal .modal-footer .btn-light,
+body.salas-mobile-native .modal .modal-footer .btn-outline-light {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(148,163,184,0.18) !important;
+  color: var(--muted) !important;
+  border-radius: 14px !important;
+  min-height: 46px;
+  font-weight: 800;
+}
+
+body.salas-mobile-native .modal .modal-footer .btn-primary,
+body.salas-mobile-native .modal .modal-footer .btn-success,
+body.salas-mobile-native .modal .modal-footer .btn-warning {
+  border-radius: 14px !important;
+  min-height: 46px;
+  font-weight: 800;
+}
+
+body.salas-mobile-native .modal .modal-footer .btn-primary {
+  box-shadow: 0 10px 22px rgba(59,130,246,0.22);
+}
+
+/* List group (usado en algunOS modales) */
+body.salas-mobile-native .modal .list-group-item {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(148,163,184,0.14) !important;
+  color: var(--text) !important;
+}
+
+/* Badge / Pill dentro de modales */
+body.salas-mobile-native .modal .badge.bg-light {
+  background: rgba(255,255,255,0.08) !important;
+  color: var(--muted) !important;
+}
+
+/* Scrollable modals smooth scroll */
+body.salas-mobile-native .modal .modal-body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
 /* ===== Reduce motion ===== */
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

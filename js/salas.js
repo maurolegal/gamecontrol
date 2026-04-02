@@ -2301,10 +2301,14 @@ class GestorSalas {
         const totalGeneral = tarifaTiempo + totalProductos;
 
         // Modal de finalización de sesión optimizado para móvil
+        const isMobileNative = document.body.classList.contains('salas-mobile-native');
+        const modalDialogClass = isMobileNative 
+            ? 'modal-dialog modal-fullscreen-sm-down modal-dialog-centered modal-dialog-scrollable modal-md'
+            : 'modal-dialog modal-dialog-centered modal-md';
         const modalHtml = `
             <div class="modal fade" id="modalFinalizarSesion" tabindex="-1" data-bs-backdrop="static" data-total-productos="${totalProductos}">
-                <div class="modal-dialog modal-dialog-centered modal-md">
-                    <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                <div class="${modalDialogClass}">
+                    <div class="modal-content ${isMobileNative ? 'gc-modal' : ''} border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
                         
                         <!-- Header Corporativo Compacto -->
                         <div class="modal-header bg-primary text-white p-3 border-0">
@@ -2487,25 +2491,50 @@ class GestorSalas {
                                         </div>
                                     </div>
                                     
-                                    <!-- Detalles de Transferencia (Oculto por defecto) -->
+                                    <!-- Detalles de Transferencia - Carga dinámica desde /ajustes -->
                                     <div id="detallesTransferencia" class="mt-3 d-none animate__animated animate__fadeIn">
                                         <div class="bg-light p-3 rounded-3 border border-info bg-opacity-10">
                                             <div class="d-flex align-items-center mb-2">
                                                 <i class="fas fa-info-circle text-info me-2"></i>
-                                                <span class="fw-bold text-dark small">Datos para Transferencia</span>
+                                                <span class="fw-bold text-dark small">Cuentas para Transferencia</span>
                                             </div>
-                                            <div class="text-center bg-white p-2 rounded border mb-2">
-                                                <span class="badge bg-primary me-1">NEQUI</span>
-                                                <span class="badge bg-danger me-1">DAVIPLATA</span>
-                                                <span class="badge bg-warning text-dark">LLAVE</span>
+                                            <div id="listaMediosPago" class="d-flex flex-column gap-2">
+                                                <div class="text-center py-2">
+                                                    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                                                    <span class="small text-muted ms-2">Cargando cuentas...</span>
+                                                </div>
                                             </div>
-                                            <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded border">
-                                                <span class="text-muted small">Número de cuenta:</span>
-                                                <div class="d-flex align-items-center">
-                                                    <span class="fw-bold text-dark me-2 font-monospace">3045528042</span>
-                                                    <button class="btn btn-link btn-sm p-0 text-primary" onclick="navigator.clipboard.writeText('3045528042'); window.mostrarNotificacion('Copiado al portapapeles', 'success');" title="Copiar">
-                                                        <i class="far fa-copy"></i>
-                                                    </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Calcular Vueltos (solo efectivo) -->
+                                    <div id="calculadoraVueltos" class="mt-3 d-none animate__animated animate__fadeIn">
+                                        <div class="bg-light p-3 rounded-3 border border-success bg-opacity-10">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <i class="fas fa-calculator text-success me-2"></i>
+                                                <span class="fw-bold text-dark small">Calcular Vueltos</span>
+                                            </div>
+                                            <label class="form-label small text-muted mb-1">Monto recibido</label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text"><i class="fas fa-money-bill-wave text-success"></i></span>
+                                                <input type="number" min="0" step="1000" inputmode="numeric" class="form-control fw-bold" id="montoRecibidoEfectivo" placeholder="${totalGeneral}">
+                                            </div>
+                                            <div id="resultadoVueltos" class="mt-2 d-none">
+                                                <div class="d-flex justify-content-between small mb-1">
+                                                    <span class="text-muted">Total a cobrar:</span>
+                                                    <span class="fw-bold" id="vueltosTotal">${formatearMoneda(totalGeneral)}</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between small mb-1">
+                                                    <span class="text-muted">Recibido:</span>
+                                                    <span class="fw-bold" id="vueltosRecibido">$0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                                    <span class="fw-bold text-dark">Vueltos:</span>
+                                                    <span class="fw-bold fs-5" id="vueltosResultado">$0</span>
+                                                </div>
+                                                <div id="vueltosFaltante" class="small text-danger mt-1 d-none">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    <span id="vueltosFaltanteTexto"></span>
                                                 </div>
                                             </div>
                                         </div>
@@ -2560,6 +2589,9 @@ class GestorSalas {
 
         // Configurar listeners para método de pago
         this.configurarEventosMetodoPago();
+        
+        // Cargar medios de pago dinámicamente desde la DB
+        this.cargarMediosPagoEnModal();
 
         // Mostrar el modal
         const modal = new bootstrap.Modal(document.getElementById('modalFinalizarSesion'));
@@ -2577,12 +2609,14 @@ class GestorSalas {
         const detallesTransferencia = document.getElementById('detallesTransferencia');
         const detallesQR = document.getElementById('detallesQR');
         const pagoParcialContainer = document.getElementById('pagoParcialContainer');
+        const calculadoraVueltos = document.getElementById('calculadoraVueltos');
         const montoEfectivo = document.getElementById('montoEfectivoParcial');
         const montoTransfer = document.getElementById('montoTransferParcial');
         const restanteEl = document.getElementById('pagoParcialRestante');
         const errorEl = document.getElementById('pagoParcialError');
         const montoTiempoLibre = document.getElementById('montoTiempoLibre');
         const totalAPagar = document.getElementById('totalAPagar');
+        const montoRecibido = document.getElementById('montoRecibidoEfectivo');
         
         const parseMonto = (v) => {
             const n = Number(v);
@@ -2669,10 +2703,16 @@ class GestorSalas {
                     // Mostrar datos de transferencia, porque es parte del pago parcial
                     if (detallesTransferencia) detallesTransferencia.classList.remove('d-none');
                     if (detallesQR) detallesQR.classList.add('d-none');
+                } else if (this.value === 'efectivo') {
+                    detallesTransferencia.classList.add('d-none');
+                    if(detallesQR) detallesQR.classList.add('d-none');
+                    if (pagoParcialContainer) pagoParcialContainer.classList.add('d-none');
+                    if (calculadoraVueltos) calculadoraVueltos.classList.remove('d-none');
                 } else {
                     detallesTransferencia.classList.add('d-none');
                     if(detallesQR) detallesQR.classList.add('d-none');
                     if (pagoParcialContainer) pagoParcialContainer.classList.add('d-none');
+                    if (calculadoraVueltos) calculadoraVueltos.classList.add('d-none');
                 }
             });
         });
@@ -2680,6 +2720,92 @@ class GestorSalas {
         // Inputs de pago parcial
         if (montoEfectivo) montoEfectivo.addEventListener('input', actualizarParcialUI);
         if (montoTransfer) montoTransfer.addEventListener('input', actualizarParcialUI);
+
+        // Calculadora de vueltos (efectivo)
+        if (montoRecibido) {
+            const actualizarVueltos = () => {
+                const resultadoDiv = document.getElementById('resultadoVueltos');
+                const recibidoEl = document.getElementById('vueltosRecibido');
+                const resultadoEl = document.getElementById('vueltosResultado');
+                const totalEl = document.getElementById('vueltosTotal');
+                const faltanteDiv = document.getElementById('vueltosFaltante');
+                const faltanteTexto = document.getElementById('vueltosFaltanteTexto');
+
+                const recibido = parseMonto(montoRecibido.value);
+                if (!montoRecibido.value) {
+                    if (resultadoDiv) resultadoDiv.classList.add('d-none');
+                    return;
+                }
+
+                // Obtener total actual (puede haber cambiado por tiempo libre)
+                const totalActual = parseMonto(totalAPagar?.textContent?.replace(/[^0-9]/g, ''));
+
+                if (resultadoDiv) resultadoDiv.classList.remove('d-none');
+                if (totalEl) totalEl.textContent = formatearMoneda(totalActual);
+                if (recibidoEl) recibidoEl.textContent = formatearMoneda(recibido);
+                
+                const vueltos = recibido - totalActual;
+                if (resultadoEl) {
+                    resultadoEl.textContent = formatearMoneda(Math.max(0, vueltos));
+                    resultadoEl.className = `fw-bold fs-5 ${vueltos >= 0 ? 'text-success' : 'text-danger'}`;
+                }
+                if (faltanteDiv && faltanteTexto) {
+                    if (vueltos < 0) {
+                        faltanteDiv.classList.remove('d-none');
+                        faltanteTexto.textContent = `Faltan ${formatearMoneda(Math.abs(vueltos))}`;
+                    } else {
+                        faltanteDiv.classList.add('d-none');
+                    }
+                }
+            };
+            montoRecibido.addEventListener('input', actualizarVueltos);
+        }
+
+        // Mostrar calculadora de vueltos por defecto (efectivo está seleccionado)
+        if (calculadoraVueltos) calculadoraVueltos.classList.remove('d-none');
+    }
+
+    async cargarMediosPagoEnModal() {
+        const container = document.getElementById('listaMediosPago');
+        if (!container) return;
+
+        try {
+            const res = await window.databaseService.select('medios_pago', { orderBy: 'created_at' });
+            const medios = (res?.success ? res.data : res) || [];
+
+            if (medios.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-2 small text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        No hay cuentas configuradas. Agréguelas en Ajustes.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = medios.map(medio => {
+                const esDigital = (medio.banco || '').toLowerCase().includes('nequi') || (medio.banco || '').toLowerCase().includes('daviplata');
+                const icono = esDigital ? 'fas fa-mobile-alt text-info' : 'fas fa-university text-primary';
+                return `
+                    <div class="d-flex align-items-center justify-content-between bg-white p-2 rounded border">
+                        <div class="d-flex align-items-center gap-2 flex-grow-1 min-width-0">
+                            <i class="${icono}"></i>
+                            <div style="min-width: 0;">
+                                <div class="fw-bold text-dark small text-truncate">${medio.banco}${medio.tipo ? ` <span class="badge bg-light text-muted border" style="font-size:0.6rem;">${medio.tipo}</span>` : ''}</div>
+                                <span class="font-monospace fw-bold text-dark">${medio.numero}</span>
+                                ${medio.titular ? `<div class="text-muted" style="font-size:0.7rem;">${medio.titular}</div>` : ''}
+                            </div>
+                        </div>
+                        <button class="btn btn-link btn-sm p-1 text-primary flex-shrink-0" 
+                                onclick="navigator.clipboard.writeText('${medio.numero}'); window.mostrarNotificacion('Copiado al portapapeles', 'success');" 
+                                title="Copiar número">
+                            <i class="far fa-copy"></i>
+                        </button>
+                    </div>`;
+            }).join('');
+        } catch (err) {
+            console.error('Error cargando medios de pago:', err);
+            container.innerHTML = `<div class="text-center small text-danger py-2">Error al cargar cuentas</div>`;
+        }
     }
 
     async procesarFinalizacion(sesionId) {
@@ -4523,8 +4649,12 @@ class GestorSalas {
                                 <div class="d-flex flex-column" style="min-width:0;">
                                     <span class="fw-medium text-dark text-truncate">${producto.nombre}</span>
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="text-primary fw-bold small">${formatearMoneda(producto.precio)}</span>
-                                        <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.65rem;">Stock: ${producto.stock}</span>
+                                        ${(producto.categoriaNombre || producto.categoria || '').toLowerCase() === 'bonos' 
+                                            ? `<span class="text-warning fw-bold small">-${formatearMoneda(producto.precio)}</span>
+                                               <span class="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 rounded-pill" style="font-size: 0.6rem;">BONO</span>`
+                                            : `<span class="text-primary fw-bold small">${formatearMoneda(producto.precio)}</span>
+                                               <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.65rem;">Stock: ${producto.stock}</span>`
+                                        }
                                     </div>
                                 </div>
                             </div>
@@ -4541,6 +4671,7 @@ class GestorSalas {
                                        data-precio="${producto.precio}"
                                        data-nombre="${producto.nombre}"
                                        data-stock="${producto.stock}"
+                                       data-categoria="${producto.categoriaNombre || producto.categoria || ''}"
                                        onchange="window.gestorSalas.actualizarTotalProductos()"
                                        oninput="window.gestorSalas.validarCantidadProducto(this)">
                                 <button class="btn btn-link btn-sm p-0 text-primary text-decoration-none d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;"
@@ -4701,9 +4832,15 @@ class GestorSalas {
         inputs.forEach(input => {
             const cantidad = parseInt(input.value) || 0;
             if (cantidad > 0) {
-                const precio = parseFloat(input.dataset.precio) || 0;
+                let precio = parseFloat(input.dataset.precio) || 0;
                 const productoId = input.dataset.productoId;
                 const nombre = input.dataset.nombre;
+                const categoria = input.dataset.categoria || '';
+                
+                // Bonos: aplicar como descuento (precio negativo)
+                if (categoria.toLowerCase() === 'bonos') {
+                    precio = -Math.abs(precio);
+                }
                 
                 productos.push({
                     id: productoId,
@@ -4982,13 +5119,15 @@ class GestorSalas {
 
         listaProductos.innerHTML = productosDisponibles.map(producto => {
             const stockClass = Number(producto.stock) <= 5 ? 'tienda-stock low' : 'tienda-stock';
+            const catName = (producto.categoriaNombre || producto.categoria || '').toLowerCase();
+            const esBono = catName === 'bonos';
             return `
                 <div class="tienda-card tienda-producto-item" data-nombre="${producto.nombre.toLowerCase()}" data-categoria="${(producto.categoriaNombre || producto.categoria || 'Sin categoría').toLowerCase()}">
                     <div class="tienda-img">
                         ${producto.imagenUrl ? `<img src="${producto.imagenUrl}" alt="${producto.nombre}" loading="lazy" decoding="async" fetchpriority="low">` : `<i class="fas fa-image"></i>`}
                     </div>
-                    <div class="tienda-nombre">${producto.nombre}</div>
-                    <div class="tienda-precio">${formatearMoneda(producto.precio)}</div>
+                    <div class="tienda-nombre">${producto.nombre}${esBono ? ' <span class="badge bg-warning text-dark" style="font-size:0.6rem;">BONO</span>' : ''}</div>
+                    <div class="tienda-precio" ${esBono ? 'style="color:#f59e0b;"' : ''}>${esBono ? '-' : ''}${formatearMoneda(producto.precio)}</div>
                     <div class="${stockClass}">Stock: ${producto.stock}</div>
                     <div class="tienda-qty">
                         <button type="button" onclick="let inp=this.nextElementSibling; let v=parseInt(inp.value)||0; if(v>0){inp.value=v-1; window.gestorSalas.actualizarTotalProductosTienda();}">-</button>
@@ -4997,6 +5136,7 @@ class GestorSalas {
                                data-precio="${producto.precio}"
                                data-nombre="${producto.nombre}"
                                data-stock="${producto.stock}"
+                               data-categoria="${producto.categoriaNombre || producto.categoria || ''}"
                                onchange="window.gestorSalas.actualizarTotalProductosTienda()"
                                oninput="window.gestorSalas.validarCantidadProducto(this); window.gestorSalas.actualizarTotalProductosTienda()">
                         <button type="button" onclick="let inp=this.previousElementSibling; let v=parseInt(inp.value)||0; let max=parseInt(inp.max)||999; if(v<max){inp.value=v+1; window.gestorSalas.actualizarTotalProductosTienda();}">+</button>
@@ -5043,9 +5183,16 @@ class GestorSalas {
         inputs.forEach(input => {
             const cantidad = parseInt(input.value) || 0;
             if (cantidad > 0) {
-                const precio = parseFloat(input.dataset.precio) || 0;
+                let precio = parseFloat(input.dataset.precio) || 0;
                 const productoId = input.dataset.productoId;
                 const nombre = input.dataset.nombre;
+                const categoria = input.dataset.categoria || '';
+                
+                // Bonos: aplicar como descuento (precio negativo)
+                if (categoria.toLowerCase() === 'bonos') {
+                    precio = -Math.abs(precio);
+                }
+                
                 items.push({ productoId, nombre, cantidad, precioUnitario: precio });
                 totalBruto += cantidad * precio;
             }

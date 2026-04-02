@@ -1,0 +1,168 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+/* ══════════════════════════════════════════════════════════════
+   PREMIUM TECH DARK MODE - Gaming Dashboard
+   ══════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    /* Premium Dark Palette */
+    --bg-dark-primary: #0B0F19;
+    --bg-dark-secondary: #0F1014;
+    --card-dark: #1A1C23;
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --border-glow: rgba(0, 214, 86, 0.2);
+    
+    /* Neon Green Accent */
+    --accent-primary: #00D656;
+    --accent-glow: rgba(0, 214, 86, 0.15);
+    --accent-hover: #00FF6B;
+    
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #A0AEC0;
+    --text-muted: #718096;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--bg-dark-primary);
+  }
+
+  body {
+    min-height: 100dvh;
+    background: var(--bg-dark-primary);
+    color: var(--text-primary);
+  }
+
+  /* Premium Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-primary) transparent;
+  }
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: linear-gradient(180deg, var(--accent-primary), rgba(0, 214, 86, 0.4));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover);
+  }
+
+  /* Input dark mode support */
+  input, select, textarea {
+    color-scheme: dark;
+  }
+
+  /* KPI Numbers - Premium Typography */
+  .kpi-number {
+    font-family: 'Space Grotesk', 'Inter', monospace;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Glassmorphism Cards */
+  .glass-card {
+    background: var(--card-dark);
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card:hover {
+    border-color: var(--border-glow);
+    box-shadow: 0 0 20px var(--accent-glow), 
+                0 0 40px rgba(0, 214, 86, 0.1);
+  }
+
+  /* Neon Glow Effects */
+  .glow-accent {
+    box-shadow: 0 0 15px var(--accent-glow);
+  }
+
+  .glow-accent-strong {
+    box-shadow: 0 0 20px var(--accent-primary), 
+                0 0 40px rgba(0, 214, 86, 0.3);
+  }
+
+  /* Premium Button */
+  .btn-premium {
+    background: linear-gradient(135deg, var(--accent-primary), #00C34D);
+    color: #000;
+    font-weight: 600;
+    border: 1px solid var(--accent-primary);
+    transition: all 0.3s ease;
+  }
+
+  .btn-premium:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 0 25px var(--accent-glow);
+    transform: translateY(-1px);
+  }
+
+  /* Gradient Overlays */
+  .gradient-overlay {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gradient-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, 
+      var(--accent-glow) 0%, 
+      transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .gradient-overlay:hover::before {
+    opacity: 1;
+  }
+}
+
+/* ── Utilidades personalizadas ───────────────────────────────── */
+@layer utilities {
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(0.75rem); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .animate-toast {
+    animation: toast-in 0.2s ease-out forwards;
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 15px var(--accent-glow); }
+    50% { box-shadow: 0 0 25px var(--accent-primary); }
+  }
+
+  .animate-glow {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  /* Truncado multi-línea */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Tech Grid Pattern Background */
+  .tech-grid-bg {
+    background-image: 
+      linear-gradient(rgba(0, 214, 86, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 214, 86, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+}
+
