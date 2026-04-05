@@ -1747,6 +1747,16 @@ class GestorStock {
 
                 const metodoPagoDb = metodoPago === 'qr' ? 'digital' : metodoPago;
 
+                // Para parcial: tomar montos del formulario si los hay, o distribuir todo en efectivo
+                const montosParciales = datosVenta.montosParciales || {};
+                const parseMonto = (v) => Math.max(0, Number(v) || 0);
+                const mTransferencia = parseMonto(montosParciales.transferencia);
+                const mTarjeta       = parseMonto(montosParciales.tarjeta);
+                const mDigital       = parseMonto(montosParciales.digital);
+                const mEfectivo      = metodoPagoDb === 'parcial'
+                    ? Math.max(0, totalFinal - mTransferencia - mTarjeta - mDigital)
+                    : null;
+
                 const ventaPayload = {
                     sesion_id: null,
                     sala_id: null,
@@ -1762,7 +1772,13 @@ class GestorStock {
                     descuento: descuento,
                     total: totalFinal,
                     notas: 'Venta tienda',
-                    vendedor: (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.nombre) || 'Tienda'
+                    vendedor: (window.sessionManager && window.sessionManager.getCurrentUser && window.sessionManager.getCurrentUser()?.nombre) || 'Tienda',
+                    ...(metodoPagoDb === 'parcial' ? {
+                        monto_efectivo:      mEfectivo      || null,
+                        monto_transferencia: mTransferencia || null,
+                        monto_tarjeta:       mTarjeta       || null,
+                        monto_digital:       mDigital       || null,
+                    } : {}),
                 };
 
                 const insertRes = await window.databaseService.insert('ventas', ventaPayload);

@@ -18,12 +18,33 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="reportes-v2">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-ring"></div>
+            <p>Cargando reportes...</p>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Mobile Hamburger -->
+    <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menú">
+        <i class="fas fa-bars"></i>
+    </button>
+
     <div class="page-container">
         <div class="app-shell">
-            <aside class="sidebar">
-                <div class="sidebar-logo">
-                    <i class="fas fa-gamepad"></i>
-                    <span>GameControl</span>
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">
+                        <i class="fas fa-gamepad"></i>
+                        <span>GameControl</span>
+                    </div>
+                    <button class="sidebar-close" id="sidebarClose" aria-label="Cerrar menú">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
                 <nav class="sidebar-nav">
                     <a href="../index.html"><i class="fas fa-home"></i> Dashboard</a>
@@ -35,6 +56,11 @@
                     <a href="usuarios.html"><i class="fas fa-users"></i> Usuarios</a>
                     <a href="ajustes.html"><i class="fas fa-cog"></i> Ajustes</a>
                 </nav>
+                <div class="sidebar-footer">
+                    <button class="sidebar-logout" onclick="window.navigationUtils && window.navigationUtils.logout()">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
             </aside>
 
             <div class="main-area">
@@ -45,8 +71,8 @@
                                 <i class="fas fa-gamepad" style="color: white;"></i>
                             </div>
                             <div>
-                                <h1 class="brand-title">GameControl Admin</h1>
-                                <p class="brand-subtitle">Panel de Control &amp; Finanzas</p>
+                                <h1 class="brand-title">Reportes & Analíticas</h1>
+                                <p class="brand-subtitle">Inteligencia de negocio en tiempo real</p>
                             </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:12px;">
@@ -54,7 +80,26 @@
                                 <span style="width:8px;height:8px;border-radius:999px;background:#34d399;display:inline-block;"></span>
                                 Sistema Online
                             </div>
-                            <div class="avatar">A</div>
+                            <!-- User Dropdown -->
+                            <div class="user-dropdown" id="userDropdown">
+                                <button class="user-btn" id="userBtn">
+                                    <div class="avatar" id="userAvatar">A</div>
+                                    <span class="user-name-display" id="userNameDisplay">Admin</span>
+                                    <i class="fas fa-chevron-down" style="font-size:10px;color:#64748b;"></i>
+                                </button>
+                                <div class="dropdown-menu" id="dropdownMenu">
+                                    <div class="dropdown-header">
+                                        <div class="dropdown-user-name" id="dropdownUserName">Administrador</div>
+                                        <div class="dropdown-user-email" id="dropdownUserEmail">admin@gamecontrol.co</div>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog"></i> Configuración</a>
+                                    <div class="dropdown-divider"></div>
+                                    <button class="dropdown-item danger" onclick="window.navigationUtils && window.navigationUtils.logout()">
+                                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -87,34 +132,52 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn-primary" id="btnActualizarReportes">
-                    <i class="fas fa-sync-alt" style="margin-right:8px;"></i>
-                    Actualizar Reportes
-                </button>
+                <div class="filters-actions">
+                    <button class="btn-secondary" id="btnExportarCSV">
+                        <i class="fas fa-download" style="margin-right:8px;"></i>
+                        Exportar CSV
+                    </button>
+                    <button class="btn-primary" id="btnActualizarReportes">
+                        <i class="fas fa-sync-alt" style="margin-right:8px;"></i>
+                        Actualizar
+                    </button>
+                </div>
             </section>
 
             <section class="kpi-grid">
                 <div class="kpi-card">
                     <span class="accent" style="background: linear-gradient(to bottom, #10b981, transparent);"></span>
-                    <h4>Ingresos Totales</h4>
+                    <div class="kpi-header">
+                        <h4>Ingresos Totales</h4>
+                        <span id="tendenciaIngresos"></span>
+                    </div>
                     <div class="kpi-value" id="kpiIngresos">$ 0</div>
-                    <div class="kpi-sub">vs mes anterior</div>
+                    <div class="kpi-sub">vs periodo anterior</div>
                 </div>
                 <div class="kpi-card">
                     <span class="accent" style="background: linear-gradient(to bottom, #f43f5e, transparent);"></span>
-                    <h4>Gastos Operativos</h4>
+                    <div class="kpi-header">
+                        <h4>Gastos Operativos</h4>
+                        <span id="tendenciaGastos"></span>
+                    </div>
                     <div class="kpi-value" id="kpiGastos">$ 0</div>
-                    <div class="kpi-sub">vs mes anterior</div>
+                    <div class="kpi-sub">vs periodo anterior</div>
                 </div>
                 <div class="kpi-card">
                     <span class="accent" style="background: linear-gradient(to bottom, #06b6d4, transparent);"></span>
-                    <h4>Beneficio Neto</h4>
+                    <div class="kpi-header">
+                        <h4>Beneficio Neto</h4>
+                        <span id="tendenciaBeneficio"></span>
+                    </div>
                     <div class="kpi-value" id="kpiBeneficio">$ 0</div>
                     <div class="kpi-sub">margen neto</div>
                 </div>
                 <div class="kpi-card">
                     <span class="accent" style="background: linear-gradient(to bottom, #8b5cf6, transparent);"></span>
-                    <h4>Gamers Activos</h4>
+                    <div class="kpi-header">
+                        <h4>Sesiones / Trans.</h4>
+                        <span id="tendenciaClientes"></span>
+                    </div>
                     <div class="kpi-value" id="kpiClientes">0</div>
                     <div class="kpi-sub">transacciones</div>
                 </div>
@@ -161,6 +224,22 @@
                                 <div class="mini-value" id="saldoTarjeta">$ 0</div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DISTRIBUCIÓN PAGOS + GASTOS POR CATEGORÍA -->
+            <section class="charts-row">
+                <div class="panel">
+                    <h3><i class="fas fa-chart-pie" style="color:#a78bfa;margin-right:8px;"></i> Métodos de Pago</h3>
+                    <div class="chart-container-md">
+                        <canvas id="chartMetodosPago"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3><i class="fas fa-chart-bar" style="color:#fb923c;margin-right:8px;"></i> Gastos por Categoría</h3>
+                    <div class="chart-container-md">
+                        <canvas id="chartGastosCat"></canvas>
                     </div>
                 </div>
             </section>
@@ -253,6 +332,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <script src="../js/supabase-config.js"></script>

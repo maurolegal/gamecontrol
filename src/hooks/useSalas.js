@@ -312,7 +312,7 @@ export function useSalas() {
       // Construir notas con marcadores
       let notasFinal = sesion.notas || '';
       if (metodoPago === 'parcial' && montosParciales) {
-        const { efectivo = 0, transferencia = 0 } = montosParciales;
+        const { efectivo = 0, transferencia = 0, tarjeta = 0, digital = 0 } = montosParciales;
         const sinMarcador = notasFinal
           .split('\n')
           .filter((l) => !l.startsWith('[PAGO_PARCIAL]'))
@@ -320,7 +320,7 @@ export function useSalas() {
           .trim();
         notasFinal =
           (sinMarcador ? sinMarcador + '\n' : '') +
-          `[PAGO_PARCIAL] efectivo:${efectivo} transferencia:${transferencia}`;
+          `[PAGO_PARCIAL] efectivo:${efectivo} transferencia:${transferencia} tarjeta:${tarjeta} digital:${digital}`;
       }
       if (notasCierre) {
         notasFinal = notasFinal ? notasFinal + '\n' + notasCierre : notasCierre;
@@ -339,8 +339,10 @@ export function useSalas() {
         vendedor: null,
         ...(metodoPago === 'parcial' && montosParciales
           ? {
-              monto_efectivo: montosParciales.efectivo || null,
+              monto_efectivo:      montosParciales.efectivo      || null,
               monto_transferencia: montosParciales.transferencia || null,
+              monto_tarjeta:       montosParciales.tarjeta       || null,
+              monto_digital:       montosParciales.digital       || null,
             }
           : {}),
       };
@@ -457,10 +459,19 @@ async function _registrarVentaContable(sesion, opts) {
     total: totalGeneral,
     notas: notasFinal || null,
     ...(metodoPago === 'parcial' && montosParciales
-      ? {
-          monto_efectivo: montosParciales.efectivo || null,
-          monto_transferencia: montosParciales.transferencia || null,
-        }
+      ? (() => {
+          // Garantizar que la suma sea exactamente igual al total (requerido por el check constraint)
+          const t = montosParciales.transferencia || 0;
+          const j = montosParciales.tarjeta       || 0;
+          const d = montosParciales.digital       || 0;
+          const e = Math.max(0, totalGeneral - t - j - d);  // efectivo = residuo
+          return {
+            monto_efectivo:      e || null,
+            monto_transferencia: t || null,
+            monto_tarjeta:       j || null,
+            monto_digital:       d || null,
+          };
+        })()
       : {}),
   };
 

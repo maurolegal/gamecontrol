@@ -36,6 +36,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
   const [cargando, setCargando] = useState(false);
   const [carrito, setCarrito] = useState([]);
   const [procesandoPago, setProcesandoPago] = useState(false);
+  const [metodoPago, setMetodoPago] = useState('efectivo');
   const { exito, error: notifError } = useNotifications();
   const { agregarProducto } = useSalas();
   
@@ -45,7 +46,8 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
   useEffect(() => {
     if (abierto) {
       cargarProductos();
-      setCarrito([]); // Limpiar carrito al abrir
+      setCarrito([]);
+      setMetodoPago('efectivo');
     }
   }, [abierto]);
 
@@ -151,16 +153,18 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
         exito(`${totalItems} producto(s) agregados a ${sesion.estacion} - ${sala.nombre}`);
       } else {
         // Modo POS normal - procesar venta directa
+        const totalVenta = calcularTotal();
+        const fechaCierre = new Date().toISOString();
+
         for (const item of carrito) {
           const producto = productos.find(p => p.id === item.id);
+          if (!producto) continue;
           const nuevoStock = producto.stock - item.cantidad;
 
           // Actualizar stock del producto
-          await db.update('productos', item.id, {
-            stock: nuevoStock
-          });
+          await db.update('productos', item.id, { stock: nuevoStock });
 
-          // Registrar movimiento de venta
+          // Registrar movimiento de stock
           await db.insert('movimientos_stock', {
             producto_id: item.id,
             tipo: 'venta',
@@ -169,12 +173,61 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
             stock_nuevo: nuevoStock,
             costo_unitario: item.precio,
             valor_total: item.precio * item.cantidad,
-            motivo: 'Venta directa desde POS',
-            fecha_movimiento: new Date().toISOString()
+            motivo: `Venta POS - ${metodoPago}`,
+            fecha_movimiento: fechaCierre,
           });
         }
 
-        exito(`Venta procesada: ${carrito.length} productos - ${formatCOP(calcularTotal())}`);
+        // Registrar venta contable en tabla ventas
+        try {
+          const ventaRecord = await db.insert('ventas', {
+            sesion_id:          null,
+            sala_id:            null,
+            usuario_id:         null,
+            cliente:            'Cliente tienda',
+            estacion:           'Tienda',
+            fecha_inicio:       null,
+            fecha_cierre:       fechaCierre,
+            metodo_pago:        metodoPago,
+            estado:             'cerrada',
+            subtotal_tiempo:    0,
+            subtotal_productos: carrito.reduce((s, i) => s + Math.abs(i.precio) * i.cantidad, 0),
+            descuento:          0,
+            total:              Math.max(0, totalVenta),
+            notas:              'Venta directa POS',
+            productos:          JSON.stringify(
+              carrito.map(i => ({
+                nombre:   i.nombre,
+                cantidad: i.cantidad,
+                precio:   i.precio,
+                subtotal: i.precio * i.cantidad,
+                categoria: i.categoria,
+              }))
+            ),
+          });
+
+          // Insertar venta_items si hay ID de venta
+          const ventaId = ventaRecord?.id ?? ventaRecord?.data?.id ?? null;
+          if (ventaId) {
+            let lineNo = 1;
+            for (const item of carrito) {
+              await db.insert('venta_items', {
+                venta_id:       ventaId,
+                line_no:        lineNo++,
+                tipo:           'producto',
+                producto_id:    item.id,
+                descripcion:    item.nombre,
+                cantidad:       item.cantidad,
+                precio_unitario: item.precio,
+                subtotal:       item.precio * item.cantidad,
+              }).catch(() => {}); // venta_items es opcional
+            }
+          }
+        } catch (ventaErr) {
+          console.warn('⚠️ Venta procesada pero no se pudo registrar en ventas:', ventaErr.message);
+        }
+
+        exito(`Venta registrada: ${carrito.length} producto(s) — ${formatCOP(Math.max(0, totalVenta))}`);
       }
       
       vaciarCarrito();
@@ -499,6 +552,31 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
                 </div>
               </div>
 
+              {/* Método de pago — solo en POS (no sesión) */}
+              {!modoSesion && (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { v: 'efectivo',      l: '💵 Efectivo' },
+                    { v: 'transferencia', l: '🏦 Transfer.' },
+                    { v: 'tarjeta',       l: '💳 Tarjeta' },
+                    { v: 'digital',       l: '📱 QR/Digital' },
+                  ].map(({ v, l }) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setMetodoPago(v)}
+                      className={`py-2 rounded-xl text-xs font-bold transition-all border ${
+                        metodoPago === v
+                          ? 'bg-[#00D656]/15 border-[#00D656]/40 text-[#00D656]'
+                          : 'bg-white/3 border-white/10 text-gray-400 hover:border-white/20'
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Botón de cobrar / agregar */}
               <button
                 onClick={procesarVenta}
@@ -514,7 +592,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
                 ) : (
                   <>
                     <DollarSign size={24} />
-                    {procesandoPago ? 'Procesando...' : 'Cobrar'}
+                    {procesandoPago ? 'Procesando...' : `Cobrar · ${metodoPago}`}
                   </>
                 )}
               </button>
