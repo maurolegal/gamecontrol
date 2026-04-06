@@ -124,6 +124,14 @@ function Paginacion({ pagina, totalPags, totalRegistros, onPagina }) {
   );
 }
 
+// ── Monto a mostrar según filtro ──────────────────────────────────
+function displayTotal(v, filtroMetodo) {
+  if (filtroMetodo && filtroMetodo !== 'parcial' && v.metodo_pago === 'parcial') {
+    return Number(v[`monto_${filtroMetodo}`] ?? 0);
+  }
+  return Number(v.total ?? 0);
+}
+
 // ── Tabla principal ────────────────────────────────────────────────
 export default function TablaVentas({
   ventas = [],
@@ -136,6 +144,7 @@ export default function TablaVentas({
   onEditar,
   onEliminar,
   nombreSala,
+  filtroMetodo = '',
 }) {
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
@@ -237,8 +246,15 @@ export default function TablaVentas({
                     </td>
 
                     {/* Total */}
-                    <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white whitespace-nowrap">
-                      {formatCOP(v.total)}
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <span className="font-bold text-gray-900 dark:text-white">
+                        {formatCOP(displayTotal(v, filtroMetodo))}
+                      </span>
+                      {filtroMetodo && filtroMetodo !== 'parcial' && v.metodo_pago === 'parcial' && (
+                        <span className="block text-xs font-normal text-gray-400 dark:text-gray-500">
+                          de {formatCOP(v.total)} total
+                        </span>
+                      )}
                     </td>
 
                     {/* Acciones */}

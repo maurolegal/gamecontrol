@@ -114,7 +114,15 @@ export default function Ventas() {
 
       if (rango)        q = q.gte('fecha_cierre', rango[0]).lte('fecha_cierre', rango[1]);
       if (filtroSala)   q = q.eq('sala_id', filtroSala);
-      if (filtroMetodo) q = q.eq('metodo_pago', filtroMetodo);
+      if (filtroMetodo) {
+        if (filtroMetodo === 'parcial') {
+          q = q.eq('metodo_pago', 'parcial');
+        } else {
+          // Incluir pagos directos Y pagos parciales que tengan monto > 0 en ese método
+          const campo = `monto_${filtroMetodo}`;
+          q = q.or(`metodo_pago.eq.${filtroMetodo},and(metodo_pago.eq.parcial,${campo}.gt.0)`);
+        }
+      }
 
       const { data, error: qErr } = await q;
       if (qErr) throw qErr;
@@ -131,12 +139,19 @@ export default function Ventas() {
 
   // ── KPIs ─────────────────────────────────────────────────────────
   const stats = useMemo(() => {
-    const total    = ventas.reduce((s, v) => s + (v.total ?? 0), 0);
+    // Para pagos parciales con filtro activo, tomar solo el monto del método filtrado
+    const montoVenta = (v) => {
+      if (filtroMetodo && filtroMetodo !== 'parcial' && v.metodo_pago === 'parcial') {
+        return Number(v[`monto_${filtroMetodo}`] ?? 0);
+      }
+      return Number(v.total ?? 0);
+    };
+    const total    = ventas.reduce((s, v) => s + montoVenta(v), 0);
     const count    = ventas.length;
     const ticket   = count > 0 ? total / count : 0;
     const clientes = new Set(ventas.map(v => v.cliente).filter(Boolean)).size;
     return { total, count, ticket, clientes };
-  }, [ventas]);
+  }, [ventas, filtroMetodo]);
 
   // ── Resolver nombre de sala ──────────────────────────────────────
   const nombreSala = useCallback(
@@ -215,9 +230,10 @@ export default function Ventas() {
         <KpiCard
           icon={<DollarSign size={20} />}
           cls="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-          titulo="Total período"
+          titulo={filtroMetodo && filtroMetodo !== 'parcial'
+            ? `Total ${filtroMetodo}` : 'Total período'}
           valor={formatCOP(stats.total)}
-          sub={`${stats.count} venta${stats.count !== 1 ? 's' : ''}`}
+          sub={`${stats.count} venta${stats.count !== 1 ? 's' : ''}${filtroMetodo && filtroMetodo !== 'parcial' ? ' (incl. parciales)' : ''}`}
         />
         <KpiCard
           icon={<ShoppingBag size={20} />}
@@ -334,6 +350,7 @@ export default function Ventas() {
         onEditar={setEditar}
         onEliminar={eliminar}
         nombreSala={nombreSala}
+        filtroMetodo={filtroMetodo}
       />
 
       {/* ── Modales ── */}
