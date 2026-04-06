@@ -799,7 +799,17 @@ class GestorGastos {
                 console.log('📤 Resultado de actualización:', resultado);
             } else {
                 console.log('💾 Insertando gasto en BD...');
-                resultado = await window.databaseService.insert('gastos', datosGasto);
+                try {
+                    resultado = await window.databaseService.insert('gastos', datosGasto);
+                } catch (fkError) {
+                    if (fkError.message && fkError.message.includes('gastos_usuario_id_fkey')) {
+                        console.warn('⚠️ usuario_id no existe en public.usuarios. Reintentando sin usuario_id.');
+                        datosGasto.usuario_id = null;
+                        resultado = await window.databaseService.insert('gastos', datosGasto);
+                    } else {
+                        throw fkError;
+                    }
+                }
                 console.log('📤 Resultado de inserción:', resultado);
             }
             

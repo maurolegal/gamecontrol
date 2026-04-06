@@ -90,7 +90,17 @@ export default function FormGasto({
         exito('Gasto actualizado exitosamente');
       } else {
         // Solo asignamos usuario_id al crear (si existe en public.usuarios)
-        await db.insert('gastos', { ...datos, usuario_id: usuario?.id ?? null });
+        try {
+          await db.insert('gastos', { ...datos, usuario_id: usuario?.id ?? null });
+        } catch (fkErr) {
+          if (fkErr.message && fkErr.message.includes('gastos_usuario_id_fkey')) {
+            // El UUID de auth no existe en public.usuarios; guardar sin usuario_id
+            console.warn('⚠️ usuario_id no existe en public.usuarios. Reintentando sin usuario_id.');
+            await db.insert('gastos', { ...datos, usuario_id: null });
+          } else {
+            throw fkErr;
+          }
+        }
         exito('Gasto registrado exitosamente');
       }
 
