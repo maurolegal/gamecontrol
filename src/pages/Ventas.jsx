@@ -79,7 +79,7 @@ export default function Ventas() {
   const [cargando, setCargando] = useState(true);
 
   // Filtros
-  const [periodo,      setPeriodo]      = useState('todo');
+  const [periodo,      setPeriodo]      = useState('hoy');
   const [desdeCustom,  setDesdeCustom]  = useState('');
   const [hastaCustom,  setHastaCustom]  = useState('');
   const [filtroSala,   setFiltroSala]   = useState('');
@@ -154,7 +154,7 @@ export default function Ventas() {
 
   // ── Limpiar filtros ──────────────────────────────────────────────
   function limpiar() {
-    setPeriodo('todo');
+    setPeriodo('hoy');
     setDesdeCustom('');
     setHastaCustom('');
     setFiltroSala('');

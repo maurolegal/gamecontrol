@@ -321,7 +321,7 @@ function generarCSV(kpis, stock, horasSalas, gastosCat, rango) {
 }
 
 // ── Filtros por defecto ──────────────────────────────────────────────
-const FILTROS_DEFAULT = { periodo: 'mes', sala: '', fechaInicio: '', fechaFin: '' };
+const FILTROS_DEFAULT = { periodo: 'hoy', sala: '', fechaInicio: '', fechaFin: '' };
 
 // ── Componente principal ─────────────────────────────────────────────
 

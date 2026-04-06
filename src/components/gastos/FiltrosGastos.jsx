@@ -26,7 +26,7 @@ export default function FiltrosGastos({ filtros, setFiltros, categorias, proveed
     setFiltros((prev) => ({ ...prev, [campo]: val }));
 
   const limpiar = () =>
-    setFiltros({ periodo: 'mes', desde: '', hasta: '', categoria: '', proveedor: '', monto: '' });
+    setFiltros({ periodo: 'hoy', desde: '', hasta: '', categoria: '', proveedor: '', monto: '' });
 
   // Tags activos
   const tags = [];

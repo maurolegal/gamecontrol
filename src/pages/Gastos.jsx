@@ -139,7 +139,7 @@ function aplicarFiltros(gastos, filtros) {
 // ── Página Principal ─────────────────────────────────────────────────
 
 const FILTROS_DEFAULT = {
-  periodo:   'mes',
+  periodo:   'hoy',
   desde:     '',
   hasta:     '',
   categoria: '',
