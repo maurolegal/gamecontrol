@@ -1,0 +1,298 @@
+/*
+  salas-mejora-theme.css
+  Tema oscuro gamer inspirado en pages/mejora.html, adaptado a la UI real de pages/salas.html + js/salas.js
+  Se activa agregando la clase .salas-mejora al body.
+*/
+
+body.salas-mejora {
+  --bg-color: #0f172a;
+  --card-bg: #1e293b;
+  --card-bg-2: #111c33;
+  --border: #334155;
+
+  --accent-color: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.45);
+  --danger: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+
+  background: var(--bg-color) !important;
+  color: var(--text-main);
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+body.salas-mejora .container-fluid,
+body.salas-mejora .main-content {
+  background: transparent !important;
+}
+
+/* Bootstrap text/background overrides (scope only) */
+body.salas-mejora .bg-white,
+body.salas-mejora .bg-light {
+  background: var(--card-bg) !important;
+}
+
+body.salas-mejora .text-dark {
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .text-muted {
+  color: var(--text-muted) !important;
+}
+
+body.salas-mejora .border,
+body.salas-mejora .border-top,
+body.salas-mejora .border-bottom,
+body.salas-mejora .border-start,
+body.salas-mejora .border-end {
+  border-color: var(--border) !important;
+}
+
+/* Sidebar */
+body.salas-mejora .sidebar {
+  background: rgba(30, 41, 59, 0.75) !important;
+  backdrop-filter: saturate(1.2) blur(10px);
+  -webkit-backdrop-filter: saturate(1.2) blur(10px);
+  border-right: 1px solid var(--border) !important;
+}
+
+body.salas-mejora .sidebar .logo h4 {
+  color: var(--text-main) !important;
+  letter-spacing: 0.6px;
+}
+
+body.salas-mejora .sidebar .nav-link {
+  color: rgba(248, 250, 252, 0.78) !important;
+}
+
+body.salas-mejora .sidebar .nav-link:hover {
+  background: rgba(59, 130, 246, 0.10) !important;
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .sidebar .nav-link.active {
+  background: rgba(59, 130, 246, 0.16) !important;
+  color: var(--text-main) !important;
+  border-left: 3px solid var(--accent-color);
+}
+
+/* Header (top) */
+body.salas-mejora .header {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  padding-bottom: 18px !important;
+}
+
+body.salas-mejora .header h3 {
+  color: var(--text-main) !important;
+  letter-spacing: 0.6px;
+}
+
+body.salas-mejora .header p {
+  color: var(--text-muted) !important;
+}
+
+/* User dropdown button */
+body.salas-mejora .header .dropdown-toggle,
+body.salas-mejora .header .btn.btn-light {
+  background: rgba(30, 41, 59, 0.75) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .header .user-avatar {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .dropdown-menu {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+}
+
+body.salas-mejora .dropdown-item {
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .dropdown-item:hover {
+  background: rgba(59, 130, 246, 0.10) !important;
+}
+
+body.salas-mejora .dropdown-divider {
+  border-color: var(--border) !important;
+}
+
+/* KPI cards */
+body.salas-mejora .row.mb-3 .card {
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* Module containers */
+body.salas-mejora .module-container {
+  background: transparent !important;
+}
+
+body.salas-mejora .module-container h5 {
+  color: var(--text-main) !important;
+}
+
+/* Inputs / filters */
+body.salas-mejora .input-group-text,
+body.salas-mejora .form-control,
+body.salas-mejora .form-select {
+  background: rgba(15, 23, 42, 0.75) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .form-control::placeholder {
+  color: rgba(148, 163, 184, 0.75) !important;
+}
+
+body.salas-mejora .btn-outline-primary {
+  color: var(--text-main) !important;
+  border-color: rgba(59, 130, 246, 0.45) !important;
+}
+
+body.salas-mejora .btn-outline-primary:hover {
+  background: rgba(59, 130, 246, 0.14) !important;
+}
+
+body.salas-mejora .btn-primary {
+  background: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+}
+
+body.salas-mejora .btn-primary:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+/* Salas + estaciones (render de js/salas.js) */
+body.salas-mejora .salas-grid-minimal {
+  gap: 18px;
+}
+
+body.salas-mejora .sala-card-minimal {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+body.salas-mejora .sala-header-minimal {
+  padding: 16px !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+body.salas-mejora .sala-title-minimal {
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+body.salas-mejora .sala-title-minimal i {
+  color: var(--accent-color);
+}
+
+body.salas-mejora .sala-type-badge {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .estaciones-grid-minimal {
+  padding: 14px 16px 16px;
+  gap: 14px;
+}
+
+body.salas-mejora .estacion-minimal {
+  background: var(--card-bg-2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px;
+  transition: box-shadow 0.25s ease, transform 0.2s ease, border-color 0.25s ease;
+}
+
+body.salas-mejora .estacion-minimal.ocupada {
+  border-color: rgba(59, 130, 246, 0.85) !important;
+  box-shadow: 0 0 22px var(--accent-glow);
+}
+
+body.salas-mejora .estacion-minimal.ocupada .estacion-status-minimal {
+  background: rgba(59, 130, 246, 0.16) !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .estacion-minimal:hover {
+  transform: translateY(-1px);
+}
+
+body.salas-mejora .btn-iniciar-minimal {
+  border-radius: 10px;
+}
+
+/* Sesiones table */
+body.salas-mejora .table {
+  color: var(--text-main) !important;
+}
+
+body.salas-mejora .table thead th {
+  color: rgba(248, 250, 252, 0.82) !important;
+  border-color: var(--border) !important;
+}
+
+body.salas-mejora .table td {
+  border-color: rgba(51, 65, 85, 0.7) !important;
+}
+
+body.salas-mejora .table-hover tbody tr:hover {
+  background: rgba(59, 130, 246, 0.08) !important;
+}
+
+/* Modales (base) */
+body.salas-mejora .modal-content {
+  background: var(--card-bg) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border) !important;
+}
+
+body.salas-mejora .modal-header,
+body.salas-mejora .modal-footer {
+  border-color: var(--border) !important;
+}
+
+/* Modal iniciar sesión: look gamer */
+body.salas-mejora #modalIniciarSesion .modal-content {
+  background: radial-gradient(1200px 420px at 15% -10%, rgba(59,130,246,0.35), transparent 60%),
+              radial-gradient(900px 380px at 110% 20%, rgba(16,185,129,0.18), transparent 60%),
+              linear-gradient(180deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.95) 100%) !important;
+}
+
+body.salas-mejora #modalIniciarSesion #costoEstimado {
+  color: #7ef0c8 !important;
+  text-shadow: 0 12px 26px rgba(16,185,129,0.18);
+}
+
+body.salas-mejora #modalIniciarSesion #opcionesTiempo .card,
+body.salas-mejora #modalIniciarSesion #opcionesTiempo label.card {
+  background: rgba(15, 23, 42, 0.78) !important;
+  border: 1px solid rgba(51, 65, 85, 0.9) !important;
+  color: var(--text-main) !important;
+  border-radius: 12px !important;
+}
+
+body.salas-mejora #modalIniciarSesion #opcionesTiempo .text-dark { color: var(--text-main) !important; }
+body.salas-mejora #modalIniciarSesion #opcionesTiempo .text-muted { color: rgba(148,163,184,0.9) !important; }
+body.salas-mejora #modalIniciarSesion #opcionesTiempo .bg-light-primary { background: rgba(59,130,246,0.14) !important; }
+body.salas-mejora #modalIniciarSesion #opcionesTiempo .border-primary { border-color: rgba(59,130,246,0.55) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  body.salas-mejora * { transition: none !important; }
+}

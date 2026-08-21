@@ -1,0 +1,568 @@
+/* Corporate/enterprise visual overhaul for salas.html without changing functionality */
+
+:root {
+  --brand: #2563eb;
+  --brand-600: #1d4ed8;
+  --brand-50: #eff6ff;
+  --text-900: #0f172a;
+  --text-700: #334155;
+  --muted-500: #64748b;
+  --border: #e5e7eb;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --bg: #f5f7fb;
+  --success: #16a34a;
+  --warning: #d97706;
+  --info: #0ea5e9;
+}
+
+/* Page background and typography */
+.salas-page.salas-corporate {
+  background: var(--bg);
+  color: var(--text-900);
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Sidebar - more corporate */
+.salas-page.salas-corporate .sidebar {
+  background: #0b1220;
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+.salas-page.salas-corporate .sidebar .logo h4 {
+  color: #e2e8f0;
+  letter-spacing: 0.2px;
+}
+.salas-page.salas-corporate .sidebar .nav-link {
+  color: #cbd5e1;
+  border-radius: 10px;
+  margin: 2px 8px;
+  padding: 10px 12px;
+}
+.salas-page.salas-corporate .sidebar .nav-link:hover {
+  background: rgba(148,163,184,0.12);
+  color: #f8fafc;
+}
+.salas-page.salas-corporate .sidebar .nav-link.active {
+  background: rgba(37, 99, 235, 0.18);
+  color: #e7efff;
+}
+
+/* Header */
+.salas-page.salas-corporate .header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  position: sticky;
+  top: 12px;
+  backdrop-filter: saturate(1.2) blur(6px);
+  -webkit-backdrop-filter: saturate(1.2) blur(6px);
+  z-index: 10;
+}
+.salas-page.salas-corporate .header h3 {
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  margin-bottom: 2px;
+}
+.salas-page.salas-corporate .user-avatar {
+  background: var(--brand);
+  color: #fff;
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 600;
+}
+
+/* Module container */
+.salas-page.salas-corporate .module-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 6px 24px rgba(15,23,42,0.04);
+}
+.salas-page.salas-corporate .module-container > h5,
+.salas-page.salas-corporate .module-container h5 {
+  font-weight: 600;
+}
+
+/* KPI cards */
+.salas-page.salas-corporate .dashboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 16px;
+  box-shadow: 0 6px 24px rgba(15,23,42,0.04);
+}
+.salas-page.salas-corporate .dashboard-card .card-icon {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: var(--brand-50) !important;
+  color: var(--brand) !important;
+}
+
+/* Filters */
+.salas-page.salas-corporate .input-group .input-group-text {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+.salas-page.salas-corporate .form-control,
+.salas-page.salas-corporate .form-select {
+  border-color: var(--border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* Toggle group */
+.salas-page.salas-corporate .btn.btn-outline-primary {
+  --bs-btn-color: var(--text-700);
+  --bs-btn-border-color: var(--border);
+  --bs-btn-hover-bg: var(--brand-50);
+  --bs-btn-hover-border-color: var(--brand);
+  --bs-btn-active-bg: var(--brand);
+  --bs-btn-active-border-color: var(--brand-600);
+  border-radius: 10px;
+}
+
+/* Primary Buttons */
+.salas-page.salas-corporate .btn-primary {
+  --bs-btn-bg: var(--brand);
+  --bs-btn-border-color: var(--brand);
+  --bs-btn-hover-bg: var(--brand-600);
+  --bs-btn-hover-border-color: var(--brand-600);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.25);
+}
+.salas-page.salas-corporate .btn-outline-secondary {
+  border-color: var(--border);
+  color: var(--text-700);
+  border-radius: 10px;
+}
+
+/* Grid of rooms */
+.salas-page.salas-corporate .salas-grid-minimal {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+/* Desktop: place salas side by side up to 4 columns */
+@media (min-width: 992px) {
+  .salas-page.salas-corporate .salas-grid-minimal {
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+  }
+}
+@media (min-width: 1200px) {
+  .salas-page.salas-corporate .salas-grid-minimal {
+    grid-template-columns: repeat(3, minmax(280px, 1fr));
+  }
+}
+@media (min-width: 1400px) {
+  .salas-page.salas-corporate .salas-grid-minimal {
+    grid-template-columns: repeat(4, minmax(280px, 1fr));
+  }
+}
+
+/* Desktop compact corporate layout refinements */
+@media (min-width: 992px) {
+  /* Sala header: title/stats on the left, actions on the right */
+  .salas-page.salas-corporate .sala-header-minimal {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .salas-page.salas-corporate .sala-title-minimal {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.2;
+  }
+  .salas-page.salas-corporate .sala-title-minimal i { opacity: 0.95; }
+  .salas-page.salas-corporate .sala-stats-minimal {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+    font-size: 0.85rem;
+  }
+  .salas-page.salas-corporate .sala-actions-minimal { display: inline-flex; gap: 8px; }
+  .salas-page.salas-corporate .sala-actions-minimal .btn {
+    width: auto; height: auto; padding: 6px 10px; border-radius: 8px;
+  }
+
+  /* Estaciones grid: two columns with a reasonable min width to avoid cramped buttons */
+  .salas-page.salas-corporate .estaciones-grid-minimal {
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  /* Station card: compact spacing and clean header line */
+  .salas-page.salas-corporate .estacion-minimal {
+    box-sizing: border-box;
+    padding: 10px;
+    border-radius: 10px;
+    text-align: left;
+    overflow: visible;
+  }
+  .salas-page.salas-corporate .estacion-numero-minimal,
+  .salas-page.salas-corporate .estacion-status-minimal {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 0;
+  }
+  .salas-page.salas-corporate .estacion-status-minimal { margin-left: 8px; line-height: 1; }
+
+  /* Session content and actions spacing */
+  .salas-page.salas-corporate .estacion-sesion-minimal,
+  .salas-page.salas-corporate .estacion-disponible-acciones { margin-top: 8px; }
+
+  /* Quick actions: allow wrapping to avoid clipping; keep buttons compact */
+  .salas-page.salas-corporate .acciones-rapidas-minimal .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow: visible;
+    box-shadow: none;
+  }
+  .salas-page.salas-corporate .acciones-rapidas-minimal .btn {
+    padding: 6px 10px;
+    font-size: 0.85rem;
+  }
+  .salas-page.salas-corporate .estacion-minimal .btn { max-width: 100%; }
+
+  .salas-page.salas-corporate .acciones-rapidas-disponible { flex-wrap: wrap; gap: 6px; }
+  .salas-page.salas-corporate .btn-iniciar-minimal { padding: 8px 10px; font-size: 0.9rem; }
+}
+/* Style any direct child as a card without assuming internal structure */
+.salas-page.salas-corporate #contenedorSalas > * {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 8px 26px rgba(15,23,42,0.05);
+  padding: 14px;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.salas-page.salas-corporate #contenedorSalas > *:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(15,23,42,0.08);
+  border-color: rgba(37,99,235,0.35);
+}
+
+/* Table styling */
+.salas-page.salas-corporate table.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: transparent;
+  --bs-table-hover-bg: #f8fafc;
+  border-color: var(--border);
+}
+.salas-page.salas-corporate table thead th {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: .04em;
+  color: var(--muted-500);
+  border-bottom: 2px solid var(--border);
+}
+.salas-page.salas-corporate table tbody td {
+  vertical-align: middle;
+  border-color: var(--border);
+}
+
+/* Badges */
+.salas-page.salas-corporate .badge.bg-primary {
+  background-color: var(--brand) !important;
+}
+
+/* Modals */
+.salas-page.salas-corporate .modal-content {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(15,23,42,0.18);
+}
+.salas-page.salas-corporate .modal-header {
+  border-bottom-color: var(--border);
+}
+.salas-page.salas-corporate .modal-footer {
+  border-top-color: var(--border);
+}
+
+/* Fullscreen-like modals on small screens for native feel */
+@media (max-width: 576px) {
+  .salas-page.salas-corporate .modal-dialog {
+    margin: 0;
+    max-width: 100%;
+    height: 100%;
+  }
+  .salas-page.salas-corporate .modal-content {
+    height: 100%;
+    border-radius: 0;
+  }
+}
+
+/* Compact inputs inside modal */
+.salas-page.salas-corporate .input-group.compact .form-control {
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+/* Overlay for mobile menu */
+.salas-page.salas-corporate .sidebar-overlay {
+  background: rgba(2,6,23,0.45);
+}
+
+/* Minor utilities */
+.salas-page.salas-corporate .text-muted { color: var(--muted-500) !important; }
+
+/* Ensure icons are subtle */
+.salas-page.salas-corporate i.fas, .salas-page.salas-corporate i.fa {
+  opacity: 0.9;
+}
+
+/* Better chip-like filters and scrollable on mobile */
+.salas-page.salas-corporate .btn-group[role="group"] {
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.salas-page.salas-corporate .btn-group[role="group"] + * { margin-top: 0; }
+@media (max-width: 768px) {
+  .salas-page.salas-corporate .row .btn-group[role="group"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+}
+
+/* Mobile menu toggle — professional, animated, tech look (non-floating on Salas) */
+@media (max-width: 768px) {
+  .salas-page.salas-corporate .menu-toggle {
+    position: static; /* no flotante para no interferir con modales */
+    z-index: auto;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    background: rgba(11, 18, 32, 0.85);
+    color: #fff;
+    backdrop-filter: saturate(1.2) blur(8px);
+    -webkit-backdrop-filter: saturate(1.2) blur(8px);
+    box-shadow:
+      0 8px 24px rgba(2,6,23,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    margin: 12px 0 0 12px; /* alineación discreta en el flujo normal */
+  }
+
+  /* Gradient ring border using mask for a high-end feel */
+  .salas-page.salas-corporate .menu-toggle::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    padding: 2px;
+    background: linear-gradient(135deg, rgba(96,165,250,.9), rgba(34,211,238,.9) 50%, rgba(167,139,250,.9));
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: .35;
+    pointer-events: none;
+    transition: opacity .25s ease;
+  }
+
+  .salas-page.salas-corporate .menu-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 12px 30px rgba(2,6,23,0.32),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .salas-page.salas-corporate .menu-toggle:hover::after { opacity: .55; }
+
+  /* Animated hamburger built from the existing <i> element */
+  .salas-page.salas-corporate .menu-toggle i {
+    display: block;
+    position: relative;
+    width: 26px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    font-size: 0; /* hide FA glyph */
+    line-height: 0;
+    transition: background .2s ease;
+  }
+  .salas-page.salas-corporate .menu-toggle i::before,
+  .salas-page.salas-corporate .menu-toggle i::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 26px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 2px;
+    transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .2s ease;
+  }
+  .salas-page.salas-corporate .menu-toggle i::before { transform: translateY(-7px); }
+  .salas-page.salas-corporate .menu-toggle i::after { transform: translateY(7px); }
+
+  /* Active state: morph into an X */
+  .salas-page.salas-corporate .menu-toggle.active i { background: transparent; }
+  .salas-page.salas-corporate .menu-toggle.active i::before { transform: translateY(0) rotate(45deg); }
+  .salas-page.salas-corporate .menu-toggle.active i::after { transform: translateY(0) rotate(-45deg); }
+  .salas-page.salas-corporate .menu-toggle.active::after { opacity: .65; }
+}
+@media (min-width: 769px) {
+  .salas-page.salas-corporate .menu-toggle { display: none; }
+}
+
+/* Ocultar el botón de menú cuando un modal esté abierto para evitar interferencias */
+.salas-page.salas-corporate.modal-open .menu-toggle,
+body.modal-open .salas-page.salas-corporate .menu-toggle {
+  display: none !important;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .salas-page.salas-corporate * { transition: none !important; animation: none !important; }
+}
+
+/* Stations grid: enforce two columns only on mobile/tablet to avoid desktop impact */
+@media (max-width: 768px) {
+  .salas-page.salas-corporate .estaciones-grid-minimal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.75rem;
+  }
+}
+
+/* KPIs: two columns layout on mobile only (leave desktop with Bootstrap cols) */
+@media (max-width: 768px) {
+  .salas-page.salas-corporate .stats-grid {
+    display: grid !important; /* override Bootstrap .row */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    grid-auto-flow: row dense;
+  }
+  .salas-page.salas-corporate .stats-grid > [class*="col-"] {
+    padding: 0; /* let grid gap control spacing */
+    width: 100% !important; /* neutralize Bootstrap col widths inside grid */
+  }
+  .salas-page.salas-corporate .stats-grid .dashboard-card { height: 100%; }
+}
+
+/* Iniciar Sesión modal: 2-column time options only configured in mobile stylesheet */
+
+/* Tiny screens: allow 1 column if space is too narrow */
+@media (max-width: 360px) {
+  .salas-page.salas-corporate .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Optional: hide stats on mobile when explicitly requested */
+@media (max-width: 768px) {
+  .salas-page.salas-corporate .stats-grid.stats-grid--hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Desktop: keep stations grid organized in exactly two columns (safe override) */
+@media (min-width: 992px) {
+  .salas-page.salas-corporate .estaciones-grid-minimal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  /* Align station title and status on one line and prevent button clipping */
+  .salas-page.salas-corporate .estacion-minimal {
+    box-sizing: border-box;
+    padding: 12px;
+    overflow: visible;
+    text-align: left;
+  }
+  .salas-page.salas-corporate .estacion-numero-minimal,
+  .salas-page.salas-corporate .estacion-status-minimal {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+  }
+  .salas-page.salas-corporate .estacion-status-minimal { margin-left: 8px; line-height: 1; }
+
+  /* Breathing room before session content or actions */
+  .salas-page.salas-corporate .estacion-sesion-minimal,
+  .salas-page.salas-corporate .estacion-disponible-acciones { margin-top: 8px; }
+
+  /* Ensure quick actions don't overflow and keep within card */
+  .salas-page.salas-corporate .acciones-rapidas-minimal .btn-group,
+  .salas-page.salas-corporate .acciones-rapidas-disponible {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .salas-page.salas-corporate .estacion-minimal .btn { max-width: 100%; }
+}
+
+/* Minimal action buttons - Circular Style */
+.salas-page.salas-corporate .btn-action-minimal {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border-radius: 50% !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  color: #555;
+  margin: 0 4px;
+}
+
+.salas-page.salas-corporate .btn-action-minimal i {
+  font-size: 1.1rem;
+}
+
+.salas-page.salas-corporate .btn-action-minimal:hover,
+.salas-page.salas-corporate .btn-action-minimal:active {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+/* Specific colors for actions */
+.salas-page.salas-corporate .btn-action-minimal.btn-add-time:hover { color: #0d6efd; border-color: #0d6efd; }
+.salas-page.salas-corporate .btn-action-minimal.btn-add-prod:hover { color: #198754; border-color: #198754; }
+.salas-page.salas-corporate .btn-action-minimal.btn-transfer:hover { color: #ffc107; border-color: #ffc107; }
+.salas-page.salas-corporate .btn-action-minimal.btn-stop:hover { color: #dc3545; border-color: #dc3545; }
+
+/* Dark mode support for buttons */
+body.dark-mode .salas-page.salas-corporate .btn-action-minimal {
+  background: #2d3436;
+  border-color: #444;
+  color: #ccc;
+}
+body.dark-mode .salas-page.salas-corporate .btn-action-minimal:hover {
+  background: #353b48;
+  color: #fff;
+}
+
+/* Modal Option Cards */
+.bg-light-primary {
+  background-color: rgba(37, 99, 235, 0.08) !important;
+}
+.hover-shadow:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+.option-card {
+  border-width: 2px !important;
+}
+

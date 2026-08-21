@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1e293b">
+    <title>Salas - GameControl</title>
+    <script>
+        (function(){
+            try {
+                var t = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', t);
+            } catch(e) {}
+        })();
+    </script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/salas-mobile-native.css">
+    <script src="../js/security-production.js"></script>
+</head>
+<body class="salas-page salas-corporate salas-mobile-native">
+
+    <!-- Header (native-like) -->
+    <header class="gc-header">
+        <div class="gc-header-row">
+            <div class="gc-title">
+                <div class="gc-appicon" aria-hidden="true"><i class="fas fa-gamepad"></i></div>
+                <div style="min-width:0">
+                    <h1>Salas</h1>
+                    <p class="gc-subtitle">Control en tiempo real</p>
+                </div>
+            </div>
+            <div class="gc-actions">
+                <button class="gc-iconbtn" type="button" onclick="window.location.reload()" aria-label="Actualizar">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="gc-iconbtn" type="button" id="btnTienda" aria-label="Tienda" onclick="window.gestorSalas?.abrirTienda?.()">
+                    <i class="fas fa-store"></i>
+                </button>
+                <div class="dropdown">
+                    <button class="gc-iconbtn" type="button" id="userMenuBtn" data-bs-toggle="dropdown" aria-label="Menú de usuario">
+                        <i class="fas fa-user"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuBtn">
+                        <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Ajustes</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats (IDs alineados a salas.js) -->
+    <section class="gc-stats" aria-label="Resumen">
+        <div class="gc-stat is-primary">
+            <span class="v" id="totalSalas">0</span>
+            <span class="l">Salas</span>
+        </div>
+        <div class="gc-stat is-success">
+            <span class="v" id="salasDisponibles">0</span>
+            <span class="l">Libres</span>
+        </div>
+        <div class="gc-stat is-warning">
+            <span class="v" id="salasOcupadas">0</span>
+            <span class="l">En uso</span>
+        </div>
+        <div class="gc-stat">
+            <span class="v" id="ingresosHoy">$0</span>
+            <span class="l">Ingresos</span>
+        </div>
+    </section>
+
+    <!-- Contenido Principal (salas.js usa #contenedorSalas) -->
+    <main class="gc-content" style="padding-bottom: 90px;">
+        
+        <!-- SECCION 1: SALAS ACTIVAS -->
+        <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-gamepad text-primary"></i>
+                <h2 class="h6 mb-0 text-uppercase fw-bold text-light" style="letter-spacing: 0.5px;">Sesiones Activas</h2>
+            </div>
+            <!-- El contador se actualiza via JS o se deja estatico por ahora -->
+        </div>
+
+        <!-- Contenedor donde salas.js inyecta las cards. 
+             Importante: mantener id="contenedorSalas" para compatibility con salas.js -->
+        <div id="contenedorSalas" class="row g-2 mb-4">
+            <div class="gc-loading text-center w-100 py-5">
+                <div class="spinner-border text-primary" role="status" aria-label="Cargando"></div>
+                <div class="mt-3 text-muted small">Cargando salas...</div>
+            </div>
+        </div>
+
+        <!-- SECCION 2: MOVIMIENTOS DE HOY -->
+        <div class="d-flex align-items-center justify-content-between mb-3 px-1 pt-3 border-top border-secondary border-opacity-10">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fas fa-receipt text-success"></i>
+                <h2 class="h6 mb-0 text-uppercase fw-bold text-light" style="letter-spacing: 0.5px;">Movimientos de hoy</h2>
+            </div>
+            <a href="ventas.html" class="btn btn-sm btn-outline-secondary rounded-pill" style="font-size: 0.7rem;">
+                Ver Todo <i class="fas fa-chevron-right ms-1"></i>
+            </a>
+        </div>
+
+        <div id="contenedorMovimientosHoy" class="d-flex flex-column gap-2 mb-4">
+            <!-- Loading state inicial -->
+            <div class="text-center py-4 bg-white bg-opacity-05 rounded-3 border border-white border-opacity-05">
+                <div class="spinner-border spinner-border-sm text-secondary mb-2" role="status"></div>
+                <div class="text-muted small">Cargando movimientos...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation (native-like) -->
+    <nav class="gc-bottomnav" aria-label="Navegación">
+        <div class="row">
+            <a href="../index.html" class="gc-tab">
+                <i class="fas fa-home"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="salas_mobile.html" class="gc-tab active">
+                <i class="fas fa-gamepad"></i>
+                <span>Salas</span>
+            </a>
+            <a href="stock.html" class="gc-tab">
+                <i class="fas fa-box"></i>
+                <span>Stock</span>
+            </a>
+            <a href="ventas.html" class="gc-tab">
+                <i class="fas fa-cash-register"></i>
+                <span>Ventas</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Modal requerido por salas.js para iniciar sesión -->
+    <div class="modal fade" id="modalIniciarSesion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-fullscreen-sm-down modal-dialog-centered modal-dialog-scrollable modal-md">
+            <div class="modal-content gc-modal">
+                <div class="modal-header gc-modal-header py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="gc-modal-badge bg-primary bg-opacity-10 text-primary" aria-hidden="true"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <h5 class="modal-title m-0 fs-6 fw-bold">Iniciar Servicio</h5>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <form id="formIniciarSesion">
+                    <div class="modal-body gc-modal-body p-3">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <div class="gc-modal-section p-2 mb-2">
+                                    <div class="gc-section-title mb-1 fs-7"><i class="fas fa-user me-1"></i><span>Cliente</span></div>
+                                    <input type="text" class="form-control form-control-sm bg-transparent text-white border-secondary" name="cliente" placeholder="Gamertag (Opcional)" autocomplete="off">
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <div class="gc-modal-section p-2 mb-2">
+                                    <div class="gc-section-title mb-1 fs-7"><i class="fas fa-tv me-1"></i><span>Estación</span></div>
+                                    <select class="form-select form-select-sm bg-transparent text-white border-secondary" name="estacion" id="selectEstacion" required></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="gc-modal-section p-2 mb-2">
+                             <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="gc-section-title mb-0 fs-7"><i class="fas fa-hourglass-half me-1"></i><span>Tiempo</span></div>
+                                <span class="badge bg-primary bg-opacity-25 text-primary-emphasis rounded-pill" style="font-size: 0.65rem;">Gamer Mode</span>
+                            </div>
+                            <div id="opcionesTiempo" class="row g-2"></div>
+                        </div>
+
+                        <div class="accordion" id="accordionPersonalizado">
+                            <div class="accordion-item bg-transparent border-0">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed py-2 px-0 bg-transparent text-white shadow-none fs-7" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePersonalizado">
+                                        <i class="fas fa-sliders-h me-2 text-secondary"></i><span>Tiempo Personalizado</span>
+                                    </button>
+                                </h2>
+                                <div id="collapsePersonalizado" class="accordion-collapse collapse" data-bs-parent="#accordionPersonalizado">
+                                    <div class="accordion-body p-0 pt-2">
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" min="1" step="1" inputmode="numeric" class="form-control bg-transparent text-white border-secondary" name="tiempoPersonalizado" placeholder="Minutos">
+                                            <span class="input-group-text bg-secondary bg-opacity-25 text-light border-secondary">min</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="gc-total mt-3 py-2 border-top border-secondary border-opacity-25">
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <span class="text-secondary small">Total estimado</span>
+                                <span id="costoEstimado" class="fw-bold text-success fs-5">$0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer gc-modal-footer p-2 border-top border-secondary border-opacity-10 justify-content-between bg-dark">
+                        <button type="button" class="btn btn-outline-light btn-sm px-4 rounded-pill" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-pill shadow-lg" id="btnIniciarSesionMobile">
+                            <i class="fas fa-play me-2"></i>Iniciar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Trasladar Sesión (Mobile) -->
+    <div class="modal fade" id="modalTrasladarSesion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content gc-modal">
+                <div class="modal-header gc-modal-header py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="gc-modal-badge bg-warning bg-opacity-10 text-warning" aria-hidden="true"><i class="fas fa-exchange-alt"></i></div>
+                        <div>
+                            <h5 class="modal-title m-0 fs-6 fw-bold">Trasladar Sesión</h5>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <form id="formTrasladarSesion">
+                    <div class="modal-body gc-modal-body p-3">
+                        <input type="hidden" id="trasladarSesionId" name="sesionId">
+                        
+                        <div class="gc-modal-section p-2 mb-3">
+                            <div class="gc-section-title mb-1 fs-7"><i class="fas fa-info-circle me-1"></i><span>Sesión Actual</span></div>
+                            <div class="text-white small" id="infoSesionActual">Cargando...</div>
+                        </div>
+                        
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <div class="gc-modal-section p-2 mb-2">
+                                    <div class="gc-section-title mb-1 fs-7"><i class="fas fa-door-open me-1"></i><span>Nueva Sala</span></div>
+                                    <select class="form-select form-select-sm bg-transparent text-white border-secondary" id="trasladarSala" name="salaId" required></select>
+                                </div>
+                            </div>
+                            
+                            <div class="col-12">
+                                <div class="gc-modal-section p-2 mb-2">
+                                    <div class="gc-section-title mb-1 fs-7"><i class="fas fa-tv me-1"></i><span>Nueva Estación</span></div>
+                                    <select class="form-select form-select-sm bg-transparent text-white border-secondary" id="trasladarEstacion" name="estacion" required></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer gc-modal-footer p-2 border-top border-secondary border-opacity-10 justify-content-between bg-dark">
+                        <button type="button" class="btn btn-outline-light btn-sm px-4 rounded-pill" data-bs-dismiss="modal">
+                            Cancelar
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm px-4 rounded-pill shadow-lg" onclick="window.gestorSalas?.ejecutarTrasladoSesion()">
+                            <i class="fas fa-exchange-alt me-2"></i>Trasladar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/database-service.js"></script>
+    <script src="../js/navigation-utils.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/theme-ux.js"></script>
+    <script src="../js/stock.js"></script>
+    <script src="../js/salas.js"></script>
+
+    <!-- Script Inline para cargar Movimientos de Hoy (Mobile Specific) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Intentar cargar movimientos después de que cargue la app principal
+            setTimeout(cargarMovimientosMobile, 1500);
+            
+            // Recargar también cuando la pestaña vuelve a estar visible
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) cargarMovimientosMobile();
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('formIniciarSesion');
+            const btn = document.getElementById('btnIniciarSesionMobile');
+            if (!form || !btn) return;
+
+            const htmlOriginal = btn.innerHTML;
+
+            form.addEventListener('submit', () => {
+                if (btn.disabled) return;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Procesando...';
+
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = htmlOriginal;
+                }, 8000);
+            });
+
+            document.getElementById('modalIniciarSesion')?.addEventListener('hidden.bs.modal', () => {
+                btn.disabled = false;
+                btn.innerHTML = htmlOriginal;
+            });
+        });
+
+        async function cargarMovimientosMobile() {
+            const container = document.getElementById('contenedorMovimientosHoy');
+            if (!container) return;
+            
+            // Verificar si tenemos servicio de BD disponible
+            if (!window.databaseService) {
+                console.log('⏳ Esperando DatabaseService...');
+                setTimeout(cargarMovimientosMobile, 1000);
+                return;
+            }
+
+            try {
+                // Calcular timestamp de inicio de hoy
+                const hoy = new Date();
+                hoy.setHours(0, 0, 0, 0);
+                
+                // Consultar sesiones finalizadas hoy
+                const res = await window.databaseService.select('sesiones', {
+                    filtros: { 
+                        finalizada: true, 
+                        fecha_fin: { operador: 'gte', valor: hoy.toISOString() } 
+                    },
+                    ordenPor: { campo: 'fecha_fin', direccion: 'desc' },
+                    limite: 5, // Mostrar solo las ultimas 5
+                    noCache: true
+                });
+
+                if (res && res.success && res.data && res.data.length > 0) {
+                    const html = res.data.map(row => {
+                        const total = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(row.total_general || 0);
+                        const fecha = new Date(row.fecha_fin);
+                        const hora = fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        
+                        return `
+                            <div class="d-flex align-items-center justify-content-between p-3" style="background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="d-flex align-items-center justify-content-center rounded-circle" style="width: 36px; height: 36px; background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                                        <i class="fas fa-check fa-sm"></i>
+                                    </div>
+                                    <div style="min-width: 0;">
+                                        <div class="fw-bold text-white text-truncate" style="font-size: 0.9rem;">${row.cliente || 'Cliente'}</div>
+                                        <div class="text-secondary d-flex align-items-center gap-2" style="font-size: 0.75rem;">
+                                            <span><i class="fas fa-gamepad me-1" style="font-size: 0.7rem;"></i>${row.estacion}</span>
+                                            <span class="opacity-25">|</span>
+                                            <span>${hora}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end ms-2">
+                                    <div class="fw-bold text-success" style="font-size: 0.95rem;">${total}</div>
+                                    <div class="badge bg-dark text-secondary border border-secondary border-opacity-25 rounded-pill" style="font-size: 0.6rem; font-weight: normal;">Finalizado</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `
+                        <div class="text-center py-4" style="border: 1px dashed rgba(255,255,255,0.1); border-radius: 12px;">
+                            <i class="fas fa-ghost text-secondary mb-2 opacity-50" style="font-size: 1.5rem;"></i>
+                            <div class="text-secondary small">Sin movimientos hoy</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error cargando movimientos:', error);
+                container.innerHTML = `<div class="text-center text-danger small py-3">Error de carga</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

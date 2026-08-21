@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Reportes - GameControl</title>
+    <script>
+        (function(){
+            try{var t=localStorage.getItem('theme')||(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}
+        })();
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../css/reportes-v2.css">
+    <script src="../js/security-production.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="reportes-v2">
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-ring"></div>
+            <p>Cargando reportes...</p>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Mobile Hamburger -->
+    <button class="hamburger" id="hamburgerBtn" aria-label="Abrir menú">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="page-container">
+        <div class="app-shell">
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">
+                        <i class="fas fa-gamepad"></i>
+                        <span>GameControl</span>
+                    </div>
+                    <button class="sidebar-close" id="sidebarClose" aria-label="Cerrar menú">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <nav class="sidebar-nav">
+                    <a href="../index.html"><i class="fas fa-home"></i> Dashboard</a>
+                    <a href="salas.html"><i class="fas fa-door-open"></i> Salas</a>
+                    <a href="ventas.html"><i class="fas fa-cash-register"></i> Ventas</a>
+                    <a href="gastos.html"><i class="fas fa-file-invoice-dollar"></i> Gastos</a>
+                    <a href="stock.html"><i class="fas fa-boxes"></i> Stock</a>
+                    <a class="active" href="reportes.html"><i class="fas fa-chart-bar"></i> Reportes</a>
+                    <a href="usuarios.html"><i class="fas fa-users"></i> Usuarios</a>
+                    <a href="ajustes.html"><i class="fas fa-cog"></i> Ajustes</a>
+                </nav>
+                <div class="sidebar-footer">
+                    <button class="sidebar-logout" onclick="window.navigationUtils && window.navigationUtils.logout()">
+                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                    </button>
+                </div>
+            </aside>
+
+            <div class="main-area">
+                <header class="topbar">
+                    <div class="topbar-inner">
+                        <div class="brand">
+                            <div class="brand-icon">
+                                <i class="fas fa-gamepad" style="color: white;"></i>
+                            </div>
+                            <div>
+                                <h1 class="brand-title">Reportes & Analíticas</h1>
+                                <p class="brand-subtitle">Inteligencia de negocio en tiempo real</p>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div class="status-pill">
+                                <span style="width:8px;height:8px;border-radius:999px;background:#34d399;display:inline-block;"></span>
+                                Sistema Online
+                            </div>
+                            <!-- User Dropdown -->
+                            <div class="user-dropdown" id="userDropdown">
+                                <button class="user-btn" id="userBtn">
+                                    <div class="avatar" id="userAvatar">A</div>
+                                    <span class="user-name-display" id="userNameDisplay">Admin</span>
+                                    <i class="fas fa-chevron-down" style="font-size:10px;color:#64748b;"></i>
+                                </button>
+                                <div class="dropdown-menu" id="dropdownMenu">
+                                    <div class="dropdown-header">
+                                        <div class="dropdown-user-name" id="dropdownUserName">Administrador</div>
+                                        <div class="dropdown-user-email" id="dropdownUserEmail">admin@gamecontrol.co</div>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog"></i> Configuración</a>
+                                    <div class="dropdown-divider"></div>
+                                    <button class="dropdown-item danger" onclick="window.navigationUtils && window.navigationUtils.logout()">
+                                        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main>
+            <section class="filters">
+                <div class="filters-group">
+                    <div class="field">
+                        <label>Rango de Fechas</label>
+                        <select data-filtro="periodo">
+                            <option value="hoy">Hoy</option>
+                            <option value="semana">Esta Semana</option>
+                            <option value="mes" selected>Mes Actual</option>
+                            <option value="anio">Año Actual</option>
+                            <option value="personalizado">Personalizado</option>
+                        </select>
+                    </div>
+                    <div class="field hidden" id="filtroPersonalizado">
+                        <label>Desde</label>
+                        <input type="date" data-filtro="fecha-inicio" />
+                    </div>
+                    <div class="field hidden" id="filtroPersonalizadoFin">
+                        <label>Hasta</label>
+                        <input type="date" data-filtro="fecha-fin" />
+                    </div>
+                    <div class="field">
+                        <label>Sala / Zona</label>
+                        <select data-filtro="sala">
+                            <option value="">Todas las salas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filters-actions">
+                    <button class="btn-secondary" id="btnExportarCSV">
+                        <i class="fas fa-download" style="margin-right:8px;"></i>
+                        Exportar CSV
+                    </button>
+                    <button class="btn-primary" id="btnActualizarReportes">
+                        <i class="fas fa-sync-alt" style="margin-right:8px;"></i>
+                        Actualizar
+                    </button>
+                </div>
+            </section>
+
+            <section class="kpi-grid">
+                <div class="kpi-card">
+                    <span class="accent" style="background: linear-gradient(to bottom, #10b981, transparent);"></span>
+                    <div class="kpi-header">
+                        <h4>Ingresos Totales</h4>
+                        <span id="tendenciaIngresos"></span>
+                    </div>
+                    <div class="kpi-value" id="kpiIngresos">$ 0</div>
+                    <div class="kpi-sub">vs periodo anterior</div>
+                </div>
+                <div class="kpi-card">
+                    <span class="accent" style="background: linear-gradient(to bottom, #f43f5e, transparent);"></span>
+                    <div class="kpi-header">
+                        <h4>Gastos Operativos</h4>
+                        <span id="tendenciaGastos"></span>
+                    </div>
+                    <div class="kpi-value" id="kpiGastos">$ 0</div>
+                    <div class="kpi-sub">vs periodo anterior</div>
+                </div>
+                <div class="kpi-card">
+                    <span class="accent" style="background: linear-gradient(to bottom, #06b6d4, transparent);"></span>
+                    <div class="kpi-header">
+                        <h4>Beneficio Neto</h4>
+                        <span id="tendenciaBeneficio"></span>
+                    </div>
+                    <div class="kpi-value" id="kpiBeneficio">$ 0</div>
+                    <div class="kpi-sub">margen neto</div>
+                </div>
+                <div class="kpi-card">
+                    <span class="accent" style="background: linear-gradient(to bottom, #8b5cf6, transparent);"></span>
+                    <div class="kpi-header">
+                        <h4>Sesiones / Trans.</h4>
+                        <span id="tendenciaClientes"></span>
+                    </div>
+                    <div class="kpi-value" id="kpiClientes">0</div>
+                    <div class="kpi-sub">transacciones</div>
+                </div>
+            </section>
+
+            <section class="grid-2-1">
+                <div class="panel">
+                    <h3><i class="fas fa-chart-line" style="color:#22d3ee;margin-right:8px;"></i> Flujo de Ingresos</h3>
+                    <div class="chart-container">
+                        <canvas id="chartIngresos"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3>Saldo Disponible</h3>
+                    <div class="total-box">
+                        <div class="label">Total en Caja</div>
+                        <div class="amount" id="saldoTotal">$ 0</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:10px;">
+                        <div class="mini-card">
+                            <div class="mini-icon" style="background: rgba(59, 130, 246, 0.15); color:#60a5fa;">
+                                <i class="fas fa-money-bill-wave"></i>
+                            </div>
+                            <div>
+                                <div class="mini-title">Efectivo</div>
+                                <div class="mini-value" id="saldoEfectivo">$ 0</div>
+                            </div>
+                        </div>
+                        <div class="mini-card">
+                            <div class="mini-icon" style="background: rgba(168, 85, 247, 0.15); color:#c084fc;">
+                                <i class="fas fa-university"></i>
+                            </div>
+                            <div>
+                                <div class="mini-title">Transferencia</div>
+                                <div class="mini-value" id="saldoTransferencia">$ 0</div>
+                            </div>
+                        </div>
+                        <div class="mini-card">
+                            <div class="mini-icon" style="background: rgba(244, 63, 94, 0.15); color:#fb7185;">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div>
+                                <div class="mini-title">Tarjeta / Datáfono</div>
+                                <div class="mini-value" id="saldoTarjeta">$ 0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DISTRIBUCIÓN PAGOS + GASTOS POR CATEGORÍA -->
+            <section class="charts-row">
+                <div class="panel">
+                    <h3><i class="fas fa-chart-pie" style="color:#a78bfa;margin-right:8px;"></i> Métodos de Pago</h3>
+                    <div class="chart-container-md">
+                        <canvas id="chartMetodosPago"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <h3><i class="fas fa-chart-bar" style="color:#fb923c;margin-right:8px;"></i> Gastos por Categoría</h3>
+                    <div class="chart-container-md">
+                        <canvas id="chartGastosCat"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;">
+                    <h3><i class="fas fa-shopping-bag" style="color:#c084fc;margin-right:8px;"></i> Rendimiento de Productos (Stock)</h3>
+                    <span style="font-size:12px;color:#38bdf8;">Reporte detallado</span>
+                </div>
+                <div class="stock-grid">
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <div class="mini-card">
+                            <div class="mini-icon" style="background: rgba(100, 116, 139, 0.2); color:#cbd5f5;">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <div>
+                                <div class="mini-title">Items Vendidos</div>
+                                <div class="mini-value" id="stockItems">0</div>
+                            </div>
+                        </div>
+                        <div class="mini-card">
+                            <div class="mini-icon" style="background: rgba(16, 185, 129, 0.2); color:#34d399;">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div>
+                                <div class="mini-title">Ingresos Stock</div>
+                                <div class="mini-value" id="stockIngresos">$ 0</div>
+                            </div>
+                        </div>
+                        <div class="mini-card">
+                            <div class="mini-icon" style="background: rgba(99, 102, 241, 0.2); color:#a5b4fc;">
+                                <i class="fas fa-ticket-alt"></i>
+                            </div>
+                            <div>
+                                <div class="mini-title">Ticket Promedio</div>
+                                <div class="mini-value" id="stockTicket">$ 0</div>
+                            </div>
+                        </div>
+                        <div class="mini-card">
+                            <div class="mini-icon" style="background: rgba(250, 204, 21, 0.2); color:#facc15;">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <div class="mini-title">Categorías</div>
+                                <div class="mini-value" id="stockCategorias">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <table class="stock-table" id="tablaStock">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th style="text-align:center;">Cantidad</th>
+                                    <th style="text-align:right;">Precio Unit.</th>
+                                    <th style="text-align:right;">Total</th>
+                                    <th style="text-align:right;">% Venta</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="empty-state">Cargando ventas de stock...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <h3><i class="fas fa-chart-bar" style="color:#facc15;margin-right:8px;"></i> Horas usadas por sala</h3>
+                <table class="hours-table" id="tablaHorasSalas">
+                    <thead>
+                        <tr>
+                            <th>Nombre de la sala</th>
+                            <th style="text-align:right;">Cant/horas</th>
+                            <th style="text-align:left;">Nivel (0 - 100)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="3" class="empty-state">Cargando horas por sala...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+                    <div class="footer-space"></div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/database-service.js"></script>
+    <script src="../js/navigation-utils.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/theme-ux.js"></script>
+    <script src="../js/reportes-v2.js"></script>
+</body>
+</html>

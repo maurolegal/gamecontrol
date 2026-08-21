@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Gestión de Salas - GameControl</title>
+    <!-- Mobile Redirection Script -->
+    <script>
+        (function() {
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+            // Solo redirigir si es móvil y no estamos ya en la versión móvil (check preventivo)
+            // La redirección ocurrirá antes de cargar el resto de recursos pesados
+            if (isMobile && !window.location.href.includes('salas_mobile.html')) {
+                console.log('📱 Dispositivo móvil detectado, redirigiendo a versión móvil nativa...');
+                window.location.href = 'salas_mobile.html';
+            }
+        })();
+    </script>
+    <script>
+        (function(){
+            try {
+                var t = localStorage.getItem('theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.setAttribute('data-theme', t);
+            } catch(e) {}
+        })();
+    </script>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/styles.css">
+    <!-- Mobile Responsive CSS -->
+    <link rel="stylesheet" href="../css/mobile-responsive-pro.css">
+    
+    <!-- Estilos móviles corporativos para Salas -->
+    <link rel="stylesheet" href="../css/salas-mobile-corporate.css">
+    <!-- Estilos corporativos generales para Salas -->
+    <link rel="stylesheet" href="../css/salas-corporate.css">
+    <!-- Tema gamer inspirado en pages/mejora.html -->
+    <link rel="stylesheet" href="../css/salas-mejora-theme.css">
+    <script>window.ALLOW_CONTEXT_MENU = true;</script>
+    <script src="../js/security-production.js"></script>
+</head>
+<body class="salas-page salas-corporate salas-mejora">
+    <!-- Menú hamburguesa para móvil (Mochila al header) -->
+    <!-- <button class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </button> -->
+
+    <!-- Overlay para menú móvil -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 col-lg-2 d-md-block sidebar" id="sidebar">
+                <div class="logo">
+                    <h4><i class="fas fa-gamepad me-2"></i>GameControl</h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="salas.html">
+                            <i class="fas fa-door-open"></i> Salas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ventas.html">
+                            <i class="fas fa-cash-register"></i> Ventas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="gastos.html">
+                            <i class="fas fa-file-invoice-dollar"></i> Gastos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stock.html">
+                            <i class="fas fa-boxes"></i> Stock
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="reportes.html">
+                            <i class="fas fa-chart-bar"></i> Reportes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="usuarios.html">
+                            <i class="fas fa-users"></i> Usuarios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="ajustes.html">
+                            <i class="fas fa-cog"></i> Ajustes
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 col-lg-10 main-content">
+                <!-- Header -->
+                <div class="header">
+                    <div>
+                        <h3>Gestión de Salas</h3>
+                        <p class="text-muted mb-0 d-none d-md-block">Control y administración de salas gaming</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 gap-md-3">
+                        
+                        <!-- Notificaciones (Gestionado por JS) -->
+                        <!-- <div id="notification-placeholder"></div> -->
+
+                        <!-- Perfil de Usuario -->
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="user-info d-none d-md-flex flex-column text-end">
+                                <span class="fw-semibold mb-0 user-name" style="font-size: 0.9rem;">Cargando...</span>
+                                <small class="text-muted user-role">--</small>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-light dropdown-toggle d-flex align-items-center px-3" type="button" data-bs-toggle="dropdown">
+                                    <div class="user-avatar me-2">--</div>
+                                    <span class="d-md-none user-name d-none"></span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Mi Perfil</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-key me-2"></i> Cambiar Contraseña</a></li>
+                                    <li><a class="dropdown-item" href="ajustes.html"><i class="fas fa-cog me-2"></i> Configuración</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-item-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope me-1"></i>
+                                            <span class="user-email">--</span>
+                                        </small>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="#" onclick="window.navigationUtils.logout()"><i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Menú hamburguesa (Movido al header) -->
+                        <button class="menu-toggle-header d-md-none btn btn-primary" id="menuToggle" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Estadísticas Rápidas (Compactas 4 Lineales) -->
+                <div class="row mb-3 g-2">
+                    <div class="col-3">
+                        <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                            <div class="text-primary mb-1"><i class="fas fa-door-open fa-sm"></i></div>
+                            <h6 class="mb-0 fw-bold text-dark" id="totalSalas" style="font-size: 1rem;">0</h6>
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Total</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                            <div class="text-success mb-1"><i class="fas fa-check-circle fa-sm"></i></div>
+                            <h6 class="mb-0 fw-bold text-success" id="salasDisponibles" style="font-size: 1rem;">0</h6>
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Libres</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                            <div class="text-warning mb-1"><i class="fas fa-clock fa-sm"></i></div>
+                            <h6 class="mb-0 fw-bold text-warning" id="salasOcupadas" style="font-size: 1rem;">0</h6>
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">En Uso</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                            <div class="text-info mb-1"><i class="fas fa-dollar-sign fa-sm"></i></div>
+                            <h6 class="mb-0 fw-bold text-info" id="ingresosHoy" style="font-size: 0.9rem;">$0</h6>
+                            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Activo</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de Control -->
+                <div class="module-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5><i class="fas fa-gamepad me-2"></i>Salas Gaming</h5>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button class="btn btn-outline-primary" id="btnTarifas" data-bs-toggle="modal" data-bs-target="#modalTarifas">
+                                <i class="fas fa-dollar-sign d-md-inline d-none me-2"></i>
+                                <span class="d-md-inline d-none">Tarifas</span>
+                                <i class="fas fa-dollar-sign d-md-none"></i>
+                            </button>
+                            <button class="btn btn-outline-success" id="btnTienda" onclick="window.gestorSalas?.abrirTienda?.()">
+                                <i class="fas fa-store d-md-inline d-none me-2"></i>
+                                <span class="d-md-inline d-none">Tienda</span>
+                                <i class="fas fa-store d-md-none"></i>
+                            </button>
+                            <button class="btn btn-primary" id="btnNuevaSala" data-bs-toggle="modal" data-bs-target="#modalNuevaSala">
+                                <i class="fas fa-plus d-md-inline d-none me-2"></i>
+                                <span class="d-md-inline d-none">Nueva Sala</span>
+                                <i class="fas fa-plus d-md-none"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filtros Compactos -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="buscarSala" placeholder="Buscar por nombre o tipo...">
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="tipoSala" id="todas" value="todas" checked>
+                                <label class="btn btn-outline-primary" for="todas">Todas</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="playstation" value="playstation">
+                                <label class="btn btn-outline-primary" for="playstation">PlayStation</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="xbox" value="xbox">
+                                <label class="btn btn-outline-primary" for="xbox">Xbox</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="nintendo" value="nintendo">
+                                <label class="btn btn-outline-primary" for="nintendo">Nintendo</label>
+
+                                <input type="radio" class="btn-check" name="tipoSala" id="pc" value="pc">
+                                <label class="btn btn-outline-primary" for="pc">PC</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid de Salas Minimalista -->
+                    <div class="salas-grid-minimal" id="contenedorSalas">
+                        <!-- Las salas se generarán dinámicamente aquí -->
+                    </div>
+                </div>
+
+                <!-- Sesiones Activas -->
+                <div class="module-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-clock me-2"></i>Sesiones Activas</h5>
+                        <span class="badge bg-primary" id="contadorSesiones">0 activas</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle" id="tablaSesiones">
+                            <thead>
+                                <tr>
+                                    <th>Sala</th>
+                                    <th>Estación</th>
+                                    <th>Cliente</th>
+                                    <th>Tiempo</th>
+                                    <th>Tarifa</th>
+                                    <th>Total</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Las sesiones se generarán dinámicamente aquí -->
+                            </tbody>
+                        </table>
+                        <div class="text-center py-4 d-none" id="noSesiones">
+                            <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                            <p class="text-muted">No hay sesiones activas</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Movimiento Real (Hoy) -->
+                <div class="module-container" id="moduloMovimientoHoy">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Movimiento de Hoy</h5>
+                        <button class="btn btn-outline-secondary btn-sm" id="btnActualizarMovimientoHoy" type="button">
+                            <i class="fas fa-rotate me-1"></i>Actualizar
+                        </button>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-primary mb-1"><i class="fas fa-play fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyIniciadas" style="font-size: 1rem;">0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Iniciadas</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-success mb-1"><i class="fas fa-flag-checkered fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyCerradas" style="font-size: 1rem;">0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Cerradas</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-info mb-1"><i class="fas fa-list fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyRegistros" style="font-size: 1rem;">0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Registros</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card border-0 shadow-sm text-center py-2 h-100 bg-white">
+                                <div class="text-warning mb-1"><i class="fas fa-cash-register fa-sm"></i></div>
+                                <h6 class="mb-0 fw-bold text-dark" id="movHoyTotalCobrado" style="font-size: 0.95rem;">$0</h6>
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.6rem;">Cobrado hoy</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Inicio</th>
+                                    <th>Cierre</th>
+                                    <th>Sala</th>
+                                    <th>Estación</th>
+                                    <th>Cliente</th>
+                                    <th>Estado</th>
+                                    <th>Pago</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaMovimientoHoyBody">
+                                <tr>
+                                    <td colspan="8" class="text-center py-3 text-muted">Cargando movimiento de hoy...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nueva Sala -->
+    <div class="modal fade" id="modalNuevaSala" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nueva Sala</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formNuevaSala">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Nombre de la Sala</label>
+                                <input type="text" class="form-control" name="nombre" placeholder="Ej: Sala PlayStation 1" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Tipo</label>
+                                <select class="form-select" name="tipo" required>
+                                    <option value="">Seleccionar tipo</option>
+                                    <option value="playstation">PlayStation</option>
+                                    <option value="xbox">Xbox</option>
+                                    <option value="nintendo">Nintendo</option>
+                                    <option value="pc">PC Gaming</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Estaciones</label>
+                                <input type="number" class="form-control" name="estaciones" min="1" max="20" value="4" required>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label">Prefijo</label>
+                                <input type="text" class="form-control" name="prefijo" placeholder="PS, XB, PC..." maxlength="3" required>
+                            </div>
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Las tarifas se configuran desde el botón <strong>Tarifas</strong>.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Crear Sala
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Iniciar Sesión -->
+    <div class="modal fade" id="modalIniciarSesion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0 pb-2">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-play me-2 text-primary"></i>Iniciar Sesión
+                    </h5>
+                    <!-- Botón de cierre visible solo en PC (clase d-none d-md-block) para mantener estética nativa limpia en móvil -->
+                    <button type="button" class="btn-close d-none d-md-block" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formIniciarSesion">
+                    <div class="modal-body pt-2">
+                        <!-- Cliente -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted mb-1">Cliente</label>
+                            <input type="text" class="form-control form-control-lg" name="cliente" placeholder="Nombre del cliente (opcional)" autocomplete="off">
+                        </div>
+
+                        <!-- Estación -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted mb-1">Estación</label>
+                            <select class="form-select form-select-lg" name="estacion" id="selectEstacion" required>
+                                <!-- Las estaciones se cargarán dinámicamente -->
+                            </select>
+                        </div>
+
+                        <!-- Duración -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold small text-muted mb-2">Duración</label>
+                            <div id="opcionesTiempo">
+                                <!-- Las opciones de tiempo se generarán dinámicamente -->
+                            </div>
+                        </div>
+
+                        <!-- Tiempo personalizado visible solo en PC -->
+                        <div class="mb-3 d-none d-md-block">
+                            <label class="form-label fw-semibold small text-muted mb-1">Tiempo personalizado</label>
+                            <div class="input-group input-group-lg">
+                                <input type="number" class="form-control" name="tiempoPersonalizado" min="1" step="1" placeholder="Ej: 75" inputmode="numeric">
+                                <span class="input-group-text">min</span>
+                            </div>
+                            <div class="form-text">Si escribes aquí, se usa este tiempo y se ignoran las opciones de arriba.</div>
+                        </div>
+
+                        <!-- Total -->
+                        <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-3">
+                            <span class="text-muted">Total a pagar:</span>
+                            <span id="costoEstimado" class="h4 mb-0 text-success fw-bold">$0</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-play me-2"></i>Iniciar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Configurar Tarifas -->
+    <div class="modal fade" id="modalTarifas" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-dollar-sign me-2"></i>Configurar Tarifas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formTarifas">
+                    <div class="modal-body">
+                        <div id="contenedorTarifas">
+                            <!-- Las tarifas se generarán dinámicamente -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- ===== SUPABASE SDK (CARGAR PRIMERO) ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <script src="../js/supabase-config.js"></script>
+    <script src="../js/database-service.js"></script>
+    
+    <!-- ===== SCRIPTS DE AUTENTICACIÓN ===== -->
+    <script src="../js/auth.js"></script>
+    
+    <!-- Utilidades de Navegación -->
+    <script src="../js/navigation-utils.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../js/notifications.js"></script>
+    <script src="../js/theme-ux.js"></script>
+    <script src="../js/stock.js"></script>
+    <script src="../js/salas.js"></script>
+    
+    <!-- Funcionalidad Móvil (Debe ir DESPUÉS de salas.js) -->
+    <script src="../js/mobile-compatibility.js"></script>
+    <script src="../js/main.js"></script>
+    
+    <!-- Modal Editar Sala -->
+    <div class="modal fade" id="modalEditarSala" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Editar Sala</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formEditarSala">
+                    <div class="modal-body">
+                        <input type="hidden" id="editarSalaId" name="salaId">
+                        <input type="hidden" id="editarIconoUrl" name="iconoUrl">
+                        
+                        <div class="mb-3">
+                            <label for="editarNombre" class="form-label">Nombre de la Sala</label>
+                            <input type="text" class="form-control" id="editarNombre" name="nombre" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editarTipo" class="form-label">Tipo de Consola</label>
+                            <select class="form-select" id="editarTipo" name="tipo" required>
+                                <option value="playstation">PlayStation</option>
+                                <option value="xbox">Xbox</option>
+                                <option value="pc">PC Gaming</option>
+                                <option value="nintendo">Nintendo</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editarNumEstaciones" class="form-label">Número de Estaciones</label>
+                            <input type="number" class="form-control" id="editarNumEstaciones" name="numEstaciones" min="1" max="20" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="editarPrefijo" class="form-label">Prefijo de Estaciones</label>
+                            <input type="text" class="form-control" id="editarPrefijo" name="prefijo" placeholder="Ej: EST" required>
+                        </div>
+
+                        <!-- Ícono de la sala (Cloudinary) -->
+                        <div class="mb-3">
+                            <label class="form-label">Ícono de la Sala</label>
+                            <div class="d-flex align-items-center gap-3 mb-2">
+                                <div id="editarIconoPreview" class="rounded-3 border border-secondary d-flex align-items-center justify-content-center overflow-hidden"
+                                     style="width:64px;height:64px;background:rgba(255,255,255,0.05);flex-shrink:0;">
+                                    <i class="fas fa-image text-secondary fa-2x" id="editarIconoPlaceholder"></i>
+                                    <img id="editarIconoImg" src="" alt="Ícono" class="d-none w-100 h-100" style="object-fit:cover;">
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="file" class="form-control form-control-sm" id="editarIconoFile"
+                                           accept="image/png,image/jpeg,image/webp,image/gif"
+                                           onchange="window.gestorSalas.previsualizarIcono(this)">
+                                    <small class="text-muted">JPG / PNG / WebP · se sube a Cloudinary</small>
+                                    <div id="editarIconoProgress" class="d-none mt-1">
+                                        <div class="progress" style="height:4px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success w-100"></div>
+                                        </div>
+                                        <small class="text-success">Subiendo imagen…</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="editarIconoUrlDisplay" class="d-none">
+                                <small class="text-success"><i class="fas fa-check-circle me-1"></i>Imagen cargada correctamente</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Trasladar Sesión -->
+    <div class="modal fade" id="modalTrasladarSesion" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-exchange-alt me-2"></i>Trasladar Sesión</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="formTrasladarSesion">
+                    <div class="modal-body">
+                        <input type="hidden" id="trasladarSesionId" name="sesionId">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Sesión Actual</label>
+                            <div class="alert alert-info">
+                                <strong id="infoSesionActual">Cargando...</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="trasladarSala" class="form-label">Nueva Sala</label>
+                            <select class="form-select" id="trasladarSala" name="salaId" required>
+                                <!-- Las salas se cargarán dinámicamente -->
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="trasladarEstacion" class="form-label">Nueva Estación</label>
+                            <select class="form-select" id="trasladarEstacion" name="estacion" required>
+                                <!-- Las estaciones se cargarán dinámicamente -->
+                            </select>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Nota:</strong> El traslado mantendrá el tiempo restante y los productos asociados a la sesión.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-warning" onclick="window.gestorSalas?.ejecutarTrasladoSesion()">
+                            <i class="fas fa-exchange-alt me-2"></i>Trasladar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== VERIFICACIÓN DE AUTENTICACIÓN FINAL ===== -->
+    <script>
+        // Verificación final que usa navigation-utils
+        function syncSalasThemeClass() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            document.body.classList.toggle('salas-mejora', isDark);
+        }
+
+        // Sincronizar al cargar y ante cambios de tema
+        document.addEventListener('DOMContentLoaded', syncSalasThemeClass);
+        window.addEventListener('themeChanged', syncSalasThemeClass);
+
+        window.addEventListener('load', function() {
+            console.log('🔍 Verificación final de autenticación en salas.html...');
+            
+            // Esperar a que navigation-utils esté disponible
+            setTimeout(function() {
+                if (window.navigationUtils && window.navigationUtils.checkAndRedirectIfNeeded) {
+                    console.log('ℹ️ Usando navigation-utils para verificación de autenticación');
+                    window.navigationUtils.checkAndRedirectIfNeeded();
+                } else if (window.supabaseConfig?.getSupabaseClient) {
+                    console.log('⚠️ navigation-utils no disponible, verificando con Supabase');
+                    window.supabaseConfig.getSupabaseClient().then(client => client.auth.getSession())
+                        .then(({ data }) => {
+                            if (!data?.session) {
+                                console.log('❌ No hay sesión, redirigiendo al login...');
+                                window.location.href = '../login.html';
+                            }
+                        })
+                        .catch(() => {
+                            window.location.href = '../login.html';
+                        });
+                }
+                
+                // Inicializar menú móvil simplificado
+                setTimeout(() => {
+                    const menuToggle = document.getElementById('menuToggle');
+                    const sidebar = document.querySelector('.sidebar');
+                    const overlay = document.getElementById('sidebarOverlay');
+                    
+                    console.log('📱 Inicializando menú móvil...');
+                    
+                    if (menuToggle && sidebar && overlay) {
+                        // Limpiar event listeners previos
+                        const newMenuToggle = menuToggle.cloneNode(true);
+                        menuToggle.parentNode.replaceChild(newMenuToggle, menuToggle);
+                        
+                        const newOverlay = overlay.cloneNode(true);
+                        overlay.parentNode.replaceChild(newOverlay, overlay);
+                        
+                        // Agregar nuevos event listeners
+                        newMenuToggle.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const isOpen = sidebar.classList.contains('show');
+                            
+                            if (isOpen) {
+                                sidebar.classList.remove('show');
+                                newOverlay.classList.remove('show');
+                                document.body.classList.remove('menu-open');
+                                newMenuToggle.classList.remove('active');
+                            } else {
+                                sidebar.classList.add('show');
+                                newOverlay.classList.add('show');
+                                document.body.classList.add('menu-open');
+                                newMenuToggle.classList.add('active');
+                            }
+                            
+                            console.log('Menú:', isOpen ? 'cerrado' : 'abierto');
+                        });
+                        
+                        // Cerrar con overlay
+                        newOverlay.addEventListener('click', function() {
+                            sidebar.classList.remove('show');
+                            newOverlay.classList.remove('show');
+                            document.body.classList.remove('menu-open');
+                            newMenuToggle.classList.remove('active');
+                        });
+                        
+                        // Cerrar con enlaces
+                        sidebar.querySelectorAll('.nav-link').forEach(link => {
+                            link.addEventListener('click', function() {
+                                if (window.innerWidth <= 768) {
+                                    sidebar.classList.remove('show');
+                                    newOverlay.classList.remove('show');
+                                    document.body.classList.remove('menu-open');
+                                    newMenuToggle.classList.remove('active');
+                                }
+                            });
+                        });
+                        
+                        console.log('✅ Menú móvil inicializado correctamente');
+                    } else {
+                        console.log('❌ No se encontraron todos los elementos del menú');
+                    }
+                }, 500);
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crear Tabla Clientes - GameControl CRM</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #0B0F19 0%, #1A1C23 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #fff;
+    }
+    
+    .container {
+      background: rgba(26, 28, 35, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .subtitle {
+      color: #9CA3AF;
+      margin-bottom: 30px;
+      font-size: 16px;
+    }
+    
+    .info-box {
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .info-box h3 {
+      color: #A855F7;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    
+    .info-box p {
+      color: #D1D5DB;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+    
+    .info-box ul {
+      color: #9CA3AF;
+      margin-left: 20px;
+      line-height: 1.8;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .feature-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+    }
+
+    .feature-card h4 {
+      color: #EC4899;
+      font-size: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .feature-card ul {
+      list-style: none;
+      color: #9CA3AF;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .feature-card li {
+      padding-left: 15px;
+      position: relative;
+    }
+
+    .feature-card li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #10B981;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #A855F7 0%, #EC4899 100%);
+      color: white;
+      box-shadow: 0 4px 20px rgba(168, 85, 247, 0.3);
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(168, 85, 247, 0.4);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    #resultado {
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 12px;
+      display: none;
+    }
+    
+    #resultado.exito {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #10B981;
+      display: block;
+    }
+    
+    #resultado.error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #EF4444;
+      display: block;
+    }
+    
+    pre {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid #A855F7;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+    
+    .spinner.active {
+      display: inline-block;
+    }
+
+    details {
+      margin-top: 15px;
+    }
+
+    summary {
+      cursor: pointer;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      font-weight: 600;
+    }
+
+    summary:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>👥 Crear Sistema CRM de Clientes</h1>
+    <p class="subtitle">Sistema completo de gestión de clientes con historial y promociones</p>
+    
+    <div class="info-box">
+      <h3>📊 Características del Sistema CRM</h3>
+      
+      <div class="features-grid">
+        <div class="feature-card">
+          <h4>👤 Datos del Cliente</h4>
+          <ul>
+            <li>Nombre completo</li>
+            <li>Email y teléfono</li>
+            <li>Documento y dirección</li>
+            <li>Fecha de nacimiento</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h4>📈 Estadísticas</h4>
+          <ul>
+            <li>Total gastado histórico</li>
+            <li>Horas jugadas totales</li>
+            <li>Número de sesiones</li>
+            <li>Puntos de lealtad</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h4>💰 Sistema de Lealtad</h4>
+          <ul>
+            <li>Puntos acumulados</li>
+            <li>Categorías (Nuevo, Regular, VIP, Premium)</li>
+            <li>Saldo de cuenta prepago</li>
+            <li>Sistema de referidos</li>
+          </ul>
+        </div>
+
+        <div class="feature-card">
+          <h4>🎯 Marketing</h4>
+          <ul>
+            <li>Promociones personalizadas</li>
+            <li>Emails y SMS marketing</li>
+            <li>Promoción de cumpleaños</li>
+            <li>Etiquetas personalizadas</li>
+          </ul>
+        </div>
+      </div>
+
+      <p style="margin-top: 20px;"><strong>⚡ Actualización Automática:</strong> Las estadísticas del cliente se actualizan automáticamente cuando finaliza cada sesión mediante triggers de base de datos.</p>
+    </div>
+    
+    <button id="btnCrear" class="btn btn-primary">
+      <span id="btnTexto">🚀 Crear Tabla Clientes</span>
+      <div id="spinner" class="spinner"></div>
+    </button>
+    
+    <div id="resultado"></div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/+esm';
+
+    const SUPABASE_URL = 'https://ygmpqvsehvdhvxuqshmm.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlnbXBxdnNlaHZkaHZ4dXFzaG1tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc2ODA3NzMsImV4cCI6MjA1MzI1Njc3M30.eHv3qO0wvbPWBa5BdovghWj7BhDOB-EHEoUG0BU3BKc';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const btnCrear = document.getElementById('btnCrear');
+    const btnTexto = document.getElementById('btnTexto');
+    const spinner = document.getElementById('spinner');
+    const resultado = document.getElementById('resultado');
+
+    btnCrear.addEventListener('click', async () => {
+      btnCrear.disabled = true;
+      btnTexto.textContent = 'Creando sistema CRM...';
+      spinner.classList.add('active');
+      resultado.style.display = 'none';
+
+      try {
+        // Primero verificar si la tabla ya existe
+        const { data: checkData, error: checkError } = await supabase
+          .from('clientes')
+          .select('id')
+          .limit(1);
+
+        if (!checkError) {
+          // La tabla ya existe
+          resultado.className = 'exito';
+          resultado.innerHTML = \`
+            <strong>✅ Sistema CRM ya configurado</strong>
+            <p>La tabla 'clientes' ya está creada en la base de datos.</p>
+            <p style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(16, 185, 129, 0.3);">
+              <strong>Siguiente paso:</strong> Ve a la sección de Clientes para empezar a registrar clientes.
+            </p>
+          \`;
+          return;
+        }
+
+        // Si no existe, mostrar instrucciones para crear manualmente
+        if (checkError && checkError.code === '42P01') {
+          resultado.className = 'error';
+          resultado.innerHTML = \`
+            <strong>⚠️ Tabla no encontrada</strong>
+            <p>La tabla 'clientes' no existe. Debes crearla manualmente en Supabase.</p>
+            
+            <details>
+              <summary style="color: #EC4899; font-weight: 600; margin-top: 15px;">
+                📋 Ver SQL completo para ejecutar en Supabase
+              </summary>
+              <pre>-- ===================================================
+-- SISTEMA CRM DE CLIENTES - GameControl
+-- ===================================================
+
+CREATE TABLE IF NOT EXISTS clientes (
+  id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  
+  -- Información básica
+  nombre TEXT NOT NULL,
+  email TEXT UNIQUE,
+  telefono TEXT,
+  fecha_nacimiento DATE,
+  
+  -- Información adicional
+  documento TEXT,
+  direccion TEXT,
+  ciudad TEXT,
+  
+  -- Sistema de lealtad
+  puntos_acumulados INTEGER DEFAULT 0,
+  total_gastado NUMERIC(12,2) DEFAULT 0,
+  total_horas_jugadas NUMERIC(8,2) DEFAULT 0,
+  total_sesiones INTEGER DEFAULT 0,
+  
+  -- Balance de cuenta (prepago)
+  saldo_cuenta NUMERIC(12,2) DEFAULT 0,
+  
+  -- Clasificación
+  categoria TEXT DEFAULT 'regular',
+  estado TEXT DEFAULT 'activo',
+  
+  -- Fechas importantes
+  fecha_registro TIMESTAMPTZ DEFAULT NOW(),
+  ultima_visita TIMESTAMPTZ,
+  fecha_cumpleanos_promo TIMESTAMPTZ,
+  
+  -- Notas y observaciones
+  notas TEXT,
+  preferencias JSONB DEFAULT '{}',
+  
+  -- Marketing
+  acepta_promociones BOOLEAN DEFAULT TRUE,
+  acepta_emails BOOLEAN DEFAULT TRUE,
+  acepta_sms BOOLEAN DEFAULT FALSE,
+  
+  -- Metadata
+  tags TEXT[],
+  referido_por BIGINT REFERENCES clientes(id),
+  
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Índices
+CREATE INDEX idx_clientes_nombre ON clientes(nombre);
+CREATE INDEX idx_clientes_email ON clientes(email);
+CREATE INDEX idx_clientes_telefono ON clientes(telefono);
+CREATE INDEX idx_clientes_categoria ON clientes(categoria);
+CREATE INDEX idx_clientes_estado ON clientes(estado);
+CREATE INDEX idx_clientes_puntos ON clientes(puntos_acumulados DESC);
+CREATE INDEX idx_clientes_total_gastado ON clientes(total_gastado DESC);
+CREATE INDEX idx_clientes_ultima_visita ON clientes(ultima_visita DESC);
+
+-- Trigger para updated_at
+CREATE OR REPLACE FUNCTION update_clientes_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_clientes_updated_at
+  BEFORE UPDATE ON clientes
+  FOR EACH ROW
+  EXECUTE FUNCTION update_clientes_updated_at();
+
+-- Función para actualizar estadísticas automáticamente
+CREATE OR REPLACE FUNCTION actualizar_stats_cliente()
+RETURNS TRIGGER AS $$
+DECLARE
+  cliente_id BIGINT;
+BEGIN
+  -- Buscar o crear cliente por nombre
+  SELECT id INTO cliente_id FROM clientes WHERE nombre = NEW.cliente LIMIT 1;
+  
+  IF cliente_id IS NULL THEN
+    INSERT INTO clientes (nombre, ultima_visita)
+    VALUES (NEW.cliente, NOW())
+    RETURNING id INTO cliente_id;
+  END IF;
+  
+  -- Actualizar estadísticas cuando finaliza una sesión
+  IF NEW.estado = 'finalizada' AND (OLD.estado IS NULL OR OLD.estado != 'finalizada') THEN
+    UPDATE clientes SET
+      total_sesiones = total_sesiones + 1,
+      total_horas_jugadas = total_horas_jugadas + (EXTRACT(EPOCH FROM (NEW.fecha_fin - NEW.fecha_inicio)) / 3600),
+      total_gastado = total_gastado + COALESCE(NEW.total_pagado, NEW.tarifa, 0),
+      ultima_visita = NEW.fecha_fin,
+      puntos_acumulados = puntos_acumulados + FLOOR(COALESCE(NEW.total_pagado, NEW.tarifa, 0) / 1000)::INTEGER
+    WHERE id = cliente_id;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger en sesiones para actualizar stats
+CREATE TRIGGER trigger_actualizar_stats_cliente
+  AFTER INSERT OR UPDATE ON sesiones
+  FOR EACH ROW
+  WHEN (NEW.cliente IS NOT NULL)
+  EXECUTE FUNCTION actualizar_stats_cliente();</pre>
+            </details>
+
+            <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(239, 68, 68, 0.3);">
+              <strong>📝 Instrucciones:</strong><br>
+              1. Ve al SQL Editor de Supabase<br>
+              2. Copia y pega el código SQL de arriba<br>
+              3. Ejecuta el script<br>
+              4. Configura las políticas RLS según tus necesidades
+            </p>
+          \`;
+        } else {
+          throw checkError;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        resultado.className = 'error';
+        resultado.innerHTML = \`
+          <strong>❌ Error al verificar la tabla</strong>
+          <p>\${error.message}</p>
+          <p style="margin-top: 15px;">
+            Por favor, ejecuta manualmente el SQL en Supabase. 
+            Puedes encontrar el script completo en <code>sql/crear_tabla_clientes.sql</code>
+          </p>
+        \`;
+      } finally {
+        btnCrear.disabled = false;
+        btnTexto.textContent = '🚀 Crear Tabla Clientes';
+        spinner.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>

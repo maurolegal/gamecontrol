@@ -1,0 +1,101 @@
+jpblomejia@gmail.comjpblomejia@gmail.com <!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameControl - Test Carga</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .log { margin: 5px 0; padding: 5px; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        .info { background: #d1ecf1; }
+    </style>
+</head>
+<body>
+    <h1>Test de Carga de Scripts</h1>
+    <div id="log"></div>
+    <hr>
+    <button onclick="testAuth()">Test Auth</button>
+    <button onclick="goToIndex()">Ir a Index Normal</button>
+
+    <script>
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit', hour12: true})}] ${msg}`;
+            document.getElementById('log').appendChild(div);
+            console.log(msg);
+        }
+
+        function testAuth() {
+            log('Testing Auth...', 'info');
+            log('window.sessionManager: ' + typeof window.sessionManager, window.sessionManager ? 'success' : 'error');
+            log('window.authSystem: ' + typeof window.authSystem, window.authSystem ? 'success' : 'error');
+            log('localStorage sesionActual: ' + !!localStorage.getItem('sesionActual'), 'info');
+        }
+
+        function goToIndex() {
+            window.location.href = 'index.html';
+        }
+
+        // Cargar scripts uno por uno con logs
+        log('Iniciando carga de scripts...', 'info');
+    </script>
+
+    <!-- 1. Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js" 
+            onload="log('✅ Supabase CDN cargado', 'success')"
+            onerror="log('❌ Error cargando Supabase CDN', 'error')">
+    </script>
+    
+    <!-- 2. Configuración -->
+    <script src="js/supabase-config.js"
+            onload="log('✅ supabase-config.js cargado', 'success')"
+            onerror="log('❌ Error cargando supabase-config.js', 'error')">
+    </script>
+    
+    <!-- 3. Database Service -->
+    <script src="js/database-service.js"
+            onload="log('✅ database-service.js cargado', 'success')"
+            onerror="log('❌ Error cargando database-service.js', 'error')">
+    </script>
+    
+    <!-- 4. Auth -->
+    <script src="js/auth.js"
+            onload="log('✅ auth.js cargado', 'success')"
+            onerror="log('❌ Error cargando auth.js', 'error')">
+    </script>
+    
+    <!-- 5. Notifications -->
+    <script src="js/notifications.js"
+            onload="log('✅ notifications.js cargado', 'success')"
+            onerror="log('❌ Error cargando notifications.js', 'error')">
+    </script>
+
+    <script>
+        setTimeout(() => {
+            log('=== Estado después de 2 segundos ===', 'info');
+            log('window.supabase: ' + typeof window.supabase, window.supabase ? 'success' : 'error');
+            log('window.supabaseConfig: ' + typeof window.supabaseConfig, window.supabaseConfig ? 'success' : 'error');
+            log('window.databaseService: ' + typeof window.databaseService, window.databaseService ? 'success' : 'error');
+            log('window.sessionManager: ' + typeof window.sessionManager, window.sessionManager ? 'success' : 'error');
+            log('window.authSystem: ' + typeof window.authSystem, window.authSystem ? 'success' : 'error');
+            log('window.mostrarNotificacion: ' + typeof window.mostrarNotificacion, window.mostrarNotificacion ? 'success' : 'error');
+            
+            // Verificar localStorage
+            const sesion = localStorage.getItem('sesionActual');
+            if (sesion) {
+                try {
+                    const parsed = JSON.parse(sesion);
+                    log('✅ Sesión en localStorage: ' + parsed.nombre + ' (' + parsed.rol + ')', 'success');
+                } catch (e) {
+                    log('❌ Error parseando sesión', 'error');
+                }
+            } else {
+                log('⚠️ No hay sesión en localStorage', 'error');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

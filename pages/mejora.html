@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Control - NEMESIS Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-color: #0f172a; /* Azul oscuro corporativo/gamer */
+            --card-bg: #1e293b;
+            --accent-color: #3b82f6; /* Azul brillante */
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --danger: #ef4444;
+            --success: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* --- HEADER & DASHBOARD --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 20px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            letter-spacing: 1px;
+        }
+
+        .brand span {
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        .stats-panel {
+            background: var(--card-bg);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .total-revenue {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+        /* --- GRID DE ESTACIONES --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .station-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Efecto cuando la estación está activa */
+        .station-card.active {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .station-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .station-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 20px;
+            background: #334155;
+            color: var(--text-muted);
+        }
+
+        .station-card.active .status-badge {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        /* --- CONTROLES Y TIEMPO --- */
+        .timer-display {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            font-variant-numeric: tabular-nums; /* Evita que los números salten */
+            margin: 15px 0;
+            color: var(--text-main);
+        }
+
+        .client-input {
+            width: 93%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            cursor: pointer;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-start { background: var(--accent-color); color: white; }
+        .btn-start:hover { background: #2563eb; }
+
+        .btn-stop { background: var(--danger); color: white; }
+        .btn-stop:hover { background: #dc2626; }
+
+        .btn-stop:disabled, .btn-start:disabled {
+            background: #334155;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        /* --- SECCIÓN DE EXTRAS (GASEOSAS/SNACKS) --- */
+        .extras-section {
+            border-top: 1px solid #334155;
+            padding-top: 15px;
+        }
+        
+        .extras-title {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .extras-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-extra {
+            background: #334155;
+            color: var(--text-main);
+            font-size: 0.8rem;
+            padding: 6px 10px;
+        }
+        
+        .btn-extra:hover { background: #475569; }
+
+        .current-bill {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            color: var(--success);
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <h1><i class="fa-solid fa-gamepad"></i> NEMESIS <span>SYSTEM</span></h1>
+            <small style="color: var(--text-muted);">Panel de Control Valledupar</small>
+        </div>
+        <div class="stats-panel">
+            <div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Ventas del Día</div>
+                <div class="total-revenue" id="dailyTotal">$0</div>
+            </div>
+            <i class="fa-solid fa-chart-line fa-xl" style="color: var(--text-muted);"></i>
+        </div>
+    </header>
+
+    <div class="grid-container" id="stationsGrid">
+        </div>
+
+    <script>
+        // CONFIGURACIÓN PRECIOS
+        const PRECIO_HORA = 4000; // Ajusta según tu tarifa real
+        const PRECIO_GASEOSA = 2500;
+        const PRECIO_PAQUETE = 2000;
+
+        // ESTADO DE LAS ESTACIONES (Simulando tu inventario)
+        let stations = [
+            { id: 1, name: "PS5 - 01", type: "ps5", active: false, startTime: null, interval: null, extras: 0, client: "" },
+            { id: 2, name: "PS5 - 02", type: "ps5", active: false, startTime: null, interval: null, extras: 0, client: "" },
+            { id: 3, name: "PS5 - 03", type: "ps5", active: false, startTime: null, interval: null, extras: 0, client: "" },
+            { id: 4, name: "Xbox Series X - 01", type: "xbox", active: false, startTime: null, interval: null, extras: 0, client: "" },
+            { id: 5, name: "Xbox Series X - 02", type: "xbox", active: false, startTime: null, interval: null, extras: 0, client: "" },
+            { id: 6, name: "PS4 - 01", type: "ps4", active: false, startTime: null, interval: null, extras: 0, client: "" },
+        ];
+
+        let dailyRevenue = 0;
+
+        // FUNCIÓN PARA RENDERIZAR LAS ESTACIONES
+        function renderStations() {
+            const grid = document.getElementById('stationsGrid');
+            grid.innerHTML = '';
+
+            stations.forEach(station => {
+                // Icono según consola
+                let icon = station.type === 'xbox' ? 'fa-xbox' : 'fa-playstation';
+                let colorClass = station.active ? 'active' : '';
+                let statusText = station.active ? 'OCUPADO' : 'DISPONIBLE';
+
+                const card = document.createElement('div');
+                card.className = `station-card ${colorClass}`;
+                card.innerHTML = `
+                    <div class="station-header">
+                        <div class="station-title">
+                            <i class="fa-brands ${icon}"></i> ${station.name}
+                        </div>
+                        <span class="status-badge">${statusText}</span>
+                    </div>
+
+                    <input type="text" id="client-${station.id}" class="client-input" placeholder="Nombre del Cliente" value="${station.client}" ${station.active ? 'readonly' : ''}>
+
+                    <div class="timer-display" id="timer-${station.id}">00:00:00</div>
+
+                    <div class="controls">
+                        <button class="btn-start" onclick="startStation(${station.id})" ${station.active ? 'disabled' : ''}>
+                            <i class="fa-solid fa-play"></i> INICIAR
+                        </button>
+                        <button class="btn-stop" onclick="stopStation(${station.id})" ${!station.active ? 'disabled' : ''}>
+                            <i class="fa-solid fa-stop"></i> COBRAR
+                        </button>
+                    </div>
+
+                    <div class="extras-section">
+                        <div class="extras-title">Agregar Consumo (Extras)</div>
+                        <div class="extras-buttons">
+                            <button class="btn-extra" onclick="addExtra(${station.id}, ${PRECIO_GASEOSA})">🥤 Gaseosa</button>
+                            <button class="btn-extra" onclick="addExtra(${station.id}, ${PRECIO_PAQUETE})">🍟 Paquete</button>
+                            <button class="btn-extra" onclick="addExtra(${station.id}, 1000)">➕ $1k</button>
+                        </div>
+                        <div class="current-bill">
+                            <span>Total Actual:</span>
+                            <span id="bill-${station.id}">$${station.extras.toLocaleString()}</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // INICIAR TIEMPO
+        function startStation(id) {
+            const station = stations.find(s => s.id === id);
+            const clientName = document.getElementById(`client-${id}`).value;
+
+            if (clientName.trim() === "") {
+                alert("Por favor, ingresa el nombre del cliente.");
+                return;
+            }
+
+            station.active = true;
+            station.startTime = new Date();
+            station.client = clientName;
+            
+            // Actualizar interfaz inmediatamente para mostrar estado activo
+            renderStations(); 
+            
+            // Iniciar intervalo
+            station.interval = setInterval(() => {
+                updateTimer(id);
+            }, 1000);
+        }
+
+        // ACTUALIZAR TEMPORIZADOR Y COSTO
+        function updateTimer(id) {
+            const station = stations.find(s => s.id === id);
+            const now = new Date();
+            const diff = now - station.startTime;
+
+            // Formato HH:MM:SS
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+
+            const timeString = 
+                (hours < 10 ? "0" + hours : hours) + ":" + 
+                (minutes < 10 ? "0" + minutes : minutes) + ":" + 
+                (seconds < 10 ? "0" + seconds : seconds);
+
+            // Cálculo de precio (Tiempo + Extras)
+            // Precio se cobra por minuto o fracción para este ejemplo
+            const minutesTotal = Math.ceil(diff / 60000);
+            const timeCost = (minutesTotal / 60) * PRECIO_HORA;
+            const total = Math.ceil(timeCost + station.extras); // Redondear hacia arriba
+
+            // Actualizar DOM (solo los elementos necesarios para no redibujar todo)
+            document.getElementById(`timer-${id}`).innerText = timeString;
+            document.getElementById(`bill-${id}`).innerText = "$" + total.toLocaleString();
+        }
+
+        // AGREGAR EXTRAS
+        function addExtra(id, amount) {
+            const station = stations.find(s => s.id === id);
+            if (!station.active) {
+                alert("Primero debes iniciar el tiempo para agregar consumo.");
+                return;
+            }
+            station.extras += amount;
+            // Forzar actualización visual inmediata del precio
+            const timerElem = document.getElementById(`timer-${id}`);
+            if(timerElem) {
+                // Si el timer está corriendo, se actualiza solo, pero actualizamos el texto del precio manual
+                let currentText = document.getElementById(`bill-${id}`);
+                // Recalculamos rápido visualmente
+                const now = new Date();
+                const diff = now - station.startTime;
+                const minutesTotal = Math.ceil(diff / 60000);
+                const timeCost = (minutesTotal / 60) * PRECIO_HORA;
+                const total = Math.ceil(timeCost + station.extras);
+                currentText.innerText = "$" + total.toLocaleString();
+            }
+        }
+
+        // FINALIZAR Y COBRAR
+        function stopStation(id) {
+            const station = stations.find(s => s.id === id);
+            
+            if(!confirm(`¿Finalizar sesión de ${station.client}?`)) return;
+
+            clearInterval(station.interval);
+            
+            // Calcular total final
+            const now = new Date();
+            const diff = now - station.startTime;
+            const minutesTotal = Math.ceil(diff / 60000); // Cobro mínimo por minuto
+            const timeCost = (minutesTotal / 60) * PRECIO_HORA;
+            const finalTotal = Math.ceil(timeCost + station.extras); // Redondear a peso entero
+
+            // Sumar al total del día
+            dailyRevenue += finalTotal;
+            document.getElementById('dailyTotal').innerText = "$" + dailyRevenue.toLocaleString();
+
+            // Mostrar resumen
+            alert(`RESUMEN DE COBRO\n\nCliente: ${station.client}\nEstación: ${station.name}\nTIEMPO: ${Math.floor(minutesTotal)} min\nEXTRAS: $${station.extras}\n----------------\nTOTAL A PAGAR: $${finalTotal.toLocaleString()}`);
+
+            // Resetear estación
+            station.active = false;
+            station.startTime = null;
+            station.interval = null;
+            station.extras = 0;
+            station.client = "";
+            
+            renderStations();
+        }
+
+        // INICIALIZACIÓN
+        renderStations();
+
+    </script>
+</body>
+</html>
