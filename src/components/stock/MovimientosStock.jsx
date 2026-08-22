@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ArrowUpDown, Search, Package, ArrowDown, ArrowUp,
-  ShoppingCart, RotateCcw, AlertTriangle, RefreshCw,
+  ShoppingCart, RotateCcw, AlertTriangle, RefreshCw, ChevronDown,
 } from 'lucide-react';
 import * as db from '../../lib/databaseService';
 
@@ -31,10 +31,13 @@ const TIPOS = {
 };
 
 const POR_PAGINA = 20;
+const LOTE_CARGA = 100; // registros que se piden a Supabase por petición
 
 export default function MovimientosStock() {
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(false);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  const [hayMas, setHayMas] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [pagina, setPagina] = useState(1);
@@ -42,18 +45,42 @@ export default function MovimientosStock() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
+      // Pedir el primer lote (0..LOTE_CARGA-1). Si devuelve menos que LOTE_CARGA,
+      // no hay más historial.
       const data = await db.select('movimientos_stock', {
         select: '*, producto:productos(nombre, imagen_url)',
         ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
-        limite: 200,
+        range: [0, LOTE_CARGA - 1],
       });
-      setMovimientos(data ?? []);
+      const arr = data ?? [];
+      setMovimientos(arr);
+      setHayMas(arr.length === LOTE_CARGA);
     } catch (err) {
       console.error('Error cargando movimientos:', err);
     } finally {
       setCargando(false);
     }
   }, []);
+
+  const cargarMas = useCallback(async () => {
+    if (cargandoMas || !hayMas) return;
+    setCargandoMas(true);
+    try {
+      const desde = movimientos.length;
+      const data = await db.select('movimientos_stock', {
+        select: '*, producto:productos(nombre, imagen_url)',
+        ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
+        range: [desde, desde + LOTE_CARGA - 1],
+      });
+      const arr = data ?? [];
+      setMovimientos(prev => [...prev, ...arr]);
+      setHayMas(arr.length === LOTE_CARGA);
+    } catch (err) {
+      console.error('Error cargando más movimientos:', err);
+    } finally {
+      setCargandoMas(false);
+    }
+  }, [cargandoMas, hayMas, movimientos.length]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
@@ -99,7 +126,9 @@ export default function MovimientosStock() {
         <div className="flex items-center gap-2 px-5 py-4 border-b border-white/5">
           <ArrowUpDown size={18} className="text-[#00D656]" />
           <h3 className="font-semibold text-white">Movimientos de Stock</h3>
-          <span className="ml-auto text-xs text-gray-500">{filtrados.length} registros</span>
+          <span className="ml-auto text-xs text-gray-500">
+            {filtrados.length} de {movimientos.length} cargados{!hayMas ? ' (historial completo)' : ''}
+          </span>
         </div>
 
         <div className="overflow-x-auto">
@@ -197,6 +226,20 @@ export default function MovimientosStock() {
                 Siguiente
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Cargar más historial */}
+        {hayMas && !cargando && (
+          <div className="flex justify-center px-5 py-3 border-t border-white/5">
+            <button onClick={cargarMas} disabled={cargandoMas}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-xs hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50">
+              {cargandoMas ? (
+                <><RefreshCw size={14} className="animate-spin" /> Cargando más...</>
+              ) : (
+                <><ChevronDown size={14} /> Cargar más historial</>
+              )}
+            </button>
           </div>
         )}
       </div>

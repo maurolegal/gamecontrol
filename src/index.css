@@ -149,10 +149,17 @@
     animation: glow-pulse 2s ease-in-out infinite;
   }
 
+  /* LED breathing indicator for active stations */
+  @keyframes led-breathe {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
   /* Truncado multi-línea */
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }

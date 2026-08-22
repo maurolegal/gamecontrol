@@ -121,9 +121,17 @@ function calcRango(periodo, desde, hasta) {
     }
     case 'rango': {
       if (!desde || !hasta) return null;
-      const d1 = startOfDayInTimeZone(new Date(desde), TIMEZONE_BOGOTA);
-      const d2 = endOfDayInTimeZone(new Date(hasta), TIMEZONE_BOGOTA);
-      return [d1.toISOString(), d2.toISOString()];
+      // desde/hasta vienen como 'YYYY-MM-DD' (input type=date).
+      // new Date('YYYY-MM-DD') se interpreta como UTC midnight, lo que al
+      // convertirlo a America/Bogota (UTC-5) desplaza el día hacia atrás
+      // (ej: '2026-08-18' -> 2026-08-17 19:00 Bogota -> día 17).
+      // Construimos el rango directamente desde los componentes de la fecha
+      // para que el día seleccionado sea el día correcto en Bogota.
+      const [y1, m1, d1] = desde.split('-').map(Number);
+      const [y2, m2, d2] = hasta.split('-').map(Number);
+      const inicio = new Date(Date.UTC(y1, m1 - 1, d1, 0, 0, 0, 0) - OFFSET_MINUTES_BOGOTA * 60_000);
+      const fin    = new Date(Date.UTC(y2, m2 - 1, d2, 23, 59, 59, 999) - OFFSET_MINUTES_BOGOTA * 60_000);
+      return [inicio.toISOString(), fin.toISOString()];
     }
     case 'todo':
       return null; // sin filtro de fecha

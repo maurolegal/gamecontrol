@@ -75,7 +75,6 @@ export function subscribe(tabla, callback) {
             _channels.delete(tabla);
             // Re-crear canal con los callbacks existentes
             const cbs = Array.from(ent2.callbacks);
-            _channels.delete(tabla);
             cbs.forEach(cb => subscribe(tabla, cb));
           }, 2000);
         }
@@ -124,11 +123,56 @@ export function getSubscriberCount(tabla) {
 export function getDebugInfo() {
   const info = {};
   for (const [tabla, entry] of _channels) {
-    info[tabla] = entry.callbacks.size;
+    info[tabla] = {
+      subscribers: entry.callbacks.size,
+      state: entry.channel?.state ?? 'unknown',
+    };
   }
   return info;
 }
 
+/**
+ * Fuerza la reconexión de todos los canales activos.
+ * Útil cuando se sospecha que el realtime está caído.
+ */
+export function forceReconnectAll() {
+  console.log('[realtimeService] 🔁 forceReconnectAll iniciado');
+  for (const [tabla, entry] of _channels) {
+    if (!entry || entry.callbacks.size === 0) continue;
+    try { supabase.removeChannel(entry.channel); } catch {}
+    _channels.delete(tabla);
+    const cbs = Array.from(entry.callbacks);
+    cbs.forEach(cb => subscribe(tabla, cb));
+  }
+}
+
 // Export por defecto con la API completa
-const realtimeService = { subscribe, getSubscriberCount, getDebugInfo };
+const realtimeService = { subscribe, getSubscriberCount, getDebugInfo, forceReconnectAll };
 export default realtimeService;
+
+// ── Heartbeat: verifica canales cada 30s y reconecta si están caídos ──
+const HEARTBEAT_INTERVAL = 30000;
+let _heartbeatStarted = false;
+
+function startHeartbeat() {
+  if (_heartbeatStarted) return;
+  _heartbeatStarted = true;
+
+  setInterval(() => {
+    for (const [tabla, entry] of _channels) {
+      if (!entry || entry.callbacks.size === 0) continue;
+      const status = entry.channel?.state;
+      // Supabase channel states: 'joined', 'joining', 'closed', 'errored', 'leaving', 'timed_out'
+      if (status === 'closed' || status === 'errored' || status === 'timed_out') {
+        console.log(`[realtimeService] 💓 Heartbeat: ${tabla} está ${status}, reconectando...`);
+        try { supabase.removeChannel(entry.channel); } catch {}
+        _channels.delete(tabla);
+        const cbs = Array.from(entry.callbacks);
+        cbs.forEach(cb => subscribe(tabla, cb));
+      }
+    }
+  }, HEARTBEAT_INTERVAL);
+}
+
+// Iniciar heartbeat al importar el módulo
+startHeartbeat();

@@ -165,11 +165,17 @@ const StationCardInner = memo(function StationCardInner({
     bg: `${alertaEstado.color}20`,
     border: `${alertaEstado.color}40`,
     pulse: alertaEstado.prioridad <= 3,
-  } : {
-    badge: esModoLibre ? 'LIBRE ∞' : 'LIBRE',
+  } : esOcupada ? {
+    badge: esModoLibre ? 'EN JUEGO ∞' : 'EN JUEGO',
     color: esModoLibre ? '#22D3EE' : '#00D656',
     bg: esModoLibre ? 'rgba(34,211,238,0.1)' : 'rgba(0,214,86,0.1)',
-    border: esModoLibre ? 'rgba(34,211,238,0.2)' : 'rgba(0,214,86,0.2)',
+    border: esModoLibre ? 'rgba(34,211,238,0.3)' : 'rgba(0,214,86,0.3)',
+    pulse: false,
+  } : {
+    badge: 'LIBRE',
+    color: '#00D656',
+    bg: 'rgba(0,214,86,0.05)',
+    border: 'rgba(0,214,86,0.15)',
     pulse: false,
   };
 
@@ -206,14 +212,33 @@ const StationCardInner = memo(function StationCardInner({
   const iconoEmoji = ICONOS[sala?.tipo] || '🎮';
   const iconoUrl = sala?.icono_url || sala?.imagen_url || sala?.imagen;
 
+  // ── Colores de borde por tipo de consola (Sprint 0.4-H) ──────────
+  const COLORES_TIPO = {
+    ps4:      { activo: '#3B82F6', libre: 'rgba(59,130,246,0.20)' },   // Azul
+    ps5:      { activo: '#FFFFFF', libre: 'rgba(255,255,255,0.18)' },  // Blanco
+    xbox:     { activo: '#107C10', libre: 'rgba(16,124,16,0.20)' },    // Verde Xbox
+    nintendo: { activo: '#E60012', libre: 'rgba(230,0,18,0.20)' },     // Rojo
+    pc:       { activo: '#9CA3AF', libre: 'rgba(156,163,175,0.18)' },  // Gris
+  };
+  const colorTipo = COLORES_TIPO[sala?.tipo] || COLORES_TIPO.pc;
+  const colorBorde = esOcupada ? colorTipo.activo : colorTipo.libre;
+  const colorGlow = colorTipo.activo;
+
   const cardStyle = {
-    borderColor: focused ? '#FFF' : config.border,
+    borderColor: focused
+      ? '#FFF'
+      : esOcupada && config.pulse
+        ? config.color + '80'
+        : colorBorde,
     boxShadow: focused
       ? `0 0 0 3px rgba(255,255,255,0.9), 0 0 24px ${config.color}80, inset 0 1px 0 rgba(255,255,255,0.04)`
-      : config.pulse
-        ? `0 0 16px ${config.color}50, inset 0 1px 0 rgba(255,255,255,0.04)`
-        : 'inset 0 1px 0 rgba(255,255,255,0.04)',
-    transition: 'box-shadow 0.25s ease, border-color 0.25s',
+      : esOcupada
+        ? config.pulse
+          ? `0 0 0 1px ${config.color}40, 0 0 18px ${config.color}40, 0 0 35px ${config.color}20, inset 0 1px 0 rgba(255,255,255,0.04)`
+          : `0 0 0 1px ${colorGlow}30, 0 0 14px ${colorGlow}15, 0 0 28px ${colorGlow}08, inset 0 1px 0 rgba(255,255,255,0.04)`
+        : 'inset 0 1px 0 rgba(255,255,255,0.02)',
+    transition: 'box-shadow 0.3s ease, border-color 0.3s',
+    opacity: esOcupada ? 1 : 0.85,
   };
 
   const badgeStyle = {
@@ -222,7 +247,15 @@ const StationCardInner = memo(function StationCardInner({
     borderColor: config.border,
   };
 
-  const progressColor = esModoLibre ? '#22D3EE' : esVencida ? '#EF4444' : esPorVencer ? '#F59E0B' : '#00D656';
+  // ── Color de barra de progreso según % transcurrido ──
+  // Verde normal → Amarillo al 70% → Rojo al 90%+
+  const progressColor = esModoLibre
+    ? '#22D3EE'
+    : progreso >= 90
+      ? '#EF4444'
+      : progreso >= 70
+        ? '#F59E0B'
+        : '#00D656';
 
   return (
     <div
@@ -241,7 +274,19 @@ const StationCardInner = memo(function StationCardInner({
         />
       )}
 
-      <div className="relative z-10 p-4 flex flex-col gap-3 min-h-[170px]">
+      {/* ── LED indicador de estación activa ── */}
+      {esOcupada && (
+        <div
+          className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full z-20 pointer-events-none"
+          style={{
+            background: config.color,
+            boxShadow: `0 0 6px ${config.color}, 0 0 12px ${config.color}80`,
+            animation: 'led-breathe 2.5s ease-in-out infinite',
+          }}
+        />
+      )}
+
+      <div className={`relative z-10 p-4 flex flex-col gap-3 ${esLibre ? 'min-h-[140px]' : 'min-h-[170px]'}`}>
         {/* ── HEADER: Estación + Estado + Tiempo ── */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -253,19 +298,21 @@ const StationCardInner = memo(function StationCardInner({
               {config.badge}
             </span>
           </div>
-          <div className="text-right shrink-0">
-            <div className="text-xl font-mono font-black tabular-nums leading-none" style={{ color: esModoLibre ? '#22D3EE' : esVencida ? '#EF4444' : esPorVencer ? '#F59E0B' : '#00D656' }}>
-              {tiempoCorto}
+          {esOcupada && (
+            <div className="text-right shrink-0">
+              <div className="text-xl font-mono font-black tabular-nums leading-none" style={{ color: progressColor }}>
+                {tiempoCorto}
+              </div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">
+                {esModoLibre ? 'transcurrido' : esVencida ? 'vencida' : esPorVencer ? 'por vencer' : 'restante'}
+              </div>
             </div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">
-              {esModoLibre ? 'transcurrido' : esVencida ? 'vencida' : esPorVencer ? 'por vencer' : 'restante'}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* ── ICONO CONSOLA + CLIENTE ── */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl shrink-0 overflow-hidden relative">
+          <div className={`w-9 h-9 rounded-xl border flex items-center justify-center text-xl shrink-0 overflow-hidden relative ${esLibre ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-white/5 border-white/10'}`}>
             <span className="absolute inset-0 flex items-center justify-center">{iconoEmoji}</span>
             {iconoUrl && (
               <img
@@ -278,36 +325,48 @@ const StationCardInner = memo(function StationCardInner({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-white truncate" title={sesion?.cliente || 'Sin cliente'}>
-              {clienteDisplay}
-            </div>
-            {sesion && !esLibre && (
-              <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400">
-                <span className="font-mono tabular-nums" style={{ color: progressColor }}>
-                  {sesion.tiempoOriginal || 60}m
-                  {tiempoExtraMin > 0 && ` +${tiempoExtraMin}m`}
-                </span>
-                <span className="px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
-                  ${Math.round((sesion.tarifa || sesion.tarifa_base || 0) / 1000)}k/h
-                </span>
-              </div>
+            {esLibre ? (
+              <div className="text-sm font-semibold text-gray-600">—</div>
+            ) : (
+              <>
+                <div className="text-sm font-semibold text-white truncate" title={sesion?.cliente || 'Sin cliente'}>
+                  {clienteDisplay}
+                </div>
+                {sesion && !esLibre && (
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400">
+                    <span className="font-mono tabular-nums" style={{ color: progressColor }}>
+                      {sesion.tiempoOriginal || 60}m
+                      {tiempoExtraMin > 0 && ` +${tiempoExtraMin}m`}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
+                      ${Math.round((sesion.tarifa || sesion.tarifa_base || 0) / 1000)}k/h
+                    </span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
 
-        {/* ── BARRA DE PROGRESO ── */}
-        <div className="h-2 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(progreso)} aria-valuemin={0} aria-valuemax={100} aria-label={`Progreso ${Math.round(progreso)}%`}>
-          <div
-            className="h-full rounded-full transition-all duration-300 ease-out"
-            style={{
-              width: `${progreso}%`,
-              background: `linear-gradient(90deg, ${progressColor}80, ${progressColor})`,
-              boxShadow: `0 0 8px ${progressColor}60`,
-            }}
-          />
-        </div>
+        {/* ── BARRA DE PROGRESO (solo activas) ── */}
+        {esOcupada && (
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(progreso)} aria-valuemin={0} aria-valuemax={100} aria-label={`Progreso ${Math.round(progreso)}%`}>
+            <div
+              className="h-full rounded-full transition-all duration-300 ease-out"
+              style={{
+                width: `${progreso}%`,
+                background: `linear-gradient(90deg, ${progressColor}80, ${progressColor})`,
+                boxShadow: `0 0 8px ${progressColor}60`,
+              }}
+            />
+          </div>
+        )}
+
+        {/* ── Separador para libres ── */}
+        {esLibre && <div className="h-px bg-white/5" />}
 
         {/* ── INGRESOS + CONSUMO ── */}
+        {esOcupada && (
         <div className="flex items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <div className="flex items-center gap-1.5 text-[#00D656] font-bold tabular-nums truncate">
@@ -337,6 +396,7 @@ const StationCardInner = memo(function StationCardInner({
             </span>
           )}
         </div>
+        )}
 
         {/* ── QUICK ACTIONS — iconos compactos centrados ── */}
         <div className="flex items-center justify-center gap-1.5 pt-1">

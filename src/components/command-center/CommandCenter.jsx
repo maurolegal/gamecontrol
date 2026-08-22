@@ -38,6 +38,26 @@ function formatCOP(valor) {
 
 const ICONOS_TIPO = { pc: '🖥', ps4: '🎮', ps5: '🎮', xbox: '🎮', nintendo: '🕹' };
 
+// ── Prioridad de ordenamiento para EN JUEGO (Sprint 0.4-H) ──────────
+// 1 = excedida, 2 = crítica, 3 = vencida, 4 = por vencer, 5 = normal
+function calcularPrioridad(sesion, now) {
+  if (!sesion) return 99;
+  if (sesion.modo === 'libre') return 5;
+  const inicio = new Date(sesion.fecha_inicio).getTime();
+  const tiempoTotalMin = (sesion.tiempoOriginal || sesion.tiempo || 60) + (sesion.tiempoAdicional || 0);
+  const finMs = inicio + tiempoTotalMin * 60 * 1000;
+  const restanteMs = finMs - now;
+  if (restanteMs <= 0) {
+    const excedidoMin = Math.floor(-restanteMs / 60000);
+    const tieneConsumo = (sesion.productos?.length || 0) > 0 || (sesion.tiemposAdicionales?.length || 0) > 0;
+    if (excedidoMin > 10) return 1;
+    if (tieneConsumo && excedidoMin > 0) return 2;
+    return 3;
+  }
+  if (restanteMs <= 10 * 60 * 1000) return 4;
+  return 5;
+}
+
 export default function CommandCenter() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,6 +227,29 @@ export default function CommandCenter() {
     });
     return estaciones;
   }, [salasFiltradas, estacionesConSesion]);
+
+  // ── Dividir estaciones en EN JUEGO y LIBRES (Sprint 0.4-H) ─────────
+  const now = useGlobalTick();
+  const { estacionesEnJuego, estacionesLibres } = useMemo(() => {
+    const enJuego = [];
+    const libres = [];
+    for (const est of todasEstaciones) {
+      if (est.sesion && !est.sesion.finalizada && est.sesion.estado !== 'cancelada') {
+        enJuego.push(est);
+      } else {
+        libres.push(est);
+      }
+    }
+    // Ordenar EN JUEGO por prioridad: excedida > crítica > vencida > por vencer > normal
+    enJuego.sort((a, b) => {
+      const prioA = calcularPrioridad(a.sesion, now);
+      const prioB = calcularPrioridad(b.sesion, now);
+      if (prioA !== prioB) return prioA - prioB;
+      return 0;
+    });
+    // LIBRES mantienen orden original
+    return { estacionesEnJuego: enJuego, estacionesLibres: libres };
+  }, [todasEstaciones, now]);
 
   // ── Estación seleccionada para StationDetail ──────────────────────
   const estacionSeleccionada = useMemo(() => {
@@ -406,31 +449,91 @@ export default function CommandCenter() {
             )}
           </div>
         ) : (
-          // Grid de StationCards
-          <div
-            className={`grid ${gridClass} ${gapClass} ${paddingClass}`}
-            role="list"
-            aria-label="Estaciones de juego"
-          >
-            {todasEstaciones.map(({ estacionId, sala, sesion }) => (
-              <StationCard
-                key={`${sala.id}:${estacionId}`}
-                estacionId={estacionId}
-                sala={sala}
-                sesion={sesion}
-                onIniciar={handleIniciar}
-                onAgregarTiempo={handleAgregarTiempo}
-                onAgregarProducto={handleAgregarProducto}
-                onFinalizar={handleFinalizar}
-                onTrasladar={handleTrasladar}
-                onEditarSala={handleEditarSala}
-                onFocusEstacion={handleFocusEstacion}
-                onOpenDetail={handleStationClick}
-                puedeEditar={puedeEditar}
-                puedeAnular={esAdmin}
-                focused={focusedEstacion === estacionId}
-              />
-            ))}
+          // ── Grid dividido: EN JUEGO + LIBRES (Sprint 0.4-H) ──
+          <div className="space-y-6">
+            {/* ── EN JUEGO ── */}
+            {estacionesEnJuego.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-[#00D656]/10 border-[#00D656]/30">
+                    <span className="text-sm font-bold uppercase tracking-wider text-[#00D656]">
+                      En Juego
+                    </span>
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-[#00D656]/20 text-[#00D656]">
+                      {estacionesEnJuego.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-[#00D656]/30 to-transparent" />
+                </div>
+                <div
+                  className={`grid ${gridClass} ${gapClass}`}
+                  role="list"
+                  aria-label="Estaciones en juego"
+                >
+                  {estacionesEnJuego.map(({ estacionId, sala, sesion }) => (
+                    <StationCard
+                      key={`${sala.id}:${estacionId}`}
+                      estacionId={estacionId}
+                      sala={sala}
+                      sesion={sesion}
+                      onIniciar={handleIniciar}
+                      onAgregarTiempo={handleAgregarTiempo}
+                      onAgregarProducto={handleAgregarProducto}
+                      onFinalizar={handleFinalizar}
+                      onTrasladar={handleTrasladar}
+                      onEditarSala={handleEditarSala}
+                      onFocusEstacion={handleFocusEstacion}
+                      onOpenDetail={handleStationClick}
+                      puedeEditar={puedeEditar}
+                      puedeAnular={esAdmin}
+                      focused={focusedEstacion === estacionId}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── LIBRES ── */}
+            {estacionesLibres.length > 0 && (
+              <section>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-white/[0.03] border-white/10">
+                    <span className="text-sm font-bold uppercase tracking-wider text-gray-400">
+                      Libres
+                    </span>
+                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-gray-400">
+                      {estacionesLibres.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
+                </div>
+                <div
+                  className={`grid ${gridClass} ${gapClass}`}
+                  role="list"
+                  aria-label="Estaciones libres"
+                >
+                  {estacionesLibres.map(({ estacionId, sala, sesion }) => (
+                    <StationCard
+                      key={`${sala.id}:${estacionId}`}
+                      estacionId={estacionId}
+                      sala={sala}
+                      sesion={sesion}
+                      onIniciar={handleIniciar}
+                      onAgregarTiempo={handleAgregarTiempo}
+                      onAgregarProducto={handleAgregarProducto}
+                      onFinalizar={handleFinalizar}
+                      onTrasladar={handleTrasladar}
+                      onEditarSala={handleEditarSala}
+                      onFocusEstacion={handleFocusEstacion}
+                      onOpenDetail={handleStationClick}
+                      puedeEditar={puedeEditar}
+                      puedeAnular={esAdmin}
+                      focused={focusedEstacion === estacionId}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         )}
       </main>

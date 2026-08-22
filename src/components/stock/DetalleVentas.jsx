@@ -41,17 +41,18 @@ export default function DetalleVentas() {
         select: '*, producto:productos(nombre)',
         filtros: {
           tipo: 'venta',
-          fecha_movimiento: { operador: 'gte', valor: inicio.toISOString() },
+          fecha_movimiento: [
+            { operador: 'gte', valor: inicio.toISOString() },
+            { operador: 'lte', valor: fin.toISOString() },
+          ],
         },
         ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
-        limite: 200,
+        limite: 1000,
       });
 
-      // Filter by end date client-side (since we can only send one filter per field via the generic select)
+      // Filtrar ventas inválidas (monto/cantidad en 0) client-side.
+      // El rango de fechas ya se aplicó en la query (gte + lte).
       const ventasFiltradas = (data ?? []).filter(v => {
-        const fMov = new Date(v.fecha_movimiento);
-        return fMov <= fin;
-      }).filter(v => {
         const total = Number(v.valor_total) || 0;
         const cant = Number(v.cantidad) || 0;
         return !(total === 0 && cant === 0);

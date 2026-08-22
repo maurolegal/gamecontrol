@@ -169,10 +169,18 @@ export function useSalas() {
 
     init();
 
+    // ── Safety net: polling cada 30s por si realtime falla silenciosamente ──
+    // Esto NO reemplaza el realtime, solo garantiza que los cambios
+    // hechos desde otro dispositivo (ej: celular) se reflejen en el PC
+    const pollInterval = setInterval(() => {
+      cargarSesionesActivas();
+    }, 30000);
+
     // Cleanup: desuscribir al desmontar
     return () => {
       if (unsubSesiones) unsubSesiones();
       if (unsubSalas) unsubSalas();
+      clearInterval(pollInterval);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

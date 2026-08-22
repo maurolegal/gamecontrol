@@ -7,7 +7,13 @@ import { supabase } from './supabaseClient';
 /**
  * Consulta registros de una tabla con filtros, orden y límite opcionales.
  * @param {string} tabla
- * @param {{ select?: string, filtros?: Record<string,any>, ordenPor?: {campo:string,direccion?:string}, limite?: number }} opciones
+ * @param {{ select?: string, filtros?: Record<string,any>, ordenPor?: {campo:string,direccion?:string}, limite?: number, range?: [number, number] }} opciones
+ *
+ * Formato de `filtros`:
+ *  - valor primitivo            -> eq(campo, valor)
+ *  - { operador, valor }        -> operador soportado: eq|gte|lte|gt|lt|ilike|neq
+ *  - [ { operador, valor }, ... ] -> aplica varias condiciones sobre el mismo campo
+ *  - [ primitivo, ... ]         -> in(campo, valores)  (retrocompatible)
  */
 export async function select(tabla, opciones = {}) {
   let query = supabase.from(tabla).select(opciones.select ?? '*');
@@ -15,14 +21,17 @@ export async function select(tabla, opciones = {}) {
   if (opciones.filtros) {
     for (const [campo, valor] of Object.entries(opciones.filtros)) {
       if (Array.isArray(valor)) {
-        query = query.in(campo, valor);
-      } else if (valor && typeof valor === 'object' && valor.operador) {
-        switch (valor.operador) {
-          case 'gte': query = query.gte(campo, valor.valor); break;
-          case 'lte': query = query.lte(campo, valor.valor); break;
-          case 'ilike': query = query.ilike(campo, valor.valor); break;
-          default: query = query.eq(campo, valor.valor);
+        // Array de condiciones {operador, valor} sobre el mismo campo
+        if (valor.length && valor.every(v => v && typeof v === 'object' && v.operador)) {
+          for (const cond of valor) {
+            query = aplicarOperador(query, campo, cond.operador, cond.valor);
+          }
+        } else {
+          // Array de primitivos -> IN (retrocompatible)
+          query = query.in(campo, valor);
         }
+      } else if (valor && typeof valor === 'object' && valor.operador) {
+        query = aplicarOperador(query, campo, valor.operador, valor.valor);
       } else {
         query = query.eq(campo, valor);
       }
@@ -34,7 +43,10 @@ export async function select(tabla, opciones = {}) {
     query = query.order(campo, { ascending: direccion === 'asc' });
   }
 
-  if (opciones.limite) {
+  if (opciones.range) {
+    const [from, to] = opciones.range;
+    query = query.range(from, to);
+  } else if (opciones.limite) {
     query = query.limit(opciones.limite);
   }
 
@@ -42,6 +54,18 @@ export async function select(tabla, opciones = {}) {
 
   if (error) throw new Error(`Error consultando ${tabla}: ${error.message}`);
   return data;
+}
+
+function aplicarOperador(query, campo, operador, valor) {
+  switch (operador) {
+    case 'gte': return query.gte(campo, valor);
+    case 'lte': return query.lte(campo, valor);
+    case 'gt':  return query.gt(campo, valor);
+    case 'lt':  return query.lt(campo, valor);
+    case 'ilike': return query.ilike(campo, valor);
+    case 'neq': return query.neq(campo, valor);
+    default: return query.eq(campo, valor);
+  }
 }
 
 /**
