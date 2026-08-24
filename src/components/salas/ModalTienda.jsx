@@ -229,6 +229,12 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
             items: carrito.map((item) => ({ producto_id: item.id, cantidad: item.cantidad })),
             metodoPago, cliente: 'Cliente tienda', estacion: 'Tienda',
             descuento: 0, idempotencyKey: idempotencyKeyRef.current,
+            // Pasar el monto correspondiente al método de pago seleccionado.
+            // El backend valida que el monto coincida con el total calculado en servidor.
+            montoEfectivo: metodoPago === 'efectivo' ? totalVenta : null,
+            montoTransferencia: metodoPago === 'transferencia' ? totalVenta : null,
+            montoTarjeta: metodoPago === 'tarjeta' ? totalVenta : null,
+            montoDigital: metodoPago === 'digital' ? totalVenta : null,
           });
           switch (result.status) {
             case 'ok':

@@ -171,5 +171,93 @@
       linear-gradient(90deg, rgba(0, 214, 86, 0.03) 1px, transparent 1px);
     background-size: 50px 50px;
   }
+
+  /* ── Station Card max-width constraint ── */
+  .station-card {
+    max-width: 320px;
+    width: 100%;
+  }
+
+  @media (max-width: 640px) {
+    .station-card {
+      max-width: none;
+    }
+  }
+
+  /* Premium scrollbar for webkit */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 214, 86, 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 214, 86, 0.5);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* ── Mobile Animations (Sprint 0.4-D) ────────────────────────── */
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(100%); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.15s ease-out forwards;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 15px currentColor; }
+    50% { box-shadow: 0 0 25px currentColor; }
+  }
+
+  /* Safe area utilities */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .safe-left {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  .safe-right {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+
+  /* Touch optimizations */
+  .touch-action-none {
+    touch-action: none;
+  }
+  .touch-action-manipulation {
+    touch-action: manipulation;
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  @media screen and (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+  }
+
+  /* Mobile scroll optimization */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 }
 

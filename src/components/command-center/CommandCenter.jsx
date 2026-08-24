@@ -5,6 +5,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Pencil } from 'lucide-react';
 import { useSalas } from '../../hooks/useSalas';
 import { usePermisos } from '../../hooks/usePermisos';
 import { useAuth } from '../../hooks/useAuth';
@@ -36,7 +37,7 @@ function formatCOP(valor) {
   }).format(valor || 0);
 }
 
-const ICONOS_TIPO = { pc: '🖥', ps4: '🎮', ps5: '🎮', xbox: '🎮', nintendo: '🕹' };
+import { ICONOS_TIPO, COLORES_SALA } from './constants';
 
 // ── Prioridad de ordenamiento para EN JUEGO (Sprint 0.4-H) ──────────
 // 1 = excedida, 2 = crítica, 3 = vencida, 4 = por vencer, 5 = normal
@@ -228,28 +229,34 @@ export default function CommandCenter() {
     return estaciones;
   }, [salasFiltradas, estacionesConSesion]);
 
-  // ── Dividir estaciones en EN JUEGO y LIBRES (Sprint 0.4-H) ─────────
+  // ── Agrupar estaciones por SALA, ordenar dentro por prioridad ────────
   const now = useGlobalTick();
-  const { estacionesEnJuego, estacionesLibres } = useMemo(() => {
-    const enJuego = [];
-    const libres = [];
-    for (const est of todasEstaciones) {
-      if (est.sesion && !est.sesion.finalizada && est.sesion.estado !== 'cancelada') {
-        enJuego.push(est);
-      } else {
-        libres.push(est);
+  const salasConEstaciones = useMemo(() => {
+    const resultado = [];
+    for (const sala of salasFiltradas) {
+      const estacionesSala = todasEstaciones.filter(e => e.sala.id === sala.id);
+      const activas = [];
+      const libres = [];
+      for (const est of estacionesSala) {
+        if (est.sesion && !est.sesion.finalizada && est.sesion.estado !== 'cancelada') {
+          activas.push(est);
+        } else {
+          libres.push(est);
+        }
       }
+      // Ordenar activas por prioridad: excedida > crítica > vencida > por vencer > normal
+      activas.sort((a, b) => {
+        const prioA = calcularPrioridad(a.sesion, now);
+        const prioB = calcularPrioridad(b.sesion, now);
+        if (prioA !== prioB) return prioA - prioB;
+        return 0;
+      });
+      // Libres mantienen orden original (por número de estación)
+      const ordenadas = [...activas, ...libres];
+      resultado.push({ sala, estaciones: ordenadas, countActivas: activas.length, countLibres: libres.length });
     }
-    // Ordenar EN JUEGO por prioridad: excedida > crítica > vencida > por vencer > normal
-    enJuego.sort((a, b) => {
-      const prioA = calcularPrioridad(a.sesion, now);
-      const prioB = calcularPrioridad(b.sesion, now);
-      if (prioA !== prioB) return prioA - prioB;
-      return 0;
-    });
-    // LIBRES mantienen orden original
-    return { estacionesEnJuego: enJuego, estacionesLibres: libres };
-  }, [todasEstaciones, now]);
+    return resultado;
+  }, [todasEstaciones, salasFiltradas, now]);
 
   // ── Estación seleccionada para StationDetail ──────────────────────
   const estacionSeleccionada = useMemo(() => {
@@ -261,12 +268,12 @@ export default function CommandCenter() {
 
   // ── Clases CSS según vista ────────────────────────────────────────
   const gridClass = {
-    normal: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
+    normal: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5',
     compact: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
-    kiosk: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5',
+    kiosk: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6',
   }[vistaActual];
 
-  const gapClass = { normal: 'gap-4', compact: 'gap-3', kiosk: 'gap-2' }[vistaActual];
+  const gapClass = { normal: 'gap-3', compact: 'gap-2.5', kiosk: 'gap-2' }[vistaActual];
   const paddingClass = { normal: 'p-4', compact: 'p-3', kiosk: 'p-2' }[vistaActual];
 
   // ── Handlers de URL ───────────────────────────────────────────────
@@ -449,70 +456,85 @@ export default function CommandCenter() {
             )}
           </div>
         ) : (
-          // ── Grid dividido: EN JUEGO + LIBRES (Sprint 0.4-H) ──
-          <div className="space-y-6">
-            {/* ── EN JUEGO ── */}
-            {estacionesEnJuego.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-[#00D656]/10 border-[#00D656]/30">
-                    <span className="text-sm font-bold uppercase tracking-wider text-[#00D656]">
-                      En Juego
-                    </span>
-                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-[#00D656]/20 text-[#00D656]">
-                      {estacionesEnJuego.length}
-                    </span>
-                  </div>
-                  <div className="flex-1 h-px bg-gradient-to-r from-[#00D656]/30 to-transparent" />
-                </div>
+          // ── Grid agrupado por SALA (Sprint 0.4-H + 0.4-C visual) ──
+          <div className="space-y-5">
+            {salasConEstaciones.map(({ sala, estaciones, countActivas, countLibres }) => (
+              <section key={sala.id} className="relative">
+                {/* ── Header de sala — título de sección compacto ── */}
                 <div
-                  className={`grid ${gridClass} ${gapClass}`}
-                  role="list"
-                  aria-label="Estaciones en juego"
+                  className="relative flex min-h-[60px] items-center justify-between gap-4 mb-3 pb-2 border-b border-white/[0.06]"
+                  style={{ '--sala-accent': COLORES_SALA[sala.tipo] || '#00D656' }}
                 >
-                  {estacionesEnJuego.map(({ estacionId, sala, sesion }) => (
-                    <StationCard
-                      key={`${sala.id}:${estacionId}`}
-                      estacionId={estacionId}
-                      sala={sala}
-                      sesion={sesion}
-                      onIniciar={handleIniciar}
-                      onAgregarTiempo={handleAgregarTiempo}
-                      onAgregarProducto={handleAgregarProducto}
-                      onFinalizar={handleFinalizar}
-                      onTrasladar={handleTrasladar}
-                      onEditarSala={handleEditarSala}
-                      onFocusEstacion={handleFocusEstacion}
-                      onOpenDetail={handleStationClick}
-                      puedeEditar={puedeEditar}
-                      puedeAnular={esAdmin}
-                      focused={focusedEstacion === estacionId}
+                  {/* Señal de actividad casi imperceptible; no es un contenedor */}
+                  {countActivas > 0 && (
+                    <span
+                      className="absolute bottom-[-1px] left-0 h-px w-16 rounded-full"
+                      style={{ background: 'var(--sala-accent)', opacity: 0.55 }}
                     />
-                  ))}
+                  )}
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <div
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border overflow-hidden"
+                      style={{
+                        background: 'color-mix(in srgb, var(--sala-accent) 7%, transparent)',
+                        borderColor: 'color-mix(in srgb, var(--sala-accent) 20%, transparent)',
+                      }}
+                    >
+                      {sala.icono_url ? (
+                        <img
+                          src={sala.icono_url}
+                          alt={sala.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-base select-none" aria-hidden="true">{ICONOS_TIPO[sala.tipo] || '🎮'}</span>
+                      )}
+                    </div>
+                    <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
+                      <div className="text-[19px] leading-none font-bold tracking-[-0.025em] text-white truncate">
+                        {sala.nombre}
+                      </div>
+                      <div className="text-[11px] text-gray-500 whitespace-nowrap">
+                        <span className="text-gray-400">{estaciones.length} estaciones</span>
+                        <span className="mx-1.5 text-white/20">·</span>
+                        <span>{countLibres} libres</span>
+                        <span className="mx-1.5 text-white/20">·</span>
+                        <span className="text-gray-400">{countActivas} en juego</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Indicador operacional + editar sala */}
+                  <div className="flex shrink-0 items-center gap-2.5 text-[11px] font-semibold tabular-nums">
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${countActivas > 0 ? 'animate-pulse' : ''}`}
+                      style={{
+                        background: countActivas > 0 ? 'var(--sala-accent)' : 'rgba(156,163,175,0.35)',
+                        boxShadow: countActivas > 0 ? '0 0 6px var(--sala-accent)' : 'none',
+                      }}
+                    />
+                    <span className={countActivas > 0 ? 'text-gray-300' : 'text-gray-600'}>
+                      {countActivas} activa{countActivas !== 1 ? 's' : ''}
+                    </span>
+                    {puedeEditar && (
+                      <button
+                        onClick={() => handleEditarSala(sala)}
+                        title="Editar sala"
+                        className="flex items-center gap-1.5 px-2.5 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 text-blue-400 transition-all"
+                      >
+                        <Pencil size={12} />
+                        <span className="hidden sm:inline">Editar</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </section>
-            )}
 
-            {/* ── LIBRES ── */}
-            {estacionesLibres.length > 0 && (
-              <section>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-white/[0.03] border-white/10">
-                    <span className="text-sm font-bold uppercase tracking-wider text-gray-400">
-                      Libres
-                    </span>
-                    <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-white/10 text-gray-400">
-                      {estacionesLibres.length}
-                    </span>
-                  </div>
-                  <div className="flex-1 h-px bg-gradient-to-r from-white/10 to-transparent" />
-                </div>
+                {/* ── Grid de estaciones de esta sala ── */}
                 <div
                   className={`grid ${gridClass} ${gapClass}`}
                   role="list"
-                  aria-label="Estaciones libres"
+                  aria-label={`Estaciones de ${sala.nombre}`}
                 >
-                  {estacionesLibres.map(({ estacionId, sala, sesion }) => (
+                  {estaciones.map(({ estacionId, sesion }) => (
                     <StationCard
                       key={`${sala.id}:${estacionId}`}
                       estacionId={estacionId}
@@ -533,7 +555,7 @@ export default function CommandCenter() {
                   ))}
                 </div>
               </section>
-            )}
+            ))}
           </div>
         )}
       </main>

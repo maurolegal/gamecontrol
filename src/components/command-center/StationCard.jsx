@@ -1,11 +1,10 @@
 // ===================================================================
-// STATION CARD — Command Center
-// Tarjeta individual de estación para el Command Center
-// Sprint 0.4-B — Command Center Intelligence
+// STATION CARD — Command Center (Sprint 0.4-C — Refinamiento Visual Premium)
+// Tarjeta individual de estación — arquitectura funcional inalterada
 // ===================================================================
 
 import { useRef, useEffect, useCallback, memo, useState } from 'react';
-import { Plus, ShoppingCart, X, MoreHorizontal, Truck, RotateCcw, Clock, ClockPlus, AlertTriangle, Gamepad2, CircleCheckBig } from 'lucide-react';
+import { Plus, ShoppingCart, MoreHorizontal, Truck, RotateCcw, ClockPlus, AlertTriangle, CircleCheckBig } from 'lucide-react';
 import useGlobalTick from '../../hooks/useGlobalTick';
 import { usePermisos } from '../../hooks/usePermisos';
 import { useDerivedAlerts, ALERT_COLORS, ALERT_LABELS, ALERT_STATES } from '../../hooks/useDerivedAlerts';
@@ -127,20 +126,15 @@ const StationCardInner = memo(function StationCardInner({
 
   const closeMenu = useCallback(() => setMenuOpen(false), []);
 
-  // Click fuera → cierra; Escape → cierra
   useEffect(() => {
-    if (!menuOpen) {
-      return undefined;
-    }
+    if (!menuOpen) return undefined;
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target) &&
           menuButtonRef.current && !menuButtonRef.current.contains(e.target)) {
         setMenuOpen(false);
       }
     };
-    const handleEscape = (e) => {
-      if (e.key === 'Escape') setMenuOpen(false);
-    };
+    const handleEscape = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
     return () => {
@@ -149,7 +143,7 @@ const StationCardInner = memo(function StationCardInner({
     };
   }, [menuOpen]);
 
-  // Usar alertas derivadas centralizadas
+  // ── Alertas derivadas ─────────────────────────────────────────────
   const alerta = useDerivedAlerts([sesion].filter(Boolean), [sala]);
   const alertaEstado = alerta.alertas[0];
   const estadoDerivado = alertaEstado?.estado || (sesion ? (sesion.modo === 'libre' ? 'libre-tiempo' : 'activa') : 'libre');
@@ -159,24 +153,28 @@ const StationCardInner = memo(function StationCardInner({
   const esVencida = estadoDerivado === 'vencida' || estadoDerivado === 'critica' || estadoDerivado === 'excedida';
   const esPorVencer = estadoDerivado === 'por-vencer';
 
+  // ── Configuración visual por estado ───────────────────────────────
+  // LIBRE: silencioso, sutil
+  // EN JUEGO: presencia, glow sutil
+  // VENCIDA/CRITICA/EXCEDIDA: urgencia controlada
   const config = alertaEstado ? {
     badge: alertaEstado.label,
     color: alertaEstado.color,
-    bg: `${alertaEstado.color}20`,
-    border: `${alertaEstado.color}40`,
-    pulse: alertaEstado.prioridad <= 3,
+    bg: `${alertaEstado.color}18`,
+    border: `${alertaEstado.color}35`,
+    glowColor: alertaEstado.color,
   } : esOcupada ? {
     badge: esModoLibre ? 'EN JUEGO ∞' : 'EN JUEGO',
     color: esModoLibre ? '#22D3EE' : '#00D656',
-    bg: esModoLibre ? 'rgba(34,211,238,0.1)' : 'rgba(0,214,86,0.1)',
-    border: esModoLibre ? 'rgba(34,211,238,0.3)' : 'rgba(0,214,86,0.3)',
-    pulse: false,
+    bg: esModoLibre ? 'rgba(34,211,238,0.10)' : 'rgba(0,214,86,0.10)',
+    border: esModoLibre ? 'rgba(34,211,238,0.25)' : 'rgba(0,214,86,0.25)',
+    glowColor: esModoLibre ? '#22D3EE' : '#00D656',
   } : {
     badge: 'LIBRE',
     color: '#00D656',
-    bg: 'rgba(0,214,86,0.05)',
-    border: 'rgba(0,214,86,0.15)',
-    pulse: false,
+    bg: 'rgba(0,214,86,0.06)',
+    border: 'rgba(0,214,86,0.12)',
+    glowColor: '#00D656',
   };
 
   const progreso = calcularProgreso(sesion, now);
@@ -187,8 +185,6 @@ const StationCardInner = memo(function StationCardInner({
   const itemsCount = (sesion?.productos?.length || 0) + (sesion?.tiemposAdicionales?.length || 0);
   const tiempoExtraMin = sesion?.tiempoAdicional || 0;
 
-  // Calcular total real: tarifa_base + costo_adicional + productos
-  // (la DB no siempre tiene total_general calculado durante la sesión activa)
   const tarifaBase = sesion?.tarifa_base || sesion?.tarifa || 0;
   const costoExtra = sesion?.costoAdicional || 0;
   const totalProductosCalc = (sesion?.productos || []).reduce(
@@ -197,6 +193,7 @@ const StationCardInner = memo(function StationCardInner({
   const totalGeneral = sesion?.totalGeneral || (tarifaBase + costoExtra + totalProductosCalc);
   const tieneConsumo = itemsCount > 0;
 
+  // ── Handlers ──────────────────────────────────────────────────────
   const handleClickIniciar = useCallback((e) => { e?.preventDefault(); onIniciar?.(sala.id, estacionId); }, [onIniciar, sala.id, estacionId]);
   const handleClickTiempo = useCallback((e) => { e?.preventDefault(); onAgregarTiempo?.(sesion); }, [onAgregarTiempo, sesion]);
   const handleClickProducto = useCallback((e) => { e?.preventDefault(); onAgregarProducto?.(sesion); }, [onAgregarProducto, sesion]);
@@ -208,47 +205,18 @@ const StationCardInner = memo(function StationCardInner({
     onOpenDetail?.(estacionId, sala.id);
   }, [onFocusEstacion, onOpenDetail, estacionId, sala.id]);
 
-  const ICONOS = { pc: '🖥', ps4: '🎮', ps5: '🎮', xbox: '🎮', nintendo: '🕹' };
-  const iconoEmoji = ICONOS[sala?.tipo] || '🎮';
-  const iconoUrl = sala?.icono_url || sala?.imagen_url || sala?.imagen;
-
-  // ── Colores de borde por tipo de consola (Sprint 0.4-H) ──────────
+  // ── Colores por tipo de consola (borde primario) ──────────────────
   const COLORES_TIPO = {
-    ps4:      { activo: '#3B82F6', libre: 'rgba(59,130,246,0.20)' },   // Azul
-    ps5:      { activo: '#FFFFFF', libre: 'rgba(255,255,255,0.18)' },  // Blanco
-    xbox:     { activo: '#107C10', libre: 'rgba(16,124,16,0.20)' },    // Verde Xbox
-    nintendo: { activo: '#E60012', libre: 'rgba(230,0,18,0.20)' },     // Rojo
-    pc:       { activo: '#9CA3AF', libre: 'rgba(156,163,175,0.18)' },  // Gris
+    ps4:      { libre: 'rgba(59,130,246,0.18)', activo: '#3B82F6' },
+    ps5:      { libre: 'rgba(255,255,255,0.16)', activo: '#FFFFFF' },
+    xbox:     { libre: 'rgba(16,124,16,0.18)', activo: '#107C10' },
+    nintendo: { libre: 'rgba(230,0,18,0.18)', activo: '#E60012' },
+    pc:       { libre: 'rgba(156,163,175,0.16)', activo: '#9CA3AF' },
   };
   const colorTipo = COLORES_TIPO[sala?.tipo] || COLORES_TIPO.pc;
-  const colorBorde = esOcupada ? colorTipo.activo : colorTipo.libre;
-  const colorGlow = colorTipo.activo;
+  const colorBordeConsola = esOcupada ? colorTipo.activo : colorTipo.libre;
 
-  const cardStyle = {
-    borderColor: focused
-      ? '#FFF'
-      : esOcupada && config.pulse
-        ? config.color + '80'
-        : colorBorde,
-    boxShadow: focused
-      ? `0 0 0 3px rgba(255,255,255,0.9), 0 0 24px ${config.color}80, inset 0 1px 0 rgba(255,255,255,0.04)`
-      : esOcupada
-        ? config.pulse
-          ? `0 0 0 1px ${config.color}40, 0 0 18px ${config.color}40, 0 0 35px ${config.color}20, inset 0 1px 0 rgba(255,255,255,0.04)`
-          : `0 0 0 1px ${colorGlow}30, 0 0 14px ${colorGlow}15, 0 0 28px ${colorGlow}08, inset 0 1px 0 rgba(255,255,255,0.04)`
-        : 'inset 0 1px 0 rgba(255,255,255,0.02)',
-    transition: 'box-shadow 0.3s ease, border-color 0.3s',
-    opacity: esOcupada ? 1 : 0.85,
-  };
-
-  const badgeStyle = {
-    background: config.bg,
-    color: config.color,
-    borderColor: config.border,
-  };
-
-  // ── Color de barra de progreso según % transcurrido ──
-  // Verde normal → Amarillo al 70% → Rojo al 90%+
+  // ── Color de barra de progreso según % ──
   const progressColor = esModoLibre
     ? '#22D3EE'
     : progreso >= 90
@@ -257,10 +225,47 @@ const StationCardInner = memo(function StationCardInner({
         ? '#F59E0B'
         : '#00D656';
 
+  // ── Estilos de la tarjeta ─────────────────────────────────────────
+  // Surface elevada, border-radius 14px, padding consistente
+  const cardStyle = {
+    borderColor: focused
+      ? '#FFF'
+      : esOcupada && alertaEstado?.prioridad <= 3
+        ? config.color + '80'
+        : colorBordeConsola,
+    borderWidth: focused ? 2 : 1,
+    borderRadius: 14,
+    background: esLibre
+      ? 'rgba(15, 16, 20, 0.7)'  // surface oscura sutil
+      : 'rgba(20, 22, 28, 0.85)', // surface ligeramente más clara para activas
+    boxShadow: focused
+      ? `0 0 0 3px rgba(255,255,255,0.9), 0 0 24px ${config.glowColor}80, inset 0 1px 0 rgba(255,255,255,0.04)`
+      : esLibre
+        ? '0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)' // plano, silencioso
+        : alertaEstado?.prioridad <= 3
+          ? `0 0 0 1px ${config.glowColor}35, 0 0 16px ${config.glowColor}20, 0 0 30px ${config.glowColor}10, inset 0 1px 0 rgba(255,255,255,0.03)` // alerta
+          : `0 0 0 1px ${colorBordeConsola}30, 0 0 12px ${colorBordeConsola}12, 0 0 24px ${colorBordeConsola}06, inset 0 1px 0 rgba(255,255,255,0.03)`, // en juego normal
+    transition: 'box-shadow 0.25s ease, border-color 0.25s, background 0.2s',
+    opacity: esLibre ? 0.9 : 1,
+  };
+
+  const badgeStyle = {
+    background: config.bg,
+    color: config.color,
+    borderColor: config.border,
+    borderWidth: 1,
+    borderStyle: 'solid',
+  };
+
+  // ── Iconos de consola ─────────────────────────────────────────────
+  const ICONOS = { pc: '🖥', ps4: '🎮', ps5: '🎮', xbox: '🎮', nintendo: '🕹' };
+  const iconoEmoji = ICONOS[sala?.tipo] || '🎮';
+  const iconoUrl = sala?.icono_url || sala?.imagen_url || sala?.imagen;
+
   return (
     <div
       id={`estacion-${estacionId}`}
-      className={`relative group ${focused ? 'station-focused' : ''}`}
+      className={`relative group station-card ${focused ? 'station-focused' : ''}`}
       style={cardStyle}
       tabIndex={0}
       role="article"
@@ -268,42 +273,43 @@ const StationCardInner = memo(function StationCardInner({
       onClick={handleFocus}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleFocus(); } }}
     >
-      {config.pulse && (
-        <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-          style={{ boxShadow: `0 0 24px ${config.color}60`, animation: 'pulse-glow 2s infinite' }}
+      {/* ── Glow pulse solo para alertas críticas ── */}
+      {alertaEstado?.prioridad <= 3 && (
+        <div className="absolute inset-0 rounded-[14px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          style={{ boxShadow: `0 0 28px ${config.glowColor}50`, animation: 'pulse-glow 2.5s infinite' }}
         />
       )}
 
-      {/* ── LED indicador de estación activa ── */}
-      {esOcupada && (
+      {/* ── LED indicador: pequeño, discreto, solo EN JUEGO ── */}
+      {esOcupada && !alertaEstado?.prioridad <= 3 && (
         <div
-          className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full z-20 pointer-events-none"
+          className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full z-10 pointer-events-none"
           style={{
-            background: config.color,
-            boxShadow: `0 0 6px ${config.color}, 0 0 12px ${config.color}80`,
-            animation: 'led-breathe 2.5s ease-in-out infinite',
+            background: config.glowColor,
+            boxShadow: `0 0 4px ${config.glowColor}, 0 0 8px ${config.glowColor}60`,
+            animation: 'led-breathe 3s ease-in-out infinite',
           }}
         />
       )}
 
-      <div className={`relative z-10 p-4 flex flex-col gap-3 ${esLibre ? 'min-h-[140px]' : 'min-h-[170px]'}`}>
+      <div className="relative z-10 p-4 flex flex-col gap-3 min-h-[152px]">
         {/* ── HEADER: Estación + Estado + Tiempo ── */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-xs font-bold px-2 py-1 rounded bg-white/5 text-white border border-white/10 shrink-0">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/5 text-white border border-white/10 shrink-0 tabular-nums">
               {estacionId}
             </span>
-            {/* Badge de estado prominente */}
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0" style={badgeStyle}>
+            {/* Badge de estado — compacto, semántico */}
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={badgeStyle}>
               {config.badge}
             </span>
           </div>
           {esOcupada && (
             <div className="text-right shrink-0">
-              <div className="text-xl font-mono font-black tabular-nums leading-none" style={{ color: progressColor }}>
+              <div className="text-2xl font-mono font-bold tabular-nums leading-none" style={{ color: progressColor }}>
                 {tiempoCorto}
               </div>
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">
+              <div className="text-[9px] text-gray-500 uppercase tracking-wider mt-0.5 font-medium">
                 {esModoLibre ? 'transcurrido' : esVencida ? 'vencida' : esPorVencer ? 'por vencer' : 'restante'}
               </div>
             </div>
@@ -312,7 +318,7 @@ const StationCardInner = memo(function StationCardInner({
 
         {/* ── ICONO CONSOLA + CLIENTE ── */}
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-xl border flex items-center justify-center text-xl shrink-0 overflow-hidden relative ${esLibre ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-white/5 border-white/10'}`}>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xl shrink-0 overflow-hidden relative ${esLibre ? 'bg-white/[0.02] border-white/5' : 'bg-white/5 border-white/10'}`}>
             <span className="absolute inset-0 flex items-center justify-center">{iconoEmoji}</span>
             {iconoUrl && (
               <img
@@ -326,19 +332,19 @@ const StationCardInner = memo(function StationCardInner({
           </div>
           <div className="min-w-0 flex-1">
             {esLibre ? (
-              <div className="text-sm font-semibold text-gray-600">—</div>
+              <div className="text-sm font-medium text-gray-500">—</div>
             ) : (
               <>
                 <div className="text-sm font-semibold text-white truncate" title={sesion?.cliente || 'Sin cliente'}>
                   {clienteDisplay}
                 </div>
                 {sesion && !esLibre && (
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400">
+                  <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
                     <span className="font-mono tabular-nums" style={{ color: progressColor }}>
                       {sesion.tiempoOriginal || 60}m
                       {tiempoExtraMin > 0 && ` +${tiempoExtraMin}m`}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded bg-white/5 text-gray-500">
+                    <span className="px-1.5 py-0.5 rounded bg-white/5 text-gray-500 font-medium text-[9px]">
                       ${Math.round((sesion.tarifa || sesion.tarifa_base || 0) / 1000)}k/h
                     </span>
                   </div>
@@ -350,104 +356,103 @@ const StationCardInner = memo(function StationCardInner({
 
         {/* ── BARRA DE PROGRESO (solo activas) ── */}
         {esOcupada && (
-          <div className="h-2 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(progreso)} aria-valuemin={0} aria-valuemax={100} aria-label={`Progreso ${Math.round(progreso)}%`}>
+          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.round(progreso)} aria-valuemin={0} aria-valuemax={100} aria-label={`Progreso ${Math.round(progreso)}%`}>
             <div
               className="h-full rounded-full transition-all duration-300 ease-out"
               style={{
                 width: `${progreso}%`,
-                background: `linear-gradient(90deg, ${progressColor}80, ${progressColor})`,
-                boxShadow: `0 0 8px ${progressColor}60`,
+                background: `linear-gradient(90deg, ${progressColor}85, ${progressColor})`,
+                boxShadow: `0 0 6px ${progressColor}50`,
               }}
             />
           </div>
         )}
 
-        {/* ── Separador para libres ── */}
+        {/* ── Separador visual para libres ── */}
         {esLibre && <div className="h-px bg-white/5" />}
 
-        {/* ── INGRESOS + CONSUMO ── */}
+        {/* ── TOTAL + CONSUMO ── */}
         {esOcupada && (
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-[#00D656] font-bold tabular-nums truncate">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="text-sm font-bold text-[#00D656] tabular-nums truncate">
               {formatCOP(totalGeneral)}
             </div>
-            <div className="flex items-center gap-1 text-gray-500">
+            <div className="flex items-center gap-1 text-gray-500 text-[10px]">
               {tieneConsumo && (
                 <>
-                  <ShoppingCart size={10} />
+                  <ShoppingCart size={9} />
                   <span>{itemsCount} item{itemsCount !== 1 ? 's' : ''}</span>
                 </>
               )}
               {tiempoExtraMin > 0 && itemsCount > 0 && <span className="mx-1">·</span>}
               {tiempoExtraMin > 0 && (
                 <>
-                  <Clock size={10} />
-                  <span>+{tiempoExtraMin}m</span>
+                  <span className="font-mono tabular-nums" style={{ color: progressColor }}>+${tiempoExtraMin}m</span>
                 </>
               )}
               {!tieneConsumo && tiempoExtraMin === 0 && <span className="text-gray-600">—</span>}
             </div>
           </div>
-          {/* Alerta inline si es crítica */}
+          {/* Badge de alerta crítica inline ── */}
           {alertaEstado && alertaEstado.prioridad <= 3 && (
-            <span className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold uppercase" style={{ background: `${alertaEstado.color}20`, color: alertaEstado.color, border: `1px solid ${alertaEstado.color}40` }}>
+            <span className="shrink-0 px-2 py-0.5 rounded text-[9px] font-bold uppercase" style={{ background: `${alertaEstado.color}18`, color: alertaEstado.color, border: `1px solid ${alertaEstado.color}35` }}>
               {alertaEstado.label}
             </span>
           )}
         </div>
         )}
 
-        {/* ── QUICK ACTIONS — iconos compactos centrados ── */}
-        <div className="flex items-center justify-center gap-1.5 pt-1">
+        {/* ── QUICK ACTIONS — solo iconos, centrados ── */}
+        <div className="flex items-center justify-center gap-1 pt-1">
           {esLibre ? (
             <button
               onClick={handleClickIniciar}
-              className="flex-1 h-10 flex items-center justify-center gap-2 rounded-xl bg-[#00D656]/15 hover:bg-[#00D656]/25 border border-[#00D656]/30 hover:border-[#00D656]/50 text-[#00D656] font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
+              className="flex-1 h-10 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-sm transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
               aria-label={`Iniciar sesión en ${estacionId}`}
               title="Iniciar sesión"
             >
               <Plus size={16} />
-              <span>INICIAR</span>
+              <span className="hidden sm:inline">INICIAR</span>
             </button>
           ) : (
             <>
-              {/* +Tiempo — verde */}
+              {/* +Tiempo — verde de consola/estado ── */}
               <button
                 onClick={handleClickTiempo}
-                className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-[#00D656]/10 hover:bg-[#00D656]/20 border border-[#00D656]/20 hover:border-[#00D656]/40 text-[#00D656] transition-all focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-[#00D656]/20 text-[#00D656] transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/35 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
                 aria-label={`Agregar tiempo a ${estacionId}`}
                 title="Agregar tiempo"
               >
                 <ClockPlus size={16} />
               </button>
 
-              {/* Productos — amarillo */}
+              {/* Productos — ámbar ── */}
               <button
                 onClick={handleClickProducto}
-                className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20 hover:border-yellow-500/40 text-yellow-400 transition-all focus:outline-none focus:ring-2 focus:ring-yellow-500/30"
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-yellow-500/20 text-yellow-400 transition-all hover:bg-yellow-500/10 hover:border-yellow-500/35 focus:outline-none focus:ring-2 focus:ring-yellow-500/30"
                 aria-label={`Agregar productos a ${estacionId}`}
                 title="Productos"
               >
                 <ShoppingCart size={16} />
               </button>
 
-              {/* Finalizar — rojo */}
+              {/* Finalizar — rojo ── */}
               <button
                 onClick={handleClickFinalizar}
-                className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/40 text-red-400 transition-all focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-red-500/20 text-red-400 transition-all hover:bg-red-500/10 hover:border-red-500/35 focus:outline-none focus:ring-2 focus:ring-red-500/30"
                 aria-label={`Finalizar sesión en ${estacionId}`}
                 title="Finalizar sesión"
               >
                 <CircleCheckBig size={16} />
               </button>
 
-              {/* Más acciones — neutro, click-only */}
+              {/* Más acciones — neutro ── */}
               <div className="relative">
                 <button
                   ref={menuButtonRef}
                   onClick={toggleMenu}
-                  className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-white/30"
+                  className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-gray-400 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-white/30"
                   aria-label="Más acciones"
                   aria-haspopup="true"
                   aria-expanded={menuOpen}
@@ -457,7 +462,7 @@ const StationCardInner = memo(function StationCardInner({
                 </button>
                 {menuOpen && (
                   <div ref={menuRef} className="absolute bottom-full right-0 mb-1 z-30">
-                    <div className="bg-[#1A1C23] rounded-xl border border-white/10 shadow-xl p-1 min-w-[140px] animate-fade-in">
+                    <div className="bg-[#14161C] rounded-xl border border-white/10 shadow-xl p-1 min-w-[140px] animate-fade-in">
                       <button
                         onClick={(e) => { e.stopPropagation(); closeMenu(); handleClickTrasladar(e); }}
                         className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/5 rounded-lg flex items-center gap-2 transition-colors"

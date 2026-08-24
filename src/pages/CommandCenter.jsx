@@ -1,8 +1,8 @@
 // ===================================================================
-// COMMAND CENTER — Page Export
-// Sprint 0.4 — Fase 2: Implementación
+// COMMAND CENTER — Page Export (Responsive)
+// Sprint 0.4-D — Mobile Native Experience
 // ===================================================================
 
-import CommandCenter from '../components/command-center/CommandCenter';
+import ResponsiveCommandCenter from '../components/command-center/ResponsiveCommandCenter';
 
-export default CommandCenter;
+export default ResponsiveCommandCenter;

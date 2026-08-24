@@ -288,9 +288,10 @@ export default function TarjetaSala({
             <button
               onClick={() => onEditar(sala)}
               title="Editar sala"
-              className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 border border-white/5 hover:bg-blue-500/15 hover:border-blue-500/30 hover:text-blue-400 text-gray-500 transition-all"
+              className="flex items-center gap-1.5 px-2.5 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/40 text-blue-400 transition-all"
             >
               <Pencil size={13} />
+              <span className="text-xs font-semibold hidden sm:inline">Editar</span>
             </button>
           )}
         </div>

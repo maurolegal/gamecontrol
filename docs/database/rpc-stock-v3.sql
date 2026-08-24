@@ -423,29 +423,32 @@ BEGIN
     END IF;
   ELSIF p_metodo_pago = 'transferencia' THEN
     -- Transferencia: monto_transferencia debe corresponder al total exactamente
-    IF p_monto_transferencia IS NULL OR abs(p_monto_transferencia - v_total_calculado) > 1 THEN
+    -- Si llega NULL, asumir el total completo (consistente con finalizar_sesion)
+    IF p_monto_transferencia IS NOT NULL AND abs(p_monto_transferencia - v_total_calculado) > 1 THEN
       RETURN QUERY SELECT 'ERROR_VALIDACION'::TEXT, NULL::UUID,
         v_subtotal_productos, p_descuento, v_total_calculado,
         'monto_transferencia no coincide con total. Total: ' || v_total_calculado::TEXT ||
-        ', transferencia: ' || COALESCE(p_monto_transferencia::TEXT,'NULL');
+        ', transferencia: ' || p_monto_transferencia::TEXT;
       RETURN;
     END IF;
   ELSIF p_metodo_pago = 'tarjeta' THEN
     -- Tarjeta: monto_tarjeta debe corresponder al total exactamente
-    IF p_monto_tarjeta IS NULL OR abs(p_monto_tarjeta - v_total_calculado) > 1 THEN
+    -- Si llega NULL, asumir el total completo (consistente con finalizar_sesion)
+    IF p_monto_tarjeta IS NOT NULL AND abs(p_monto_tarjeta - v_total_calculado) > 1 THEN
       RETURN QUERY SELECT 'ERROR_VALIDACION'::TEXT, NULL::UUID,
         v_subtotal_productos, p_descuento, v_total_calculado,
         'monto_tarjeta no coincide con total. Total: ' || v_total_calculado::TEXT ||
-        ', tarjeta: ' || COALESCE(p_monto_tarjeta::TEXT,'NULL');
+        ', tarjeta: ' || p_monto_tarjeta::TEXT;
       RETURN;
     END IF;
   ELSIF p_metodo_pago = 'digital' THEN
     -- Digital: monto_digital debe corresponder al total exactamente
-    IF p_monto_digital IS NULL OR abs(p_monto_digital - v_total_calculado) > 1 THEN
+    -- Si llega NULL, asumir el total completo (consistente con finalizar_sesion)
+    IF p_monto_digital IS NOT NULL AND abs(p_monto_digital - v_total_calculado) > 1 THEN
       RETURN QUERY SELECT 'ERROR_VALIDACION'::TEXT, NULL::UUID,
         v_subtotal_productos, p_descuento, v_total_calculado,
         'monto_digital no coincide con total. Total: ' || v_total_calculado::TEXT ||
-        ', digital: ' || COALESCE(p_monto_digital::TEXT,'NULL');
+        ', digital: ' || p_monto_digital::TEXT;
       RETURN;
     END IF;
   END IF;
@@ -462,7 +465,11 @@ BEGIN
     NULL, NULL, v_usuario_id, p_cliente, p_estacion,
     NULL, NOW(), p_metodo_pago, 'cerrada',
     0, v_subtotal_productos, p_descuento, v_total_calculado, p_notas,
-    p_monto_efectivo, p_monto_transferencia, p_monto_tarjeta, p_monto_digital,
+    -- Si el monto del método seleccionado llega NULL, asumir el total completo
+    CASE WHEN p_metodo_pago = 'efectivo' THEN COALESCE(p_monto_efectivo, v_total_calculado) ELSE p_monto_efectivo END,
+    CASE WHEN p_metodo_pago = 'transferencia' THEN COALESCE(p_monto_transferencia, v_total_calculado) ELSE p_monto_transferencia END,
+    CASE WHEN p_metodo_pago = 'tarjeta' THEN COALESCE(p_monto_tarjeta, v_total_calculado) ELSE p_monto_tarjeta END,
+    CASE WHEN p_metodo_pago = 'digital' THEN COALESCE(p_monto_digital, v_total_calculado) ELSE p_monto_digital END,
     p_idempotency_key,
     'POS||HASH:' || v_payload_hash
   )
