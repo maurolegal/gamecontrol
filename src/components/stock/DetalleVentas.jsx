@@ -1,8 +1,9 @@
 // ===================================================================
-// COMPONENTE: Detalle Ventas del Día – Premium
+// COMPONENTE: Ventas del Día – Stock
+// Sección separada debajo del inventario (no panel lateral)
 // ===================================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingCart, Calendar, RefreshCw, Package } from 'lucide-react';
 import * as db from '../../lib/databaseService';
 
@@ -51,7 +52,6 @@ export default function DetalleVentas() {
       });
 
       // Filtrar ventas inválidas (monto/cantidad en 0) client-side.
-      // El rango de fechas ya se aplicó en la query (gte + lte).
       const ventasFiltradas = (data ?? []).filter(v => {
         const total = Number(v.valor_total) || 0;
         const cant = Number(v.cantidad) || 0;
@@ -72,72 +72,116 @@ export default function DetalleVentas() {
   const verDia = () => cargarVentas(fecha);
   const verHoy = () => { setFecha(obtenerFechaLocal()); cargarVentas(obtenerFechaLocal()); };
 
+  // Resumen compacto: artículos vendidos + total
+  const articulosVendidos = useMemo(
+    () => ventas.reduce((s, v) => s + Math.abs(Number(v.cantidad) || 0), 0),
+    [ventas]
+  );
+
   return (
-    <div className="glass-card rounded-2xl overflow-hidden flex flex-col" style={{ maxHeight: '520px' }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 flex-shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <ShoppingCart size={18} className="text-[#00D656]" />
-            <h3 className="font-semibold text-white">Detalle Ventas</h3>
-          </div>
-          <p className="text-xs text-gray-500 mt-0.5">{etiqueta}</p>
-        </div>
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
+      {/* ── Header ── */}
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      >
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-lg bg-[#00D656]/20 text-[#00D656] text-xs font-bold border border-[#00D656]/30">
-            Total {etiqueta}: {formatCOP(totalVentas)}
-          </span>
-          <button onClick={() => cargarVentas(fecha)} disabled={cargando}
-            className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors disabled:opacity-50">
-            <RefreshCw size={14} className={cargando ? 'animate-spin' : ''} />
+          <ShoppingCart size={15} className="text-[#00D656]" />
+          <h3 className="font-semibold text-white text-sm">Ventas del día</h3>
+        </div>
+        <button
+          onClick={() => cargarVentas(fecha)}
+          disabled={cargando}
+          className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-[#00D656] transition-colors disabled:opacity-50"
+          aria-label="Refrescar ventas"
+          title="Refrescar"
+        >
+          <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {/* ── Resumen compacto + filtros de fecha ── */}
+      <div
+        className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        {/* Resumen */}
+        <div className="flex items-center gap-3 text-xs">
+          {cargando ? (
+            <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
+          ) : ventas.length > 0 ? (
+            <>
+              <span className="text-gray-500">
+                <span className="font-bold text-gray-200 tabular-nums">{articulosVendidos}</span> artículos vendidos
+              </span>
+              <span className="text-gray-600">·</span>
+              <span className="font-bold tabular-nums" style={{ color: '#00D656' }}>{formatCOP(totalVentas)}</span>
+            </>
+          ) : (
+            <span className="text-gray-600">{etiqueta === 'Hoy' ? 'Sin ventas hoy' : 'Sin ventas ese día'}</span>
+          )}
+        </div>
+
+        {/* Filtros de fecha */}
+        <div className="flex items-center gap-1.5">
+          <Calendar size={12} className="text-gray-500" />
+          <input
+            type="date"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            className="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-white text-[11px] focus:outline-none focus:border-[#00D656]/50 tabular-nums"
+            aria-label="Fecha"
+          />
+          <button
+            onClick={verDia}
+            className="px-2 py-1 rounded-md bg-white/5 text-gray-400 text-[11px] font-medium border border-white/10 hover:text-white transition-colors"
+          >
+            Ver día
+          </button>
+          <button
+            onClick={verHoy}
+            className="px-2 py-1 rounded-md bg-white/5 text-gray-400 text-[11px] border border-white/10 hover:text-white transition-colors"
+          >
+            Hoy
           </button>
         </div>
       </div>
 
-      {/* Filtros de fecha */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-white/5 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Calendar size={14} className="text-gray-500" />
-          <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-[#00D656]/50" />
-        </div>
-        <button onClick={verDia}
-          className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs font-medium border border-blue-500/30 hover:bg-blue-500/30 transition-colors">
-          Ver día
-        </button>
-        <button onClick={verHoy}
-          className="px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 text-xs border border-white/10 hover:text-white transition-colors">
-          Hoy
-        </button>
-      </div>
-
-      {/* Tabla */}
-      <div className="overflow-y-auto flex-1">
-        <table className="w-full text-sm">
-          <thead className="bg-white/5 text-gray-400 text-xs uppercase tracking-wider sticky top-0">
-            <tr>
-              <th className="px-4 py-2.5 text-left">Hora</th>
-              <th className="px-4 py-2.5 text-left">Producto</th>
-              <th className="px-4 py-2.5 text-center">Cant.</th>
-              <th className="px-4 py-2.5 text-right">Total</th>
+      {/* ── Tabla ── */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[400px]">
+          <thead>
+            <tr
+              className="text-gray-500 text-[10px] uppercase tracking-wider"
+              style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+            >
+              <th className="px-4 py-2.5 text-left font-medium">Hora</th>
+              <th className="px-4 py-2.5 text-left font-medium">Producto</th>
+              <th className="px-4 py-2.5 text-center font-medium">Cant.</th>
+              <th className="px-4 py-2.5 text-right font-medium">Total</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
+          <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center">
-                  <RefreshCw size={20} className="animate-spin text-[#00D656] mx-auto mb-2" />
-                  <p className="text-gray-500 text-xs">Actualizando...</p>
+                <td colSpan={4} className="px-4 py-8 text-center">
+                  <RefreshCw size={18} className="animate-spin text-[#00D656] mx-auto mb-2" />
+                  <p className="text-gray-600 text-xs">Actualizando…</p>
                 </td>
               </tr>
             ) : ventas.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center">
-                  <ShoppingCart size={28} className="mx-auto mb-2 text-gray-700" />
-                  <p className="text-gray-600 text-xs">
+                <td colSpan={4} className="px-4 py-10 text-center">
+                  <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-2">
+                    <ShoppingCart size={20} className="text-gray-600" />
+                  </div>
+                  <p className="text-gray-500 text-sm">
                     No hay ventas registradas {etiqueta === 'Hoy' ? 'hoy' : 'ese día'}
                   </p>
-                  <p className="text-gray-700 text-[10px] mt-1">Las ventas aparecerán aquí</p>
+                  <p className="text-gray-600 text-[11px] mt-0.5">Las ventas aparecerán aquí</p>
                 </td>
               </tr>
             ) : (
@@ -149,23 +193,29 @@ export default function DetalleVentas() {
                 const total = Number(v.valor_total) || 0;
 
                 return (
-                  <tr key={v.id} className="hover:bg-white/5 transition-colors">
+                  <tr
+                    key={v.id}
+                    className="transition-colors"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                  >
                     <td className="px-4 py-2.5">
-                      <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-gray-400 text-xs">
+                      <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-gray-400 text-[11px] tabular-nums">
                         {hora}
                       </span>
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-1.5">
-                        <Package size={12} className="text-blue-400" />
-                        <span className="text-white text-xs truncate max-w-[150px]" title={nombreProd}>{nombreProd}</span>
+                        <Package size={11} className="text-gray-600 shrink-0" />
+                        <span className="text-white text-xs truncate max-w-[200px]" title={nombreProd}>{nombreProd}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-center font-bold text-white text-xs">
-                      {Math.abs(v.cantidad)}
+                    <td className="px-4 py-2.5 text-center">
+                      <span className="font-semibold text-gray-300 text-xs tabular-nums">{Math.abs(v.cantidad)}</span>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-bold text-[#00D656] text-xs">
-                      {formatCOP(total)}
+                    <td className="px-4 py-2.5 text-right">
+                      <span className="font-bold tabular-nums text-xs" style={{ color: '#00D656' }}>{formatCOP(total)}</span>
                     </td>
                   </tr>
                 );

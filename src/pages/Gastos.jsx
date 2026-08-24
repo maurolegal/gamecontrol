@@ -6,11 +6,12 @@
 // ===================================================================
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, RefreshCw } from 'lucide-react';
 
 import * as db from '../lib/databaseService';
 import { useNotifications }    from '../hooks/useNotifications';
 import { useCategoriasGastos } from '../hooks/useCategoriasGastos';
+import { useAuth }             from '../hooks/useAuth';
 
 import KpiGastos        from '../components/gastos/KpiGastos';
 import FiltrosGastos    from '../components/gastos/FiltrosGastos';
@@ -150,6 +151,7 @@ const FILTROS_DEFAULT = {
 export default function Gastos() {
   const { exito, error: notifError } = useNotifications();
   const { categorias, guardar: guardarCategorias } = useCategoriasGastos();
+  const { usuario } = useAuth();
 
   const [gastos,      setGastos]      = useState([]);
   const [cargando,    setCargando]    = useState(false);
@@ -237,62 +239,122 @@ export default function Gastos() {
     setGastoEditar(null);
   }, []);
 
+  // ── ¿Hay filtros activos? (para empty state) ─────────────────────
+  const hayFiltrosActivos = useMemo(
+    () => filtros.periodo !== 'hoy' || !!filtros.categoria || !!filtros.proveedor || !!filtros.monto,
+    [filtros]
+  );
+
+  const limpiarFiltros = useCallback(
+    () => setFiltros(FILTROS_DEFAULT),
+    []
+  );
+
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-white kpi-number">
-            Gestión de Gastos
-          </h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            Control y seguimiento de gastos operativos
-          </p>
+    <div
+      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
+      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+    >
+      {/* ── HEADER compacto (Design System Command Center) ── */}
+      <header
+        className="relative z-40 px-4 py-2.5"
+        style={{
+          background: 'rgba(10,14,25,0.95)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          {/* Brand */}
+          <div className="shrink-0">
+            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
+            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Gastos</p>
+          </div>
+
+          {/* Controles */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={cargar}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
+              aria-label="Actualizar gastos"
+              title="Actualizar gastos"
+            >
+              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Actualizar</span>
+            </button>
+
+            <button
+              onClick={() => setModalCats(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
+              aria-label="Gestionar categorías"
+              title="Gestionar categorías"
+            >
+              <Settings size={13} />
+              <span className="hidden sm:inline">Categorías</span>
+            </button>
+
+            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-medium">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00D656]/20 to-green-600/20 flex items-center justify-center text-[10px] font-bold text-[#00D656] border border-[#00D656]/30">
+                {usuario?.nombre?.[0]?.toUpperCase() || usuario?.email?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <span className="hidden md:inline max-w-[120px] truncate">
+                {usuario?.nombre || usuario?.email || 'Usuario'}
+              </span>
+            </div>
+          </div>
         </div>
-        <button
-          onClick={() => setModalCats(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm text-gray-300 transition-colors self-start sm:self-auto"
-        >
-          <Settings size={15} />
-          Gestionar Categorías
-        </button>
-      </div>
+      </header>
 
-      {/* ── KPI Cards ── */}
-      <KpiGastos kpis={kpis} />
+      {/* ── CONTENIDO ── */}
+      <main className="flex-1 px-4 py-4 space-y-4">
+        {/* Título de página (jerarquía clara, compacto) */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Gastos</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Control y seguimiento de gastos operativos</p>
+          </div>
+        </div>
 
-      {/* ── Filtros ── */}
-      <FiltrosGastos
-        filtros={filtros}
-        setFiltros={setFiltros}
-        categorias={categorias}
-        proveedores={proveedores}
-      />
+        {/* ── KPI Strip ── */}
+        <KpiGastos kpis={kpis} />
 
-      {/* ── Formulario + Resumen por categoría ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="seccion-formulario">
-        <FormGasto
+        {/* ── Toolbar de filtros ── */}
+        <FiltrosGastos
+          filtros={filtros}
+          setFiltros={setFiltros}
           categorias={categorias}
-          gastoEditar={gastoEditar}
-          onGuardado={handleGuardado}
-          onCancelar={handleCancelarEdicion}
-          onAbrirCategorias={() => setModalCats(true)}
+          proveedores={proveedores}
+          totalResultados={gastosFiltrados.length}
+          onLimpiar={limpiarFiltros}
         />
-        <ResumenCategorias
+
+        {/* ── Formulario + Resumen por categoría (55/45 desktop) ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-4" id="seccion-formulario">
+          <FormGasto
+            categorias={categorias}
+            gastoEditar={gastoEditar}
+            onGuardado={handleGuardado}
+            onCancelar={handleCancelarEdicion}
+            onAbrirCategorias={() => setModalCats(true)}
+          />
+          <ResumenCategorias
+            gastos={gastosFiltrados}
+            categorias={categorias}
+          />
+        </div>
+
+        {/* ── Historial de gastos ── */}
+        <TablaGastos
           gastos={gastosFiltrados}
+          cargando={cargando}
           categorias={categorias}
+          onEditar={handleEditar}
+          onEliminar={handleEliminar}
+          onLimpiar={limpiarFiltros}
+          hayFiltros={hayFiltrosActivos}
         />
-      </div>
-
-      {/* ── Historial de gastos ── */}
-      <TablaGastos
-        gastos={gastosFiltrados}
-        cargando={cargando}
-        categorias={categorias}
-        onEditar={handleEditar}
-        onEliminar={handleEliminar}
-      />
+      </main>
 
       {/* ── Modal Gestionar Categorías ── */}
       <ModalCategorias

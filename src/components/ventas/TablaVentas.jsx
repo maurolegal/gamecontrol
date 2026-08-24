@@ -1,8 +1,12 @@
 // ===================================================================
-// TABLA DE VENTAS – v2 Pro
+// TABLA DE VENTAS — Design System GameControl (Command Center aligned)
 // ===================================================================
 
-import { Eye, Pencil, Trash2, RotateCcw, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Eye, Pencil, Trash2, RotateCcw, ChevronLeft, ChevronRight,
+  ShoppingCart,
+} from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────────────
 function formatCOP(v) {
@@ -43,20 +47,21 @@ function fmtDuracion(min) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
-// ── Badge método de pago ────────────────────────────────────────────
+// ── Badge método de pago (sutiles, no saturados) ─────────────────────
 const METODOS = {
-  efectivo:      { label: '💵 Efectivo',       cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' },
-  tarjeta:       { label: '💳 Tarjeta',         cls: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
-  transferencia: { label: '🏦 Transferencia',   cls: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' },
-  digital:       { label: '📱 QR/Digital',      cls: 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400' },
-  parcial:       { label: '🔀 Parcial',          cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' },
-  anulado:       { label: '🚫 Anulado',          cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' },
+  efectivo:      { label: 'Efectivo',       dot: '#00D656', cls: 'bg-[#00D656]/10 text-[#00D656] border-[#00D656]/20' },
+  tarjeta:       { label: 'Tarjeta',        dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' },
+  transferencia: { label: 'Transferencia',  dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' },
+  digital:       { label: 'QR / Digital',   dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' },
+  parcial:       { label: 'Parcial',        dot: '#F59E0B', cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  anulado:       { label: 'Anulado',        dot: '#EF4444', cls: 'bg-red-500/10 text-red-400 border-red-500/20' },
 };
 
 function MetodoBadge({ metodo }) {
-  const m = METODOS[metodo] ?? { label: metodo ?? '—', cls: 'bg-gray-100 text-gray-600' };
+  const m = METODOS[metodo] ?? { label: metodo ?? '—', dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${m.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium whitespace-nowrap border ${m.cls}`}>
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: m.dot }} />
       {m.label}
     </span>
   );
@@ -68,10 +73,30 @@ function SkeletonRow() {
     <tr>
       {Array.from({ length: 9 }).map((_, i) => (
         <td key={i} className="px-4 py-3">
-          <div className="h-3.5 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+          <div className="h-3.5 rounded animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
         </td>
       ))}
     </tr>
+  );
+}
+
+// ── Icon button compacto (36×36 aprox) ──────────────────────────────
+function IconButton({ onClick, label, tone = 'neutral', children }) {
+  const tones = {
+    neutral: 'text-gray-400 hover:text-white hover:bg-white/10',
+    danger:  'text-gray-400 hover:text-red-400 hover:bg-red-500/10',
+    warn:    'text-gray-400 hover:text-amber-400 hover:bg-amber-500/10',
+    info:    'text-gray-400 hover:text-[#00D656] hover:bg-[#00D656]/10',
+  };
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={`flex items-center justify-center w-9 h-9 rounded-lg transition-all ${tones[tone]}`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -86,9 +111,8 @@ function Paginacion({ pagina, totalPags, totalRegistros, onPagina }) {
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3
-                    border-t border-gray-100 dark:border-gray-800">
-      <p className="text-xs text-gray-500 dark:text-gray-400">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-white/5">
+      <p className="text-xs text-gray-500">
         {totalRegistros === 0
           ? 'Sin registros'
           : `Mostrando ${inicio}–${fin} de ${totalRegistros} registros`}
@@ -99,7 +123,8 @@ function Paginacion({ pagina, totalPags, totalRegistros, onPagina }) {
           <button
             disabled={pagina === 1}
             onClick={() => onPagina(pagina - 1)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-white/10 disabled:opacity-30 transition-colors"
+            aria-label="Página anterior"
           >
             <ChevronLeft size={16} />
           </button>
@@ -110,8 +135,8 @@ function Paginacion({ pagina, totalPags, totalRegistros, onPagina }) {
               onClick={() => onPagina(p)}
               className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
                 p === pagina
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  ? 'bg-[#00D656]/15 text-[#00D656] border border-[#00D656]/30'
+                  : 'text-gray-400 hover:bg-white/10'
               }`}
             >
               {p}
@@ -121,7 +146,8 @@ function Paginacion({ pagina, totalPags, totalRegistros, onPagina }) {
           <button
             disabled={pagina === totalPags}
             onClick={() => onPagina(pagina + 1)}
-            className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded-lg text-gray-500 hover:bg-white/10 disabled:opacity-30 transition-colors"
+            aria-label="Página siguiente"
           >
             <ChevronRight size={16} />
           </button>
@@ -139,6 +165,119 @@ function displayTotal(v, filtroMetodo) {
   return Number(v.total ?? 0);
 }
 
+// ── Empty state premium ────────────────────────────────────────────
+function EmptyState({ onLimpiar, hayFiltros }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl mb-4">
+        🛒
+      </div>
+      <h3 className="text-base font-semibold text-white mb-1">No hay ventas</h3>
+      <p className="text-sm text-gray-500 mb-5 max-w-xs">
+        {hayFiltros
+          ? 'No existen ventas para los filtros seleccionados.'
+          : 'Aún no se han registrado ventas.'}
+      </p>
+      {hayFiltros && (
+        <button
+          onClick={onLimpiar}
+          className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-sm transition-all"
+        >
+          Limpiar filtros
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Vista mobile: SalesList (cards) ────────────────────────────────
+function SalesCard({ v, nombreSala, filtroMetodo, onDetalle, onEditar, onEliminar, onDevolver }) {
+  const min = duracionMin(v.fecha_inicio, v.fecha_cierre);
+  const metodo = v.estado === 'anulada' ? 'anulado' : v.metodo_pago;
+  const total = displayTotal(v, filtroMetodo);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div
+      className="rounded-xl p-3.5 transition-all"
+      style={{
+        background: v.estado === 'anulada' ? 'rgba(239,68,68,0.03)' : '#111318',
+        border: `1px solid ${v.estado === 'anulada' ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.07)'}`,
+      }}
+    >
+      {/* Fila 1: total + método */}
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-lg font-bold text-white kpi-number tabular-nums">{formatCOP(total)}</span>
+        <MetodoBadge metodo={metodo} />
+      </div>
+
+      {/* Fila 2: cliente */}
+      <p className="text-sm font-medium text-gray-200 truncate">
+        {v.cliente || 'Cliente no registrado'}
+      </p>
+
+      {/* Fila 3: sala · estación */}
+      <p className="text-xs text-gray-500 mt-0.5 truncate">
+        {nombreSala(v.sala_id)}
+        {v.estacion && <span> · {v.estacion}</span>}
+      </p>
+
+      {/* Fila 4: metadata */}
+      <p className="text-[11px] text-gray-500 mt-1.5">
+        {formatFecha(v.fecha_cierre ?? v.created_at)}
+        {min !== null && <span> · {fmtDuracion(min)}</span>}
+      </p>
+
+      {/* Fila 5: # sesión + acciones */}
+      <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
+        <span className="font-mono text-[10px] text-gray-600">
+          #{(v.sesion_id ?? v.id ?? '').slice(-8).toUpperCase()}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onDetalle?.(v)}
+            aria-label="Ver detalle"
+            title="Ver detalle"
+            className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-[#00D656] hover:bg-[#00D656]/10 transition-all"
+          >
+            <Eye size={16} />
+          </button>
+          {onEditar && (
+            <button
+              onClick={() => onEditar(v)}
+              aria-label="Editar"
+              title="Editar"
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+            >
+              <Pencil size={16} />
+            </button>
+          )}
+          {onDevolver && v.estado !== 'anulada' && (
+            <button
+              onClick={() => onDevolver(v)}
+              aria-label="Devolver o corregir"
+              title="Devolver / corregir productos"
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+            >
+              <RotateCcw size={16} />
+            </button>
+          )}
+          {onEliminar && (
+            <button
+              onClick={() => onEliminar(v.id)}
+              aria-label="Anular venta"
+              title="Anular venta"
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Tabla principal ────────────────────────────────────────────────
 export default function TablaVentas({
   ventas = [],
@@ -153,43 +292,55 @@ export default function TablaVentas({
   onDevolver,
   nombreSala,
   filtroMetodo = '',
+  onLimpiar,
+  hayFiltros = false,
 }) {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+  const surfaceStyle = {
+    background: '#111318',
+    border: '1px solid rgba(255,255,255,0.07)',
+  };
 
-      {/* Header */}
-      <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-        <ShoppingCart size={18} className="text-indigo-500" />
-        <h3 className="font-semibold text-gray-900 dark:text-white">Historial de ventas</h3>
+  return (
+    <div className="rounded-xl overflow-hidden" style={surfaceStyle}>
+      {/* Header de sección */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+        <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+          <ShoppingCart size={15} className="text-[#00D656]" />
+          Historial de ventas
+        </h3>
+        <span className="text-xs text-gray-500 tabular-nums">
+          {totalRegistros} registro{totalRegistros !== 1 ? 's' : ''}
+        </span>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* ── Desktop / tablet: tabla ── */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide">
-            <tr>
-              <th className="px-4 py-3 text-left"># Sesión</th>
-              <th className="px-4 py-3 text-left">Fecha</th>
-              <th className="px-4 py-3 text-left">Cliente</th>
-              <th className="px-4 py-3 text-left">Sala / Est.</th>
-              <th className="px-4 py-3 text-left">Inicio</th>
-              <th className="px-4 py-3 text-left">Cierre</th>
-              <th className="px-4 py-3 text-left">Duración</th>
-              <th className="px-4 py-3 text-left">Método</th>
-              <th className="px-4 py-3 text-right">Total</th>
-              <th className="px-4 py-3 text-center">Acciones</th>
+          <thead>
+            <tr
+              className="text-gray-500 text-[10px] uppercase tracking-wider border-b border-white/5"
+              style={{ background: 'rgba(255,255,255,0.02)' }}
+            >
+              <th className="px-4 py-2.5 text-left font-medium">Sesión</th>
+              <th className="px-4 py-2.5 text-left font-medium">Fecha</th>
+              <th className="px-4 py-2.5 text-left font-medium">Cliente</th>
+              <th className="px-4 py-2.5 text-left font-medium">Sala / Est.</th>
+              <th className="px-4 py-2.5 text-left font-medium">Inicio</th>
+              <th className="px-4 py-2.5 text-left font-medium">Cierre</th>
+              <th className="px-4 py-2.5 text-left font-medium">Duración</th>
+              <th className="px-4 py-2.5 text-left font-medium">Método</th>
+              <th className="px-4 py-2.5 text-right font-medium">Total</th>
+              <th className="px-4 py-2.5 text-center font-medium">Acciones</th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+          <tbody>
             {cargando ? (
               Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
             ) : ventas.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center">
-                  <ShoppingCart size={32} className="mx-auto text-gray-300 dark:text-gray-700 mb-3" />
-                  <p className="text-gray-400 dark:text-gray-500 font-medium">No hay ventas en este período</p>
-                  <p className="text-xs text-gray-300 dark:text-gray-600 mt-1">Cambiá los filtros para ver más resultados</p>
+                <td colSpan={10} className="p-0">
+                  <EmptyState onLimpiar={onLimpiar} hayFiltros={hayFiltros} />
                 </td>
               </tr>
             ) : (
@@ -198,111 +349,102 @@ export default function TablaVentas({
                 return (
                   <tr
                     key={v.id}
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors ${
-                      v.estado === 'anulada' ? 'opacity-60' : ''
-                    }`}
+                    className="transition-colors"
+                    style={{
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >
                     {/* # sesión */}
-                    <td className="px-4 py-3">
-                      <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                    <td className="px-4 py-2.5">
+                      <span className="font-mono text-[11px] text-gray-500">
                         #{(v.sesion_id ?? v.id ?? '').slice(-8).toUpperCase()}
                       </span>
                     </td>
 
                     {/* Fecha */}
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-xs">
                       {formatFecha(v.fecha_cierre ?? v.created_at)}
                     </td>
 
                     {/* Cliente */}
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white max-w-[140px] truncate">
+                    <td className="px-4 py-2.5 font-medium text-gray-200 max-w-[140px] truncate">
                       {v.cliente || '—'}
                     </td>
 
                     {/* Sala / Estación */}
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                    <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-xs">
+                      <span className="font-medium text-gray-300">
                         {nombreSala(v.sala_id)}
                       </span>
                       {v.estacion && (
-                        <span className="ml-1 text-xs text-gray-400">· {v.estacion}</span>
+                        <span className="ml-1 text-gray-600">· {v.estacion}</span>
                       )}
                     </td>
 
                     {/* Hora inicio */}
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
+                    <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs">
                       {formatHora(v.fecha_inicio)}
                     </td>
 
                     {/* Hora cierre */}
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">
+                    <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap text-xs">
                       {formatHora(v.fecha_cierre)}
                     </td>
 
                     {/* Duración */}
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2.5">
                       {min !== null ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/5 text-gray-300 border border-white/10">
                           {fmtDuracion(min)}
                         </span>
                       ) : (
-                        <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
+                        <span className="text-gray-600 text-xs">—</span>
                       )}
                     </td>
 
                     {/* Método */}
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-2.5">
                       <MetodoBadge metodo={v.estado === 'anulada' ? 'anulado' : v.metodo_pago} />
                     </td>
 
                     {/* Total */}
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <span className="font-bold text-gray-900 dark:text-white">
+                    <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                      <span
+                        className={`font-semibold kpi-number tabular-nums ${
+                          v.estado === 'anulada' ? 'text-gray-600 line-through' : 'text-white'
+                        }`}
+                      >
                         {formatCOP(displayTotal(v, filtroMetodo))}
                       </span>
                       {filtroMetodo && filtroMetodo !== 'parcial' && v.metodo_pago === 'parcial' && (
-                        <span className="block text-xs font-normal text-gray-400 dark:text-gray-500">
-                          de {formatCOP(v.total)} total
+                        <span className="block text-[10px] font-normal text-gray-600">
+                          de {formatCOP(v.total)}
                         </span>
                       )}
                     </td>
 
                     {/* Acciones */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => onDetalle?.(v)}
-                          title="Ver detalle"
-                          className="p-1.5 rounded-lg text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
-                        >
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-center gap-0.5">
+                        <IconButton onClick={() => onDetalle?.(v)} label="Ver detalle" tone="info">
                           <Eye size={15} />
-                        </button>
+                        </IconButton>
                         {onEditar && (
-                          <button
-                            onClick={() => onEditar(v)}
-                            title="Editar"
-                            className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors"
-                          >
+                          <IconButton onClick={() => onEditar(v)} label="Editar venta" tone="warn">
                             <Pencil size={15} />
-                          </button>
-                        )}
-                        {onEliminar && (
-                          <button
-                            onClick={() => onEliminar(v.id)}
-                            title="Eliminar"
-                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-                          >
-                            <Trash2 size={15} />
-                          </button>
+                          </IconButton>
                         )}
                         {onDevolver && v.estado !== 'anulada' && (
-                          <button
-                            onClick={() => onDevolver(v)}
-                            title="Devolver / corregir productos"
-                            className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors"
-                          >
+                          <IconButton onClick={() => onDevolver(v)} label="Devolver / corregir productos" tone="danger">
                             <RotateCcw size={15} />
-                          </button>
+                          </IconButton>
+                        )}
+                        {onEliminar && (
+                          <IconButton onClick={() => onEliminar(v.id)} label="Anular venta" tone="danger">
+                            <Trash2 size={15} />
+                          </IconButton>
                         )}
                       </div>
                     </td>
@@ -312,6 +454,33 @@ export default function TablaVentas({
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* ── Mobile: SalesList (cards) ── */}
+      <div className="md:hidden">
+        {cargando ? (
+          <div className="flex flex-col items-center gap-2 py-12 text-gray-500">
+            <div className="w-6 h-6 border-2 border-[#00D656]/40 border-t-[#00D656] rounded-full animate-spin" />
+            <p className="text-xs">Cargando ventas…</p>
+          </div>
+        ) : ventas.length === 0 ? (
+          <EmptyState onLimpiar={onLimpiar} hayFiltros={hayFiltros} />
+        ) : (
+          <div className="p-3 space-y-2.5">
+            {ventas.map((v) => (
+              <SalesCard
+                key={v.id}
+                v={v}
+                nombreSala={nombreSala}
+                filtroMetodo={filtroMetodo}
+                onDetalle={onDetalle}
+                onEditar={onEditar}
+                onEliminar={onEliminar}
+                onDevolver={onDevolver}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Paginación */}

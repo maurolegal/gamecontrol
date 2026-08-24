@@ -39,16 +39,19 @@ const PERIOD_LABELS = { hoy: 'Hoy', semana: '7 días', mes: '30 días' };
 /** Skeleton */
 function GraficoSkeleton() {
   return (
-    <div className="glass-card rounded-2xl p-5 animate-pulse h-72">
+    <div
+      className="rounded-xl p-4 animate-pulse h-72"
+      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
       <div className="flex justify-between mb-4">
-        <div className="h-4 w-36 bg-white/10 rounded-full" />
-        <div className="flex gap-2">
+        <div className="h-3.5 w-32 bg-white/10 rounded-full" />
+        <div className="flex gap-1">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="h-7 w-14 bg-white/10 rounded-lg" />
+            <div key={i} className="h-6 w-12 bg-white/10 rounded-md" />
           ))}
         </div>
       </div>
-      <div className="h-48 bg-white/5 rounded-xl" />
+      <div className="h-48 bg-white/5 rounded-lg" />
     </div>
   );
 }
@@ -148,13 +151,17 @@ export default function GraficoVentasGastos({
             },
           },
           tooltip: {
-            backgroundColor: '#1A1C23',
-            borderColor: 'rgba(255,255,255,0.08)',
+            backgroundColor: '#111318',
+            borderColor: 'rgba(255,255,255,0.10)',
             borderWidth: 1,
             titleColor: '#FFFFFF',
             bodyColor: '#A0AEC0',
-            padding: 12,
-            cornerRadius: 10,
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            boxPadding: 4,
             callbacks: {
               label: (ctx) => ` ${ctx.dataset.label}: ${formatCOP(ctx.parsed.y)}`,
             },
@@ -189,24 +196,30 @@ export default function GraficoVentasGastos({
   if (cargando) return <GraficoSkeleton />;
 
   return (
-    <div className="glass-card rounded-2xl p-5">
+    <div
+      className="rounded-xl p-4 h-full"
+      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <TrendingUp size={18} className="text-[#00D656]" />
+          <TrendingUp size={15} className="text-[#00D656]" />
           <h3 className="font-semibold text-white text-sm">Ventas vs Gastos</h3>
         </div>
 
-        {/* Filtros de período */}
-        <div className="flex bg-[#0F1014] rounded-xl p-1 gap-1 border border-white/5">
+        {/* Filtros de período — segmented control discreto */}
+        <div
+          className="flex rounded-lg p-0.5 gap-0.5"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
           {Object.entries(PERIOD_LABELS).map(([key, label]) => (
             <button
               key={key}
               onClick={() => onCambioPeriodo(key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+              className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-all duration-150 ${
                 periodo === key
-                  ? 'bg-[#00D656] text-black shadow-[0_0_10px_rgba(0,214,86,0.3)]'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-[#00D656] text-black'
+                  : 'text-gray-500 hover:text-gray-300'
               }`}
             >
               {label}
@@ -215,8 +228,8 @@ export default function GraficoVentasGastos({
         </div>
       </div>
 
-      {/* Canvas */}
-      <div style={{ height: '220px', position: 'relative' }}>
+      {/* Canvas — respira más */}
+      <div style={{ height: '240px', position: 'relative' }}>
         <canvas ref={canvasRef} />
       </div>
     </div>

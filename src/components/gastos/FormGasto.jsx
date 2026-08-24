@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Save, X, Tags } from 'lucide-react';
+import { Save, X, Tags, Plus, Pencil } from 'lucide-react';
 import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../hooks/useAuth';
 import { hoyBogota } from '../../pages/Gastos';
 
 // ===================================================================
-// FORMULARIO REGISTRO / EDICIÓN DE GASTO
-// Zona horaria: America/Bogota (UTC-5)
+// FORMULARIO REGISTRO / EDICIÓN DE GASTO — Design System GameControl
+// Superficie diferenciada (acción primaria), inputs dark compactos
 // ===================================================================
 
 const METODOS_PAGO = [
-  { value: 'efectivo',      label: '💵 Efectivo' },
-  { value: 'transferencia', label: '🏦 Transferencia' },
-  { value: 'tarjeta',       label: '💳 Tarjeta' },
-  { value: 'cheque',        label: '📝 Cheque' },
+  { value: 'efectivo',      label: 'Efectivo' },
+  { value: 'transferencia', label: 'Transferencia' },
+  { value: 'tarjeta',       label: 'Tarjeta' },
+  { value: 'cheque',        label: 'Cheque' },
 ];
 
 const FORM_VACIO = {
@@ -71,9 +71,6 @@ export default function FormGasto({
 
     setCargando(true);
     try {
-      // Campos base — no incluir usuario_id en edición para evitar
-      // violar la FK gastos_usuario_id_fkey (referencia a public.usuarios,
-      // no a auth.users). Solo se asigna en registros nuevos.
       const datos = {
         fecha_gasto: form.fecha,
         categoria:   form.categoria,
@@ -89,12 +86,10 @@ export default function FormGasto({
         await db.update('gastos', gastoEditar.id, datos);
         exito('Gasto actualizado exitosamente');
       } else {
-        // Solo asignamos usuario_id al crear (si existe en public.usuarios)
         try {
           await db.insert('gastos', { ...datos, usuario_id: usuario?.id ?? null });
         } catch (fkErr) {
           if (fkErr.message && fkErr.message.includes('gastos_usuario_id_fkey')) {
-            // El UUID de auth no existe en public.usuarios; guardar sin usuario_id
             console.warn('⚠️ usuario_id no existe en public.usuarios. Reintentando sin usuario_id.');
             await db.insert('gastos', { ...datos, usuario_id: null });
           } else {
@@ -112,33 +107,46 @@ export default function FormGasto({
     }
   };
 
-  // ── Estilos ──────────────────────────────────────────────────────
+  // ── Estilos (Design System) ─────────────────────────────────────
   const inputCls =
-    'w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-gray-200 ' +
+    'w-full rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 ' +
     'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 ' +
     'transition-colors placeholder:text-gray-500';
 
-  const labelCls = 'block text-xs text-gray-400 mb-1 font-medium';
+  const labelCls = 'block text-[10px] text-gray-500 mb-1 uppercase tracking-wider';
 
   return (
-    <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-5 space-y-4">
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-xl p-4 space-y-3.5"
+      style={{
+        background: '#15171D',
+        border: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-white">
-          <span className="text-[#00D656] mr-1">{gastoEditar ? '✏️' : '+'}</span>
-          {gastoEditar ? 'Editar Gasto' : 'Registrar Nuevo Gasto'}
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+          {gastoEditar ? (
+            <Pencil size={14} className="text-amber-400" />
+          ) : (
+            <Plus size={14} className="text-[#00D656]" />
+          )}
+          {gastoEditar ? 'Editar gasto' : 'Registrar nuevo gasto'}
         </h3>
         <button
           type="button"
           onClick={onAbrirCategorias}
-          className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 transition-colors border border-white/10"
+          className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-[#00D656] transition-colors border border-white/10"
+          aria-label="Gestionar categorías"
+          title="Gestionar categorías"
         >
-          <Tags size={12} /> Gestionar Categorías
+          <Tags size={11} /> Categorías
         </button>
       </div>
 
       {/* Campos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Fecha */}
         <div>
           <label className={labelCls}>Fecha *</label>
@@ -149,6 +157,7 @@ export default function FormGasto({
             onChange={cambiar}
             required
             className={inputCls}
+            style={{ background: '#111318' }}
           />
         </div>
 
@@ -160,9 +169,10 @@ export default function FormGasto({
             value={form.categoria}
             onChange={cambiar}
             required
-            className={inputCls}
+            className={`${inputCls} cursor-pointer`}
+            style={{ background: '#111318' }}
           >
-            <option value="">Seleccionar categoría...</option>
+            <option value="">Seleccionar…</option>
             {categoriasActivas.map((c) => (
               <option key={c.id} value={c.id}>{c.nombre}</option>
             ))}
@@ -179,6 +189,7 @@ export default function FormGasto({
             required
             placeholder="Descripción del gasto"
             className={inputCls}
+            style={{ background: '#111318' }}
           />
         </div>
 
@@ -191,17 +202,19 @@ export default function FormGasto({
             onChange={cambiar}
             placeholder="Nombre del proveedor"
             className={inputCls}
+            style={{ background: '#111318' }}
           />
         </div>
 
         {/* Método de pago */}
         <div>
-          <label className={labelCls}>Método de Pago</label>
+          <label className={labelCls}>Método de pago</label>
           <select
             name="metodo_pago"
             value={form.metodo_pago}
             onChange={cambiar}
-            className={inputCls}
+            className={`${inputCls} cursor-pointer`}
+            style={{ background: '#111318' }}
           >
             {METODOS_PAGO.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
@@ -210,7 +223,7 @@ export default function FormGasto({
         </div>
 
         {/* Monto */}
-        <div>
+        <div className="sm:col-span-2">
           <label className={labelCls}>Monto (COP) *</label>
           <input
             name="monto"
@@ -221,35 +234,37 @@ export default function FormGasto({
             onChange={cambiar}
             required
             placeholder="0"
-            className={inputCls}
+            className={`${inputCls} text-base font-semibold kpi-number tabular-nums`}
+            style={{ background: '#111318' }}
           />
         </div>
       </div>
 
       {/* Acciones */}
-      <div className="flex gap-3 pt-1">
+      <div className="flex gap-2 pt-1">
         <button
           type="submit"
           disabled={cargando}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50
-            ${gastoEditar
-              ? 'bg-amber-500 hover:bg-amber-400 text-black'
-              : 'btn-premium'
-            }`}
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-semibold text-sm transition-all disabled:opacity-50"
+          style={{
+            background: 'linear-gradient(135deg, #00D656, #00C34D)',
+            color: '#000',
+            border: '1px solid #00D656',
+          }}
         >
           <Save size={15} />
           {cargando
-            ? 'Guardando...'
+            ? 'Guardando…'
             : gastoEditar
-            ? 'Actualizar Gasto'
-            : 'Registrar Gasto'}
+            ? 'Actualizar gasto'
+            : 'Registrar gasto'}
         </button>
 
         {gastoEditar && (
           <button
             type="button"
             onClick={onCancelar}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 text-sm transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white text-sm transition-colors"
           >
             <X size={15} /> Cancelar
           </button>

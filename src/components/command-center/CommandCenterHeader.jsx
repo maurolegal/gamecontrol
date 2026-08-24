@@ -4,8 +4,7 @@
 // ===================================================================
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Filter, RefreshCw, User, Settings, ChevronDown, Gamepad2, Monitor, Smartphone, ShoppingBag, Plus, Minus } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { Filter, RefreshCw, ChevronDown, Gamepad2, Monitor, Smartphone, ShoppingBag, Plus, Minus } from 'lucide-react';
 import useGlobalTick from '../../hooks/useGlobalTick';
 
 // ── formatCOP inline ────────────────────────────────────────────────
@@ -45,7 +44,6 @@ export default function CommandCenterHeader({
   onAnadirEstacion,
   onEliminarEstacion,
 }) {
-  const { usuario, rol } = useAuth();
   const now = useGlobalTick(); // para timestamp "actualizado hace Xs"
   const [dropdownOpen, setDropdownOpen] = useState(null); // 'filtro' | 'vista' | 'user' | null
 
@@ -309,39 +307,6 @@ export default function CommandCenterHeader({
           >
             <RefreshCw size={14} className={isStale ? 'animate-spin text-yellow-400' : 'text-gray-400'} />
           </button>
-
-          <Dropdown
-            open={dropdownOpen === 'user'}
-            onToggle={() => toggleDropdown('user')}
-            trigger={
-              <button
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-white text-xs font-medium transition-all"
-                aria-haspopup="true"
-                aria-expanded={dropdownOpen === 'user'}
-              >
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00D656]/20 to-green-600/20 flex items-center justify-center text-[10px] font-bold text-[#00D656] border border-[#00D656]/30">
-                  {usuario?.nombre?.[0]?.toUpperCase() || usuario?.email?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <span className="hidden md:inline">{usuario?.nombre || usuario?.email || 'Usuario'}</span>
-                <ChevronDown size={10} className={dropdownOpen === 'user' ? 'rotate-180' : ''} />
-              </button>
-            }
-            content={
-              <div className="py-1 min-w-[180px]">
-                <div className="px-3 py-2 border-b border-white/10 text-xs text-gray-500 uppercase tracking-wider">Cuenta</div>
-                <button className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors flex items-center gap-2">
-                  <User size={14} /> Perfil
-                </button>
-                <button className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors flex items-center gap-2">
-                  <Settings size={14} /> Configuración
-                </button>
-                <div className="border-t border-white/10 my-1" />
-                <button className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-lg transition-colors flex items-center gap-2">
-                  Cerrar sesión
-                </button>
-              </div>
-            }
-          />
         </div>
       </div>
 

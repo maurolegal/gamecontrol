@@ -17,6 +17,7 @@ import KpiCard from '../components/dashboard/KpiCard';
 import GraficoVentasGastos from '../components/dashboard/GraficoVentasGastos';
 import MonitorSalasActivas from '../components/dashboard/MonitorSalasActivas';
 import AccionesRapidas from '../components/dashboard/AccionesRapidas';
+import HeaderWidgets from '../components/dashboard/HeaderWidgets';
 import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../hooks/useAuth';
 import useGameStore from '../store/useGameStore';
@@ -147,32 +148,58 @@ export default function Dashboard() {
       : 'Sin datos de ayer';
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight kpi-number">
-            Panel de Control
-          </h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            {new Date().toLocaleDateString('es-CO', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
-          </p>
+    <div
+      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)] space-y-4"
+      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+    >
+      {/* ── HEADER compacto ── */}
+      <header
+        className="relative z-40 px-4 py-2.5"
+        style={{
+          background: 'rgba(10,14,25,0.95)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="shrink-0">
+            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
+            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Dashboard</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <HeaderWidgets />
+            <button
+              onClick={refetch}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
+              aria-label="Actualizar"
+              title="Actualizar"
+            >
+              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Actualizar</span>
+            </button>
+          </div>
         </div>
-        <button
-          onClick={refetch}
-          className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-400 hover:text-[#00D656] bg-white/5 hover:bg-white/[0.08] rounded-xl border border-white/10 transition-all"
-        >
-          <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
-          Actualizar
-        </button>
-      </div>
+      </header>
+
+      {/* ── CONTENIDO ── */}
+      <main className="flex-1 px-4 pb-24 space-y-4">
+        {/* Título de página + fecha */}
+        <div className="flex items-end justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Panel de Control</h2>
+            <p className="text-[11px] text-gray-500 mt-0.5 capitalize">
+              {new Date().toLocaleDateString('es-CO', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              })}
+            </p>
+          </div>
+        </div>
 
       {/* ── KPI Cards ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         {/* 1. Ingresos del día */}
         <KpiCard
           titulo="Ingresos del Día"
@@ -196,7 +223,7 @@ export default function Dashboard() {
         {/* 2. Ocupación */}
         <KpiCard
           titulo="Ocupación de Salas"
-          valor={`${kpis.estacionesOcupadas} / ${kpis.totalEstaciones} consolas`}
+          valor={`${kpis.estacionesOcupadas} / ${kpis.totalEstaciones}`}
           subtitulo={
             kpis.totalEstaciones > 0
               ? `${Math.round((kpis.estacionesOcupadas / kpis.totalEstaciones) * 100)}% · ${kpis.salasOcupadas} sala${kpis.salasOcupadas !== 1 ? 's' : ''} activa${kpis.salasOcupadas !== 1 ? 's' : ''}`
@@ -244,15 +271,17 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* ── Gráfico + Live Monitor ──────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Gráfico ocupa 2/3 */}
-        <div className="xl:col-span-2">
+      {/* ── Gráfico + Live Monitor — 70/30 ──────────────────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-10 gap-4">
+        {/* Gráfico ocupa 7/10 */}
+        <div className="xl:col-span-7">
           {esVendedor || !canViewAdmin ? (
-            /* Vendedor / Operador: solo ve monitor en lugar del gráfico */
-            <div className="glass-card rounded-2xl p-6 flex items-center justify-center h-full min-h-40">
-              <div className="text-center text-gray-500">
-                <TrendingUp size={32} className="mx-auto mb-2 opacity-20" />
+            <div
+              className="rounded-xl p-6 flex items-center justify-center h-full min-h-40"
+              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <div className="text-center text-gray-600">
+                <TrendingUp size={28} className="mx-auto mb-2 opacity-30" />
                 <p className="text-sm">El gráfico financiero no está disponible para tu rol.</p>
               </div>
             </div>
@@ -267,41 +296,58 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Monitor de Salas Activas */}
-        <MonitorSalasActivas cargando={cargando} />
+        {/* Monitor de Salas Activas — 3/10 */}
+        <div className="xl:col-span-3">
+          <MonitorSalasActivas cargando={cargando} />
+        </div>
       </div>
 
-      {/* ── Resumen financiero del mes (solo no-vendedor) ─────── */}
+      {/* ── Resumen financiero — franja compacta (solo no-vendedor) ─────── */}
       {canViewAdmin && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div
+          className="grid grid-cols-3 rounded-xl overflow-hidden"
+          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+        >
           {[
             {
               label: 'Ingresos hoy',
               value: formatCOP(kpis.ingresosHoy),
               Icon: TrendingUp,
-              color: 'text-[#00D656]',
+              color: '#00D656',
+              destacado: false,
             },
             {
               label: 'Gastos hoy',
               value: formatCOP(kpis.gastosHoy),
               Icon: TrendingDown,
-              color: 'text-red-400',
+              color: '#EF4444',
+              destacado: false,
             },
             {
               label: 'Neto del día',
               value: formatCOP(kpis.ingresosHoy - kpis.gastosHoy),
               Icon: DollarSign,
-              color:
-                kpis.ingresosHoy - kpis.gastosHoy >= 0
-                  ? 'text-[#00D656]'
-                  : 'text-red-400',
+              color: kpis.ingresosHoy - kpis.gastosHoy >= 0 ? '#00D656' : '#EF4444',
+              destacado: true,
             },
-          ].map(({ label, value, Icon, color }) => (
-            <div key={label} className="glass-card rounded-2xl px-5 py-4 flex items-center gap-4">
-              <Icon size={20} className={color} />
-              <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wider">{label}</p>
-                <p className={`kpi-number text-xl font-bold ${color}`}>{value}</p>
+          ].map(({ label, value, Icon, color, destacado }, i) => (
+            <div
+              key={label}
+              className="px-4 py-3 flex items-center gap-3"
+              style={{
+                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                background: destacado ? 'rgba(255,255,255,0.02)' : 'transparent',
+              }}
+            >
+              <Icon size={16} style={{ color }} className="shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[9px] uppercase tracking-wider text-gray-500 leading-tight">{label}</p>
+                <p
+                  className={`kpi-number tabular-nums leading-tight truncate ${destacado ? 'text-lg font-bold' : 'text-base font-semibold'}`}
+                  style={{ color }}
+                >
+                  {value}
+                </p>
               </div>
             </div>
           ))}
@@ -310,19 +356,27 @@ export default function Dashboard() {
 
       {/* ── Productos en alerta de stock ──────────────────────── */}
       {productosAlerta.length > 0 && (
-        <div className="glass-card rounded-2xl p-5">
+        <div
+          className="rounded-xl p-4"
+          style={{ background: '#111318', border: '1px solid rgba(239,68,68,0.20)' }}
+        >
           <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <AlertTriangle size={15} className="text-red-400" />
+            <AlertTriangle size={14} className="text-red-400" />
             Productos con stock crítico
+            <span className="text-[10px] font-normal text-gray-500 ml-1">· {productosAlerta.length} alerta{productosAlerta.length !== 1 ? 's' : ''}</span>
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {productosAlerta.map((p) => (
               <div
                 key={p.id}
-                className="bg-red-500/5 border border-red-500/20 rounded-xl px-3 py-2.5"
+                className="shrink-0 rounded-lg px-3 py-2.5 min-w-[140px]"
+                style={{
+                  background: 'rgba(239,68,68,0.06)',
+                  border: '1px solid rgba(239,68,68,0.18)',
+                }}
               >
-                <p className="text-xs font-semibold text-white truncate">{p.nombre}</p>
-                <p className="text-xs text-red-400 font-bold mt-0.5">
+                <p className="text-xs font-semibold text-white truncate" title={p.nombre}>{p.nombre}</p>
+                <p className="text-[11px] text-red-400 font-bold mt-0.5 tabular-nums">
                   Stock: {p.stock ?? 0} / Min: {p.stock_minimo ?? p.stockMinimo ?? 0}
                 </p>
               </div>
@@ -337,6 +391,7 @@ export default function Dashboard() {
         productos={productos}
         kpis={kpis}
       />
+      </main>
     </div>
   );
 }

@@ -2,18 +2,9 @@ import { PieChart } from 'lucide-react';
 import { formatCOP } from '../../pages/Gastos';
 
 // ===================================================================
-// RESUMEN POR CATEGORÍA – Barras de progreso
+// RESUMEN POR CATEGORÍA — Panel analítico (Design System GameControl)
+// Barras sutiles, principalmente verde + neutrales
 // ===================================================================
-
-const COLOR_BAR = {
-  primary:   '#3b82f6',
-  success:   '#22c55e',
-  warning:   '#f59e0b',
-  danger:    '#ef4444',
-  info:      '#06b6d4',
-  secondary: '#6b7280',
-  dark:      '#374151',
-};
 
 export default function ResumenCategorias({ gastos, categorias }) {
   const totalesPorCat = gastos.reduce((acc, g) => {
@@ -33,47 +24,72 @@ export default function ResumenCategorias({ gastos, categorias }) {
         color: 'secondary',
       };
       const pct  = total > 0 ? ((monto / total) * 100).toFixed(1) : 0;
-      const bar  = COLOR_BAR[cat.color] ?? '#6b7280';
-      return { cat, monto, pct, bar };
+      return { cat, monto, pct };
     });
 
   return (
-    <div className="glass-card rounded-2xl p-5 space-y-4">
-      <h3 className="font-semibold text-white flex items-center gap-2">
-        <PieChart size={16} className="text-[#00D656]" />
-        Resumen por Categoría
+    <div
+      className="rounded-xl p-4 space-y-3.5"
+      style={{
+        background: '#111318',
+        border: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
+      {/* Header */}
+      <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+        <PieChart size={14} className="text-[#00D656]" />
+        Resumen por categoría
       </h3>
 
       {total === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 text-gray-500">
-          <PieChart size={40} className="mb-3 opacity-30" />
-          <p className="text-sm">No hay gastos para mostrar</p>
+        <div className="flex flex-col items-center justify-center py-10 text-gray-600">
+          <PieChart size={36} className="mb-3 opacity-20" />
+          <p className="text-xs">No hay gastos para mostrar</p>
         </div>
       ) : (
         <>
-          <div className="text-center py-2 border-b border-white/5 mb-2">
-            <p className="text-xs text-gray-400 mb-1">Total del Período</p>
-            <p className="text-2xl font-bold text-red-400 kpi-number">{formatCOP(total)}</p>
+          {/* Total del período */}
+          <div
+            className="flex items-baseline justify-between py-2.5 px-3 rounded-lg"
+            style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.10)' }}
+          >
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Total del período</span>
+            <span className="text-lg font-bold kpi-number tabular-nums" style={{ color: '#F87171' }}>
+              {formatCOP(total)}
+            </span>
           </div>
 
-          <div className="space-y-3.5">
-            {items.map(({ cat, monto, pct, bar }) => (
-              <div key={cat.id ?? cat.nombre}>
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-sm font-medium text-gray-300">{cat.nombre}</span>
-                  <div className="text-right">
-                    <span className="text-sm font-bold text-white">{formatCOP(monto)}</span>
-                    <span className="text-xs text-gray-500 ml-1.5">{pct}%</span>
+          {/* Lista de categorías con barras */}
+          <div className="space-y-3">
+            {items.map(({ cat, monto, pct }, idx) => {
+              // Primera categoría = verde GameControl, resto neutrales progresivos
+              const isPrimary = idx === 0;
+              const barColor = isPrimary ? '#00D656' : 'rgba(255,255,255,0.35)';
+              return (
+                <div key={cat.id ?? cat.nombre}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-medium text-gray-300 truncate pr-2">
+                      {cat.nombre}
+                    </span>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-semibold text-white tabular-nums">
+                        {formatCOP(monto)}
+                      </span>
+                      <span className="text-[10px] text-gray-500 ml-1.5 tabular-nums">{pct}%</span>
+                    </div>
+                  </div>
+                  <div
+                    className="h-1.5 rounded-full overflow-hidden"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: barColor }}
+                    />
                   </div>
                 </div>
-                <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pct}%`, backgroundColor: bar }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

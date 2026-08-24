@@ -7,8 +7,10 @@
 // ===================================================================
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Download, RefreshCw } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useNotifications } from '../hooks/useNotifications';
+import { useCategoriasGastos } from '../hooks/useCategoriasGastos';
 
 import KpiReportes        from '../components/reportes/KpiReportes';
 import FiltrosReportes    from '../components/reportes/FiltrosReportes';
@@ -303,11 +305,21 @@ function calcHorasSalas(sesiones, rango, salaId, salas) {
   return Object.entries(por).map(([nombre, horas]) => ({ nombre, horas })).sort((a, b) => b.horas - a.horas);
 }
 
-function calcGastosCat(gastos, rango) {
+function calcGastosCat(gastos, rango, categorias = []) {
   const gas = filtrarGastosPorRango(gastos, rango);
+  // Mapa id → nombre para resolver categorías guardadas como ID
+  const idToNombre = {};
+  categorias.forEach((c) => {
+    if (c?.id) idToNombre[String(c.id)] = c.nombre || c.id;
+  });
+  const resolver = (cat) => {
+    if (!cat) return 'General';
+    const key = String(cat);
+    return idToNombre[key] || cat;
+  };
   const por = {};
   gas.forEach((g) => {
-    const cat = g.categoria || 'General';
+    const cat = resolver(g.categoria);
     por[cat] = (por[cat] || 0) + Math.abs(Number(g.monto || g.total || g.valor || 0));
   });
   return Object.entries(por).map(([nombre, valor]) => ({ nombre, valor })).sort((a, b) => b.valor - a.valor);
@@ -349,6 +361,7 @@ const FILTROS_DEFAULT = { periodo: 'hoy', sala: '', fechaInicio: '', fechaFin: '
 
 export default function Reportes() {
   const { notificar } = useNotifications();
+  const { categorias } = useCategoriasGastos();
   const [filtros, setFiltros] = useState(FILTROS_DEFAULT);
   const [data, setData]       = useState({ sesiones: [], ventas: [], gastos: [], salas: [], ventaItems: [] });
   const [cargando, setCargando] = useState(true);
@@ -390,7 +403,7 @@ export default function Reportes() {
   const metodos  = useMemo(() => calcMetodosPago(data.sesiones, data.ventas, rango, filtros.sala), [data, rango, filtros.sala]);
   const stock    = useMemo(() => calcProductos(data.ventaItems, rango, filtros.sala), [data.ventaItems, rango, filtros.sala]);
   const horas    = useMemo(() => calcHorasSalas(data.sesiones, rango, filtros.sala, data.salas), [data, rango, filtros.sala]);
-  const gasCat   = useMemo(() => calcGastosCat(data.gastos, rango), [data.gastos, rango]);
+  const gasCat   = useMemo(() => calcGastosCat(data.gastos, rango, categorias), [data.gastos, rango, categorias]);
 
   const exportarCSV = useCallback(() => {
     const csv  = generarCSV(kpis, stock, horas, gasCat, rango);
@@ -413,12 +426,55 @@ export default function Reportes() {
   }, [cargar, notificar]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white kpi-number">Reportes & Analíticas</h1>
-        <p className="text-sm text-gray-400 mt-0.5">Inteligencia de negocio en tiempo real</p>
-      </div>
+    <div
+      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
+      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+    >
+      {/* ── HEADER compacto ── */}
+      <header
+        className="relative z-40 px-4 py-2.5"
+        style={{
+          background: 'rgba(10,14,25,0.95)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="shrink-0">
+            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
+            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Reportes</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={exportarCSV}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
+              aria-label="Exportar CSV"
+              title="Exportar CSV"
+            >
+              <Download size={13} />
+              <span className="hidden sm:inline">Exportar</span>
+            </button>
+            <button
+              onClick={actualizar}
+              disabled={cargando}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all disabled:opacity-50"
+              aria-label="Actualizar"
+              title="Actualizar"
+            >
+              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Actualizar</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── CONTENIDO ── */}
+      <main className="flex-1 px-4 py-4 space-y-4">
+        {/* Título de página */}
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Reportes & Analíticas</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Inteligencia de negocio en tiempo real</p>
+        </div>
 
       {/* Filtros */}
       <FiltrosReportes
@@ -433,8 +489,8 @@ export default function Reportes() {
       {/* KPIs */}
       <KpiReportes kpis={kpis} kpisAnt={kpisAnt} cargando={cargando} />
 
-      {/* Flujo + Saldo */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Flujo + Saldo — 65/35 desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
           <GraficoFlujo datos={flujo} cargando={cargando} />
         </div>
@@ -442,7 +498,7 @@ export default function Reportes() {
       </div>
 
       {/* Métodos de pago + Gastos por categoría */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <GraficoMetodosPago metodos={metodos} cargando={cargando} />
         <GraficoGastosCat datos={gasCat} cargando={cargando} />
       </div>
@@ -452,6 +508,7 @@ export default function Reportes() {
 
       {/* Horas por sala */}
       <TablaHorasSalas datos={horas} cargando={cargando} />
+      </main>
     </div>
   );
 }

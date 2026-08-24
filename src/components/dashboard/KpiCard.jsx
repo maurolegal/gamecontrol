@@ -1,6 +1,6 @@
 // ===================================================================
-// KPI CARD – Dashboard Premium
-// Skeleton mientras carga, tendencia y glow accent
+// KPI CARD – Dashboard Premium (compacto)
+// Skeleton mientras carga, tendencia y glow accent solo en alertas
 // ===================================================================
 
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -8,14 +8,17 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 /** Skeleton loader de pulso */
 function KpiSkeleton() {
   return (
-    <div className="glass-card rounded-2xl p-5 animate-pulse">
-      <div className="flex items-start justify-between">
-        <div className="flex-1 space-y-2">
-          <div className="h-3 w-24 bg-white/10 rounded-full" />
-          <div className="h-8 w-32 bg-white/10 rounded-lg" />
-          <div className="h-3 w-20 bg-white/10 rounded-full" />
+    <div
+      className="rounded-xl p-3 animate-pulse"
+      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 space-y-1.5">
+          <div className="h-2.5 w-20 bg-white/10 rounded-full" />
+          <div className="h-5 w-24 bg-white/10 rounded" />
+          <div className="h-2.5 w-16 bg-white/10 rounded-full" />
         </div>
-        <div className="w-12 h-12 bg-white/10 rounded-xl" />
+        <div className="w-8 h-8 bg-white/10 rounded-lg" />
       </div>
     </div>
   );
@@ -31,7 +34,7 @@ function KpiSkeleton() {
  *   accentColor?: string,  // tailwind color class ej: 'text-green-400'
  *   bgColor?: string,      // ej: 'bg-green-500/10'
  *   cargando?: boolean,
- *   alerta?: boolean,      // pone glow rojo si hay alerta
+ *   alerta?: boolean,      // pone border semántico + glow muy sutil
  * }} props
  */
 export default function KpiCard({
@@ -59,39 +62,43 @@ export default function KpiCard({
 
   return (
     <div
-      className={`glass-card rounded-2xl p-5 transition-all duration-300 cursor-default
-        ${alerta ? 'border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)]' : 'hover:border-[#00D656]/30'}
-      `}
+      className="rounded-xl p-3 transition-all duration-200 cursor-default"
+      style={{
+        background: '#111318',
+        border: alerta
+          ? '1px solid rgba(239,68,68,0.30)'
+          : '1px solid rgba(255,255,255,0.07)',
+        boxShadow: alerta ? '0 0 12px rgba(239,68,68,0.08)' : 'none',
+      }}
+      onMouseEnter={e => {
+        if (!alerta) e.currentTarget.style.borderColor = 'rgba(0,214,86,0.20)';
+      }}
+      onMouseLeave={e => {
+        if (!alerta) e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
+      }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         {/* Texto */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-wider truncate mb-1">
+          <p className="text-[9px] font-medium text-gray-500 uppercase tracking-wider truncate mb-0.5">
             {titulo}
           </p>
-          <p className="kpi-number text-3xl font-bold text-white leading-none">
+          <p className="kpi-number text-xl font-bold text-white leading-none tabular-nums truncate">
             {valor}
           </p>
           {subtitulo && (
-            <p className={`mt-2 text-xs flex items-center gap-1 font-medium ${tendenciaColor}`}>
-              <TendenciaIcon size={12} />
-              {subtitulo}
+            <p className={`mt-1.5 text-[10px] flex items-center gap-1 font-medium ${tendenciaColor} truncate`}>
+              <TendenciaIcon size={10} />
+              <span className="truncate">{subtitulo}</span>
             </p>
           )}
         </div>
 
-        {/* Icono */}
-        <div className={`p-3 rounded-xl shrink-0 ${bgColor}`}>
-          <Icon size={22} className={accentColor} />
+        {/* Icono compacto */}
+        <div className={`p-1.5 rounded-lg shrink-0 ${bgColor}`}>
+          <Icon size={15} className={accentColor} />
         </div>
       </div>
-
-      {/* Barra decorativa inferior */}
-      <div
-        className={`mt-4 h-0.5 rounded-full ${
-          alerta ? 'bg-red-500/50' : 'bg-white/5'
-        }`}
-      />
     </div>
   );
 }

@@ -100,53 +100,58 @@ const CardSesion = memo(function CardSesion({
   const tarifaMostrar = sala?.tarifas?.t60 || sala?.tarifa || 0;
 
   return (
-    <div className="glass-card rounded-2xl p-4 border border-white/5 hover:border-[#00D656]/20 transition-all">
+    <div
+      className="rounded-lg p-3 transition-all"
+      style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,214,86,0.20)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
+    >
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <Gamepad2 size={14} className="text-gray-400 shrink-0" />
-            <span className="text-sm font-semibold text-white truncate">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Gamepad2 size={12} className="text-gray-500 shrink-0" />
+            <span className="text-xs font-semibold text-white truncate">
               {sala?.nombre ?? `Sala ${sesion.salaId ?? sesion.sala_id ?? '—'}`}
             </span>
-            <span className="text-[10px] uppercase font-bold bg-white/5 text-gray-400 px-2 py-0.5 rounded border border-white/10">
+            <span className="text-[9px] uppercase font-bold bg-white/5 text-gray-500 px-1.5 py-0.5 rounded border border-white/10">
               {sala?.tipo ?? 'consola'}
             </span>
           </div>
 
-          <p className="text-xs text-gray-400 truncate">
-            Estación: <span className="text-gray-200 font-semibold">{sesion.estacion}</span>
+          <p className="text-[11px] text-gray-500 truncate">
+            Estación: <span className="text-gray-300 font-semibold">{sesion.estacion}</span>
           </p>
 
-          <p className="text-xs text-gray-400 mt-1 flex items-center gap-2">
-            <UserCircle2 size={12} className="text-gray-500 shrink-0" />
-            Usuario: <span className="text-gray-200 font-semibold truncate">{sesion.cliente ?? '—'}</span>
+          <p className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1">
+            <UserCircle2 size={10} className="text-gray-600 shrink-0" />
+            <span className="truncate">{sesion.cliente ?? '—'}</span>
           </p>
         </div>
 
         <div className="shrink-0 text-right">
-          <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Tarifa</p>
-          <p className={`text-xs font-bold ${colorTexto} font-mono`}>{tarifaMostrar}/h</p>
+          <p className="text-[9px] uppercase tracking-wider text-gray-600 font-medium">Tarifa</p>
+          <p className={`text-[11px] font-bold ${colorTexto} font-mono`}>{tarifaMostrar}/h</p>
         </div>
       </div>
 
       {/* Progreso + cuenta regresiva */}
-      <div className="mt-4">
-        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+      <div className="mt-3">
+        <div className="h-1 w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
           <div
             className={`h-full rounded-full transition-all duration-1000 ${colorBarra}`}
             style={{ width: `${sesion.modo === 'libre' ? 0 : progreso}%` }}
           />
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <span className={`text-xs font-bold font-mono ${colorTexto} flex items-center gap-1`}>
-            <Clock size={12} />
+        <div className="mt-1.5 flex items-center justify-between gap-2">
+          <span className={`text-[11px] font-bold font-mono ${colorTexto} flex items-center gap-1`}>
+            <Clock size={10} />
             {sesion.modo === 'libre' ? tiempoTranscurrido(sesion) : formatTiempo(minRestantes)}
           </span>
 
           <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+            className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${
               vencida
                 ? 'bg-red-500/15 text-red-400 border-red-500/30'
                 : critica
@@ -160,23 +165,23 @@ const CardSesion = memo(function CardSesion({
       </div>
 
       {/* Acciones */}
-      <div className="mt-4 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-1.5">
         <button
           type="button"
           onClick={() => onAgregarTiempo(sesion)}
-          className="flex items-center justify-center gap-2 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 transition-all"
+          className="flex items-center justify-center gap-1.5 h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 transition-all"
         >
-          <Plus size={16} className="text-[#00D656]" />
-          <span className="text-xs font-bold text-[#00D656]">Añadir tiempo</span>
+          <Plus size={14} className="text-[#00D656]" />
+          <span className="text-[11px] font-bold text-[#00D656]">Añadir tiempo</span>
         </button>
 
         <button
           type="button"
           onClick={() => onFinalizar(sesion)}
-          className="flex items-center justify-center gap-2 h-10 rounded-xl bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40 transition-all"
+          className="flex items-center justify-center gap-1.5 h-9 rounded-lg bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 hover:border-red-500/40 transition-all"
         >
-          <Square size={16} className="text-red-400" />
-          <span className="text-xs font-bold text-red-400">Cerrar cuenta</span>
+          <Square size={14} className="text-red-400" />
+          <span className="text-[11px] font-bold text-red-400">Cerrar cuenta</span>
         </button>
       </div>
     </div>
@@ -214,49 +219,116 @@ export default function MonitorSalasActivas({ cargando = false }) {
 
   const cargandoReal = cargando || (sesionesActivas.length === 0 && (salas?.length ?? 0) === 0);
 
+  // Resumen por tipo de sala (PS5, PS4, XBOX, etc.) usando datos existentes
+  const resumenPorTipo = useMemo(() => {
+    const por = {};
+    sesionesActivas.forEach((s) => {
+      const sala = salasMap[s.salaId ?? s.sala_id];
+      const tipo = sala?.tipo || 'consola';
+      por[tipo] = (por[tipo] || 0) + 1;
+    });
+    return Object.entries(por).sort((a, b) => b[1] - a[1]);
+  }, [sesionesActivas, salasMap]);
+
+  // Sesión más crítica (menos minutos restantes, sin contar libre)
+  const sesionCritica = useMemo(() => {
+    let critica = null;
+    let minCritica = Infinity;
+    sesionesActivas.forEach((s) => {
+      const min = calcularMinRestantes(s);
+      if (min !== null && min > 0 && min < minCritica) {
+        minCritica = min;
+        critica = s;
+      }
+    });
+    return critica ? { sesion: critica, min: minCritica } : null;
+  }, [sesionesActivas]);
+
   return (
-    <div className="glass-card rounded-2xl p-4 overflow-hidden flex flex-col">
+    <div
+      className="rounded-xl p-4 overflow-hidden flex flex-col h-full"
+      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D656] opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00D656]" />
           </span>
-          <h3 className="font-semibold text-white text-sm">Monitor de Salas Activas</h3>
+          <h3 className="font-semibold text-white text-sm">Monitor de Salas</h3>
         </div>
 
-        <span className="text-xs font-medium bg-white/5 text-gray-400 px-2 py-0.5 rounded-full border border-white/10">
-          {sesionesActivas.length} activas
+        <span className="text-[10px] font-medium bg-white/5 text-gray-400 px-2 py-0.5 rounded-full border border-white/10 tabular-nums">
+          {sesionesActivas.length} activa{sesionesActivas.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {cargandoReal ? (
-        <div className="grid grid-cols-1 gap-3">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse glass-card rounded-2xl p-4 border border-white/5">
-              <div className="h-3 w-40 bg-white/10 rounded mb-3" />
-              <div className="h-3 w-28 bg-white/10 rounded mb-3" />
-              <div className="h-1.5 w-full bg-white/10 rounded mb-3" />
-              <div className="h-10 bg-white/5 rounded-xl" />
+        <div className="grid grid-cols-1 gap-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-lg p-3"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
+            >
+              <div className="h-3 w-32 bg-white/10 rounded mb-2" />
+              <div className="h-2 w-24 bg-white/10 rounded mb-2" />
+              <div className="h-1.5 w-full bg-white/10 rounded" />
             </div>
           ))}
         </div>
       ) : sesionesActivas.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <Clock size={34} className="opacity-30 mb-2" />
-          <p className="text-sm">No hay salas activas ahora</p>
+        /* Empty state compacto */
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-2">
+            <Clock size={20} className="text-gray-600" />
+          </div>
+          <p className="text-sm text-gray-400 font-medium">0 activas</p>
+          <p className="text-[11px] text-gray-600 mt-0.5">No hay salas activas ahora</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto max-h-[520px] pr-1">
-          {sesionesActivas.map((sesion) => (
-            <CardSesion
-              key={sesion.id}
-              sesion={sesion}
-              sala={salasMap[sesion.salaId ?? sesion.sala_id]}
-              onAgregarTiempo={onAgregarTiempo}
-              onFinalizar={onFinalizar}
-            />
-          ))}
+        <div className="flex flex-col gap-3 overflow-y-auto max-h-[520px] pr-0.5">
+          {/* Resumen operacional por tipo */}
+          {resumenPorTipo.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pb-2 border-b border-white/5">
+              {resumenPorTipo.map(([tipo, count]) => (
+                <span
+                  key={tipo}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-medium"
+                  style={{ background: 'rgba(0,214,86,0.08)', border: '1px solid rgba(0,214,86,0.18)', color: '#00D656' }}
+                >
+                  <span className="uppercase tracking-wider">{tipo}</span>
+                  <span className="font-bold tabular-nums">{count}</span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Sesión más crítica */}
+          {sesionCritica && sesionCritica.min < 10 && (
+            <div
+              className="rounded-lg px-3 py-2 flex items-center gap-2"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.20)' }}
+            >
+              <Clock size={13} className="text-yellow-400 shrink-0" />
+              <p className="text-[11px] text-yellow-400 font-medium truncate">
+                <span className="font-bold">{sesionCritica.sesion.estacion}</span> · {sesionCritica.min}m restantes
+              </p>
+            </div>
+          )}
+
+          {/* Cards de sesiones */}
+          <div className="grid grid-cols-1 gap-2">
+            {sesionesActivas.map((sesion) => (
+              <CardSesion
+                key={sesion.id}
+                sesion={sesion}
+                sala={salasMap[sesion.salaId ?? sesion.sala_id]}
+                onAgregarTiempo={onAgregarTiempo}
+                onFinalizar={onFinalizar}
+              />
+            ))}
+          </div>
         </div>
       )}
 

@@ -8,6 +8,7 @@ import * as db       from '../lib/databaseService';
 import { editarVenta, devolverVenta, corregirMetodoPago } from '../lib/ventasService';
 import { useNotifications } from '../hooks/useNotifications';
 import { usePermisos }      from '../hooks/usePermisos';
+import { useAuth }          from '../hooks/useAuth';
 
 import TablaVentas      from '../components/ventas/TablaVentas';
 import ModalDetalleVenta from '../components/ventas/ModalDetalleVenta';
@@ -16,7 +17,7 @@ import ModalDevolverVenta from '../components/ventas/ModalDevolverVenta';
 
 import {
   DollarSign, ShoppingBag, TrendingUp, Users,
-  Filter, X, RefreshCw, Calendar,
+  X, RefreshCw, Calendar, Search, ChevronDown,
 } from 'lucide-react';
 
 // ── Utilidades ─────────────────────────────────────────────────────
@@ -92,16 +93,6 @@ function calcRango(periodo, desde, hasta) {
       const e = endOfDayInTimeZone(ayerMoment, TIMEZONE_BOGOTA);
       return [s.toISOString(), e.toISOString()];
     }
-    case 'semana': {
-      const sHoy = startOfDayInTimeZone(hoy, TIMEZONE_BOGOTA);
-      const { year, month, day } = getPartsInTimeZone(hoy, TIMEZONE_BOGOTA);
-      const dayUTC = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)).getUTCDay(); // 0..6 (Sun..Sat)
-      // offset a lunes (1) => lunes=0, martes=1 ... domingo=6
-      const offsetDesdeLunes = (dayUTC + 6) % 7;
-      const inicioSemana = addDaysUTC(sHoy, -offsetDesdeLunes);
-      const finSemana = endOfDayInTimeZone(addDaysUTC(inicioSemana, 6), TIMEZONE_BOGOTA);
-      return [inicioSemana.toISOString(), finSemana.toISOString()];
-    }
     case 'mes': {
       const { year, month } = getPartsInTimeZone(hoy, TIMEZONE_BOGOTA);
       const primerDia = new Date(Date.UTC(year, month - 1, 1));
@@ -140,14 +131,49 @@ function calcRango(periodo, desde, hasta) {
   }
 }
 
-// ── KPI Card ───────────────────────────────────────────────────────
-function KpiCard({ icon, cls, titulo, valor, sub }) {
+// ── KPI Strip compacto (Design System GameControl) ────────────────
+function KpiStrip({ items }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-      <div className={`inline-flex p-2 rounded-xl mb-3 ${cls}`}>{icon}</div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{titulo}</p>
-      <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{valor}</p>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>
+    <div
+      className="grid grid-cols-2 lg:grid-cols-4 rounded-xl overflow-hidden"
+      style={{
+        background: '#111318',
+        border: '1px solid rgba(255,255,255,0.07)',
+      }}
+    >
+      {items.map((k, i) => (
+        <div
+          key={k.label}
+          className="px-4 py-3 flex items-center gap-3"
+          style={{
+            borderRight: i < items.length - 1
+              ? '1px solid rgba(255,255,255,0.05)'
+              : 'none',
+          }}
+        >
+          <span
+            className="shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-lg"
+            style={{
+              background: 'rgba(0,214,86,0.08)',
+              border: '1px solid rgba(0,214,86,0.18)',
+              color: '#00D656',
+            }}
+          >
+            {k.icon}
+          </span>
+          <div className="min-w-0">
+            <p className="text-[9px] uppercase tracking-wider text-gray-500 leading-tight truncate">
+              {k.label}
+            </p>
+            <p className="text-[17px] font-bold text-white kpi-number tabular-nums leading-tight truncate">
+              {k.valor}
+            </p>
+            {k.sub && (
+              <p className="text-[10px] text-gray-500 leading-tight truncate">{k.sub}</p>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -158,6 +184,7 @@ const POR_PAGINA = 15;
 export default function Ventas() {
   const { exito, error: notifError } = useNotifications();
   const { puedeEditar, puedeEliminar } = usePermisos();
+  const { usuario } = useAuth();
 
   const [ventas,   setVentas]   = useState([]);
   const [salas,    setSalas]    = useState([]);
@@ -169,6 +196,7 @@ export default function Ventas() {
   const [hastaCustom,  setHastaCustom]  = useState('');
   const [filtroSala,   setFiltroSala]   = useState('');
   const [filtroMetodo, setFiltroMetodo] = useState('');
+  const [busqueda,     setBusqueda]     = useState('');
 
   // Paginación
   const [pagina, setPagina] = useState(1);
@@ -232,6 +260,27 @@ export default function Ventas() {
 
   useEffect(() => { cargar(); }, [cargar]);
 
+  // ── Filtrado por búsqueda (cliente o # de sesión) ────────────────
+  const ventasFiltradas = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return ventas;
+
+    return ventas.filter(v => {
+      // Coincidencia por cliente (case-insensitive, contiene)
+      const cliente = (v.cliente ?? '').toLowerCase();
+      if (cliente.includes(q)) return true;
+
+      // Coincidencia por # de sesión: últimos 8 chars del sesion_id o del id
+      const sesionShort = (v.sesion_id ?? v.id ?? '').slice(-8).toLowerCase();
+      if (sesionShort.includes(q)) return true;
+
+      // Coincidencia por UUID completo de sesión
+      if (v.sesion_id && v.sesion_id.toLowerCase().includes(q)) return true;
+
+      return false;
+    });
+  }, [ventas, busqueda]);
+
   // ── KPIs ─────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     // Para pagos parciales con filtro activo, tomar solo el monto del método filtrado
@@ -241,12 +290,12 @@ export default function Ventas() {
       }
       return Number(v.total ?? 0);
     };
-    const total    = ventas.reduce((s, v) => s + montoVenta(v), 0);
-    const count    = ventas.length;
+    const total    = ventasFiltradas.reduce((s, v) => s + montoVenta(v), 0);
+    const count    = ventasFiltradas.length;
     const ticket   = count > 0 ? total / count : 0;
-    const clientes = new Set(ventas.map(v => v.cliente).filter(Boolean)).size;
+    const clientes = new Set(ventasFiltradas.map(v => v.cliente).filter(Boolean)).size;
     return { total, count, ticket, clientes };
-  }, [ventas, filtroMetodo]);
+  }, [ventasFiltradas, filtroMetodo]);
 
   // ── Resolver nombre de sala ──────────────────────────────────────
   const nombreSala = useCallback(
@@ -257,10 +306,10 @@ export default function Ventas() {
   // ── Paginación ────────────────────────────────────────────────────
   const ventasPag = useMemo(() => {
     const s = (pagina - 1) * POR_PAGINA;
-    return ventas.slice(s, s + POR_PAGINA);
-  }, [ventas, pagina]);
+    return ventasFiltradas.slice(s, s + POR_PAGINA);
+  }, [ventasFiltradas, pagina]);
 
-  const totalPags = Math.max(1, Math.ceil(ventas.length / POR_PAGINA));
+  const totalPags = Math.max(1, Math.ceil(ventasFiltradas.length / POR_PAGINA));
 
   // ── Limpiar filtros ──────────────────────────────────────────────
   function limpiar() {
@@ -269,6 +318,7 @@ export default function Ventas() {
     setHastaCustom('');
     setFiltroSala('');
     setFiltroMetodo('');
+    setBusqueda('');
   }
 
   // ── Anular/Devolver venta ───────────────────────────────────────────
@@ -447,158 +497,235 @@ export default function Ventas() {
   }
 
   // ── Render ────────────────────────────────────────────────────────
-  const selCls =
-    'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ' +
-    'px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white';
+  const inputCls =
+    'w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 ' +
+    'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
+
+  const metodoLabel = {
+    efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia',
+    digital: 'QR / Digital', parcial: 'Pago parcial',
+  }[filtroMetodo] ?? 'Todos los métodos';
+
+  const kpis = [
+    {
+      icon:  <DollarSign size={15} />,
+      label: filtroMetodo && filtroMetodo !== 'parcial' ? `Total ${metodoLabel}` : 'Total ventas',
+      valor: formatCOP(stats.total),
+      sub:   `${stats.count} venta${stats.count !== 1 ? 's' : ''}${filtroMetodo && filtroMetodo !== 'parcial' ? ' · incl. parciales' : ''}`,
+    },
+    {
+      icon:  <ShoppingBag size={15} />,
+      label: 'Transacciones',
+      valor: stats.count,
+      sub:   'En el período',
+    },
+    {
+      icon:  <TrendingUp size={15} />,
+      label: 'Ticket promedio',
+      valor: formatCOP(stats.ticket),
+      sub:   'Por transacción',
+    },
+    {
+      icon:  <Users size={15} />,
+      label: 'Clientes únicos',
+      valor: stats.clientes,
+      sub:   'En el período',
+    },
+  ];
 
   return (
-    <div className="space-y-6">
+    <div
+      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
+      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+    >
+      {/* ── HEADER compacto (Design System Command Center) ── */}
+      <header
+        className="relative z-40 px-4 py-2.5"
+        style={{
+          background: 'rgba(10,14,25,0.95)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          {/* Brand */}
+          <div className="shrink-0">
+            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
+            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Ventas</p>
+          </div>
 
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Controles */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={cargar}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
+              aria-label="Actualizar ventas"
+              title="Actualizar ventas"
+            >
+              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
+              <span className="hidden sm:inline">Actualizar</span>
+            </button>
+
+            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-white text-xs font-medium transition-all">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00D656]/20 to-green-600/20 flex items-center justify-center text-[10px] font-bold text-[#00D656] border border-[#00D656]/30">
+                {usuario?.nombre?.[0]?.toUpperCase() || usuario?.email?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <span className="hidden md:inline max-w-[120px] truncate">
+                {usuario?.nombre || usuario?.email || 'Usuario'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* ── CONTENIDO ── */}
+      <main className="flex-1 px-4 py-4 space-y-4">
+        {/* Título de página (jerarquía clara, compacto) */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestión de Ventas</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Control y seguimiento de ventas</p>
+          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Ventas</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Control y seguimiento de ventas</p>
         </div>
-        <button
-          onClick={cargar}
-          className="self-start flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl
-                     bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700
-                     text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+
+        {/* ── KPI Strip ── */}
+        <KpiStrip items={kpis} />
+
+        {/* ── Toolbar de filtros (compacta, no card gigante) ── */}
+        <div
+          className="rounded-xl p-3 space-y-3"
+          style={{
+            background: '#111318',
+            border: '1px solid rgba(255,255,255,0.07)',
+          }}
         >
-          <RefreshCw size={15} className={cargando ? 'animate-spin' : ''} />
-          Actualizar
-        </button>
-      </div>
-
-      {/* ── KPIs ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          icon={<DollarSign size={20} />}
-          cls="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400"
-          titulo={filtroMetodo && filtroMetodo !== 'parcial'
-            ? `Total ${filtroMetodo}` : 'Total período'}
-          valor={formatCOP(stats.total)}
-          sub={`${stats.count} venta${stats.count !== 1 ? 's' : ''}${filtroMetodo && filtroMetodo !== 'parcial' ? ' (incl. parciales)' : ''}`}
-        />
-        <KpiCard
-          icon={<ShoppingBag size={20} />}
-          cls="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-          titulo="Transacciones"
-          valor={stats.count}
-          sub="En el período"
-        />
-        <KpiCard
-          icon={<TrendingUp size={20} />}
-          cls="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400"
-          titulo="Ticket promedio"
-          valor={formatCOP(stats.ticket)}
-          sub="Por transacción"
-        />
-        <KpiCard
-          icon={<Users size={20} />}
-          cls="bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-          titulo="Clientes únicos"
-          valor={stats.clientes}
-          sub="En el período"
-        />
-      </div>
-
-      {/* ── Filtros ── */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Filter size={16} className="text-indigo-500" />
-            <span className="font-semibold text-gray-900 dark:text-white text-sm">Filtros de Ventas</span>
-          </div>
-          <button
-            onClick={limpiar}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500 transition-colors"
-          >
-            <X size={12} /> Limpiar filtros
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {/* Período */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Período</label>
-            <select value={periodo} onChange={e => setPeriodo(e.target.value)} className={selCls}>
-              <option value="todo">Todo el historial</option>
-              <option value="hoy">Hoy</option>
-              <option value="ayer">Ayer</option>
-              <option value="semana">Esta semana</option>
-              <option value="mes">Este mes</option>
-              <option value="año">Este año</option>
-              <option value="rango">Rango personalizado</option>
-            </select>
+          {/* Buscador ancho */}
+          <div className="relative">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              value={busqueda}
+              onChange={e => { setBusqueda(e.target.value); setPagina(1); }}
+              placeholder="Buscar cliente o # de sesión…"
+              className={`${inputCls} pl-9 pr-9`}
+              aria-label="Buscar cliente o sesión"
+            />
+            {busqueda && (
+              <button
+                onClick={() => setBusqueda('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
 
-          {/* Sala */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Sala</label>
-            <select value={filtroSala} onChange={e => setFiltroSala(e.target.value)} className={selCls}>
-              <option value="">Todas las salas</option>
-              {salas.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-          </div>
-
-          {/* Método de pago */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Método de pago</label>
-            <select value={filtroMetodo} onChange={e => setFiltroMetodo(e.target.value)} className={selCls}>
-              <option value="">Todos los métodos</option>
-              <option value="efectivo">Efectivo</option>
-              <option value="tarjeta">Tarjeta</option>
-              <option value="transferencia">Transferencia</option>
-              <option value="digital">QR / Digital</option>
-              <option value="parcial">Pago parcial</option>
-            </select>
-          </div>
-
-          {/* Resultados */}
-          <div className="flex items-end pb-0.5">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              <span className="font-semibold text-gray-900 dark:text-white">{ventas.length}</span>{' '}
-              resultado{ventas.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
-
-        {/* Rango personalizado */}
-        {periodo === 'rango' && (
-          <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                <Calendar size={11} className="inline mr-1" />Desde
-              </label>
-              <input type="date" value={desdeCustom} onChange={e => setDesdeCustom(e.target.value)} className={selCls} />
+          {/* Fila de filtros compactos + resultados */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Período */}
+            <div className="relative">
+              <select
+                value={periodo}
+                onChange={e => setPeriodo(e.target.value)}
+                className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+                aria-label="Período"
+              >
+                <option value="todo">Todo el historial</option>
+                <option value="hoy">Hoy</option>
+                <option value="ayer">Ayer</option>
+                <option value="mes">Este mes</option>
+                <option value="año">Este año</option>
+                <option value="rango">Rango personalizado</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                <Calendar size={11} className="inline mr-1" />Hasta
-              </label>
-              <input type="date" value={hastaCustom} onChange={e => setHastaCustom(e.target.value)} className={selCls} />
+
+            {/* Sala */}
+            <div className="relative">
+              <select
+                value={filtroSala}
+                onChange={e => setFiltroSala(e.target.value)}
+                className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+                aria-label="Sala"
+              >
+                <option value="">Todas las salas</option>
+                {salas.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            </div>
+
+            {/* Método */}
+            <div className="relative">
+              <select
+                value={filtroMetodo}
+                onChange={e => setFiltroMetodo(e.target.value)}
+                className={`${inputCls} appearance-none pr-8 cursor-pointer`}
+                aria-label="Método de pago"
+              >
+                <option value="">Todos los métodos</option>
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta</option>
+                <option value="transferencia">Transferencia</option>
+                <option value="digital">QR / Digital</option>
+                <option value="parcial">Pago parcial</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            </div>
+
+            {/* Resultados + Limpiar */}
+            <div className="flex items-center gap-2 ml-auto">
+              <span className="text-xs text-gray-500 whitespace-nowrap">
+                <span className="font-semibold text-gray-200 tabular-nums">{ventasFiltradas.length}</span>{' '}
+                resultado{ventasFiltradas.length !== 1 ? 's' : ''}
+                {busqueda && <span className="text-gray-600"> de {ventas.length}</span>}
+              </span>
+              {(periodo !== 'hoy' || filtroSala || filtroMetodo || busqueda) && (
+                <button
+                  onClick={limpiar}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-[#00D656] transition-colors"
+                >
+                  <X size={12} /> Limpiar
+                </button>
+              )}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* ── Tabla ── */}
-      <TablaVentas
-        ventas={ventasPag}
-        cargando={cargando}
-        pagina={pagina}
-        totalPags={totalPags}
-        totalRegistros={ventas.length}
-        onPagina={setPagina}
-        onDetalle={setDetalle}
-        onEditar={puedeEditar ? setEditar : undefined}
-        onEliminar={puedeEliminar ? anularVenta : undefined}
-        onDevolver={puedeEliminar ? setDevolver : undefined}
-        nombreSala={nombreSala}
-        filtroMetodo={filtroMetodo}
-      />
+          {/* Rango personalizado */}
+          {periodo === 'rango' && (
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+              <div>
+                <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
+                  <Calendar size={11} className="inline mr-1" />Desde
+                </label>
+                <input type="date" value={desdeCustom} onChange={e => setDesdeCustom(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">
+                  <Calendar size={11} className="inline mr-1" />Hasta
+                </label>
+                <input type="date" value={hastaCustom} onChange={e => setHastaCustom(e.target.value)} className={inputCls} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Tabla ── */}
+        <TablaVentas
+          ventas={ventasPag}
+          cargando={cargando}
+          pagina={pagina}
+          totalPags={totalPags}
+          totalRegistros={ventasFiltradas.length}
+          onPagina={setPagina}
+          onDetalle={setDetalle}
+          onEditar={puedeEditar ? setEditar : undefined}
+          onEliminar={puedeEliminar ? anularVenta : undefined}
+          onDevolver={puedeEliminar ? setDevolver : undefined}
+          nombreSala={nombreSala}
+          filtroMetodo={filtroMetodo}
+          onLimpiar={limpiar}
+          hayFiltros={periodo !== 'hoy' || !!filtroSala || !!filtroMetodo || !!busqueda}
+        />
+      </main>
 
       {/* ── Modales ── */}
       {detalle && (

@@ -6,7 +6,7 @@ import { formatCOP } from '../../pages/Reportes';
 function LineSVG({ datos }) {
   const PAD = { t: 20, r: 20, b: 36, l: 68 };
   const W   = 600;
-  const H   = 200;
+  const H   = 220;
   const cw  = W - PAD.l - PAD.r;
   const ch  = H - PAD.t - PAD.b;
 
@@ -27,12 +27,12 @@ function LineSVG({ datos }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full" preserveAspectRatio="none">
       <defs>
         <linearGradient id="rGradIng" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#22d3ee" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#22d3ee" stopOpacity="0"    />
+          <stop offset="0%"   stopColor="#00D656" stopOpacity="0.20" />
+          <stop offset="100%" stopColor="#00D656" stopOpacity="0"    />
         </linearGradient>
         <linearGradient id="rGradGas" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#fb7185" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="#fb7185" stopOpacity="0"   />
+          <stop offset="0%"   stopColor="#EF4444" stopOpacity="0.15" />
+          <stop offset="100%" stopColor="#EF4444" stopOpacity="0"   />
         </linearGradient>
       </defs>
 
@@ -41,8 +41,8 @@ function LineSVG({ datos }) {
         const ty = y(maxVal * t);
         return (
           <g key={t}>
-            <line x1={PAD.l} y1={ty} x2={W - PAD.r} y2={ty} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-            <text x={PAD.l - 6} y={ty + 4} textAnchor="end" fontSize="9" fill="rgba(148,163,184,0.75)">
+            <line x1={PAD.l} y1={ty} x2={W - PAD.r} y2={ty} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+            <text x={PAD.l - 6} y={ty + 4} textAnchor="end" fontSize="9" fill="rgba(148,163,184,0.60)">
               {formatCOP(maxVal * t)}
             </text>
           </g>
@@ -54,14 +54,14 @@ function LineSVG({ datos }) {
       <path d={buildArea('gastos')}   fill="url(#rGradGas)" />
 
       {/* Lines */}
-      <path d={buildLine('ingresos')} fill="none" stroke="#22d3ee" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-      <path d={buildLine('gastos')}   fill="none" stroke="#fb7185" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={buildLine('ingresos')} fill="none" stroke="#00D656" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={buildLine('gastos')}   fill="none" stroke="#EF4444" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
 
       {/* X labels */}
       {datos.filter((_, i) => i % step === 0).map((d) => {
         const i = datos.indexOf(d);
         return (
-          <text key={d.fecha} x={x(i)} y={H - 8} textAnchor="middle" fontSize="9" fill="rgba(148,163,184,0.65)">
+          <text key={d.fecha} x={x(i)} y={H - 8} textAnchor="middle" fontSize="9" fill="rgba(148,163,184,0.55)">
             {d.fecha.slice(5)}
           </text>
         );
@@ -74,32 +74,35 @@ function LineSVG({ datos }) {
 
 export default function GraficoFlujo({ datos, cargando }) {
   return (
-    <div className="glass-card rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-white flex items-center gap-2">
-          <TrendingUp size={16} className="text-cyan-400" />
-          Flujo de Ingresos
+    <div
+      className="rounded-xl p-4 h-full"
+      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
+          <TrendingUp size={15} className="text-[#00D656]" />
+          Flujo de ingresos
         </h3>
         <div className="flex items-center gap-4 text-xs text-gray-400">
           <span className="flex items-center gap-1.5">
-            <span className="w-4 h-0.5 bg-cyan-400 inline-block rounded" />
+            <span className="w-3 h-0.5 rounded" style={{ background: '#00D656' }} />
             Ingresos
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-4 h-0.5 bg-rose-400 inline-block rounded" />
+            <span className="w-3 h-0.5 rounded" style={{ background: '#EF4444' }} />
             Gastos
           </span>
         </div>
       </div>
 
       {cargando ? (
-        <div className="h-52 bg-white/3 rounded-xl animate-pulse" />
+        <div className="h-56 bg-white/3 rounded-lg animate-pulse" />
       ) : datos.length === 0 ? (
-        <div className="h-52 flex items-center justify-center text-gray-500 text-sm">
+        <div className="h-56 flex items-center justify-center text-gray-600 text-sm">
           Sin transacciones en este período
         </div>
       ) : (
-        <div className="h-52">
+        <div className="h-56 overflow-x-auto">
           <LineSVG datos={datos} />
         </div>
       )}

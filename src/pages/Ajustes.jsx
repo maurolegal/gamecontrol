@@ -1,88 +1,76 @@
 // ===================================================================
-// PÁGINA: Ajustes
+// PÁGINA: Ajustes – Design System GameControl
+// Header compacto · Tabs discretos · Tarifas unificadas · Footer sticky
 // ===================================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSalas } from '../hooks/useSalas';
-import { 
-  Settings, 
-  Building2, 
-  DollarSign, 
-  Save, 
-  Clock, 
-  TrendingDown, 
-  Award, 
-  Info, 
-  Zap, 
-  Gamepad2, 
-  Timer, 
-  Star, 
-  Lightbulb, 
-  DollarSign as DollarIcon,
-  Wallet,
-  Trash2,
-  Plus,
-  Banknote,
-  CreditCard,
-  Smartphone
+import {
+  Settings, Building2, DollarSign, Save, TrendingDown, Award,
+  Gamepad2, Lightbulb, Wallet, Trash2, Plus, Smartphone, CreditCard,
 } from 'lucide-react';
 
 function formatCOP(valor) {
   return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
+    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
   }).format(valor || 0);
 }
 
-// Calcular ahorro y valor por minuto
 function calcularMetricas(t30, t60, t90, t120) {
   const precioPorMin30 = t30 > 0 ? t30 / 30 : 0;
   const precioPorMin60 = t60 > 0 ? t60 / 60 : 0;
   const precioPorMin90 = t90 > 0 ? t90 / 90 : 0;
   const precioPorMin120 = t120 > 0 ? t120 / 120 : 0;
-  
+
   const descuento60 = t30 > 0 && t60 > 0 ? ((1 - (precioPorMin60 / precioPorMin30)) * 100) : 0;
   const descuento90 = t30 > 0 && t90 > 0 ? ((1 - (precioPorMin90 / precioPorMin30)) * 100) : 0;
   const descuento120 = t30 > 0 && t120 > 0 ? ((1 - (precioPorMin120 / precioPorMin30)) * 100) : 0;
-  
+
   return {
     preciosPorMin: { t30: precioPorMin30, t60: precioPorMin60, t90: precioPorMin90, t120: precioPorMin120 },
-    descuentos: { d60: descuento60, d90: descuento90, d120: descuento120 }
+    descuentos: { d60: descuento60, d90: descuento90, d120: descuento120 },
   };
 }
+
+// ── Datos de las 4 opciones de tarifa ──
+const OPCIONES_TARIFA = [
+  { min: '30',  label: '30 min',     desc: 'Sesión rápida' },
+  { min: '60',  label: '1 hora',     desc: 'Más vendida',   badge: 'popular' },
+  { min: '90',  label: '1.5 horas',  desc: 'Extendida' },
+  { min: '120', label: '2 horas',    desc: 'Mejor valor',   badge: 'mejor' },
+];
+
+const inputCls =
+  'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm ' +
+  'placeholder-gray-600 focus:outline-none focus:border-[#00D656]/50 transition-colors';
+const labelCls = 'block text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1';
 
 export default function Ajustes() {
   const { configuracion, setConfiguracion } = useGameStore();
   const { salas, actualizarTarifasSala } = useSalas();
   const { exito, error: notifError } = useNotifications();
   const location = useLocation();
+
   const [form, setForm] = useState({ nombre_negocio: '', moneda: 'COP' });
   const [tarifasPorSala, setTarifasPorSala] = useState({});
+  const [tarifasOriginales, setTarifasOriginales] = useState({}); // para detectar cambios
   const [cargando, setCargando] = useState(false);
   const [cargandoTarifas, setCargandoTarifas] = useState(false);
-  const [seccionActiva, setSeccionActiva] = useState('general'); // 'general' o 'tarifas' o 'medios-pago'
-  
-  // Estado para medios de pago
+  const [seccionActiva, setSeccionActiva] = useState('general');
+
   const [mediosPago, setMediosPago] = useState([]);
   const [nuevaCuenta, setNuevaCuenta] = useState({
-    banco: '',
-    tipo: 'ahorros',
-    numero: '',
-    titular: '',
-    saldo_inicial: ''
+    banco: '', tipo: 'ahorros', numero: '', titular: '', saldo_inicial: '',
   });
   const [cargandoMedios, setCargandoMedios] = useState(false);
 
-  // Detectar si vienen desde Salas para abrir la sección de tarifas
+  // Detectar si vienen desde Salas para abrir tarifas
   useEffect(() => {
-    if (location.state?.seccion === 'tarifas') {
-      setSeccionActiva('tarifas');
-    }
+    if (location.state?.seccion === 'tarifas') setSeccionActiva('tarifas');
   }, [location]);
 
   // Cargar medios de pago
@@ -98,6 +86,7 @@ export default function Ajustes() {
     cargarMediosPago();
   }, []);
 
+  // Cargar configuración
   useEffect(() => {
     async function cargar() {
       try {
@@ -111,7 +100,7 @@ export default function Ajustes() {
     cargar();
   }, [setConfiguracion]);
 
-  // Cargar tarifas existentes
+  // Cargar tarifas existentes + guardar originales para detectar cambios
   useEffect(() => {
     if (salas.length > 0) {
       const inicial = {};
@@ -124,29 +113,38 @@ export default function Ajustes() {
         };
       });
       setTarifasPorSala(inicial);
+      setTarifasOriginales(JSON.parse(JSON.stringify(inicial)));
     }
   }, [salas]);
 
+  // Detectar si hay cambios sin guardar en tarifas
+  const hayCambiosTarifas = useMemo(() => {
+    return Object.keys(tarifasPorSala).some((salaId) => {
+      const actual = tarifasPorSala[salaId];
+      const original = tarifasOriginales[salaId];
+      if (!original) return true;
+      return ['t30', 't60', 't90', 't120'].some(
+        (k) => Number(actual[k] || 0) !== Number(original[k] || 0)
+      );
+    });
+  }, [tarifasPorSala, tarifasOriginales]);
+
+  // ── Handlers ──
   async function handleSubmit(e) {
     e.preventDefault();
     setCargando(true);
     try {
       const nuevaConfig = { ...configuracion, ...form };
-
       const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
       if (existente?.[0]?.id) {
         await db.update('configuracion', existente[0].id, {
-          datos: nuevaConfig,
-          updated_at: new Date().toISOString(),
+          datos: nuevaConfig, updated_at: new Date().toISOString(),
         });
       } else {
         await db.insert('configuracion', {
-          id: 1,
-          datos: nuevaConfig,
-          updated_at: new Date().toISOString(),
+          id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(),
         });
       }
-
       setConfiguracion(nuevaConfig);
       exito('Configuración guardada');
     } catch (err) {
@@ -159,21 +157,18 @@ export default function Ajustes() {
   const handleTarifaChange = (salaId, tiempo, valor) => {
     setTarifasPorSala((prev) => ({
       ...prev,
-      [salaId]: {
-        ...prev[salaId],
-        [tiempo]: Number(valor) || 0,
-      },
+      [salaId]: { ...prev[salaId], [tiempo]: Number(valor) || 0 },
     }));
   };
 
   const handleSubmitTarifas = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setCargandoTarifas(true);
-    
     try {
       for (const [salaId, tarifas] of Object.entries(tarifasPorSala)) {
         await actualizarTarifasSala(salaId, tarifas);
       }
+      setTarifasOriginales(JSON.parse(JSON.stringify(tarifasPorSala)));
       exito('Tarifas actualizadas correctamente');
     } catch (err) {
       notifError(err.message);
@@ -182,15 +177,12 @@ export default function Ajustes() {
     }
   };
 
-  // Agregar medio de pago
   const handleAgregarMedioPago = async (e) => {
     e.preventDefault();
-    
     if (!nuevaCuenta.banco.trim() || !nuevaCuenta.numero.trim() || !nuevaCuenta.titular.trim()) {
       notifError('Por favor completa todos los campos obligatorios');
       return;
     }
-
     setCargandoMedios(true);
     try {
       const datosCuenta = {
@@ -200,21 +192,11 @@ export default function Ajustes() {
         titular: nuevaCuenta.titular.trim(),
         saldo_inicial: nuevaCuenta.saldo_inicial ? Number(nuevaCuenta.saldo_inicial) : null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-
       const insertado = await db.insert('medios_pago', datosCuenta);
       setMediosPago([...mediosPago, { ...datosCuenta, id: insertado.id }]);
-      
-      // Limpiar formulario
-      setNuevaCuenta({
-        banco: '',
-        tipo: 'ahorros',
-        numero: '',
-        titular: '',
-        saldo_inicial: ''
-      });
-      
+      setNuevaCuenta({ banco: '', tipo: 'ahorros', numero: '', titular: '', saldo_inicial: '' });
       exito('Medio de pago agregado correctamente');
     } catch (err) {
       notifError('Error al agregar medio de pago: ' + err.message);
@@ -223,14 +205,10 @@ export default function Ajustes() {
     }
   };
 
-  // Eliminar medio de pago
   const handleEliminarMedioPago = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este medio de pago?')) {
-      return;
-    }
-
+    if (!window.confirm('¿Estás seguro de eliminar este medio de pago?')) return;
     try {
-      await db.remove("medios_pago", id);
+      await db.remove('medios_pago', id);
       setMediosPago(mediosPago.filter(m => m.id !== id));
       exito('Medio de pago eliminado');
     } catch (err) {
@@ -238,510 +216,454 @@ export default function Ajustes() {
     }
   };
 
+  const TABS = [
+    { id: 'general',    label: 'General',       icon: <Building2 size={14} /> },
+    { id: 'tarifas',    label: 'Tarifas',       icon: <DollarSign size={14} />, count: salas.length },
+    { id: 'medios-pago', label: 'Medios de Pago', icon: <Wallet size={14} />, count: mediosPago.length },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#0B0F19] tech-grid-bg p-6 space-y-6">
-      {/* Encabezado Premium */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-            <Settings size={28} className="text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight kpi-number">Configuración</h1>
-            <p className="text-sm text-gray-400 mt-1">Gestiona tu negocio y tarifas</p>
+    <div
+      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
+      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+    >
+      {/* ── HEADER compacto ── */}
+      <header
+        className="relative z-40 px-4 py-2.5"
+        style={{
+          background: 'rgba(10,14,25,0.95)',
+          backdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="shrink-0">
+            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
+            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Configuración</p>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Tabs de navegación */}
-      <div className="glass-card rounded-2xl p-2 inline-flex gap-2">
-        <button
-          onClick={() => setSeccionActiva('general')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-            seccionActiva === 'general'
-              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
+      {/* ── CONTENIDO ── */}
+      <main className="flex-1 px-4 py-4 space-y-4 pb-28">
+        {/* Título + subtítulo (no card) */}
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Configuración</h2>
+          <p className="text-xs text-gray-500 mt-0.5">Gestiona las reglas operativas de GameControl</p>
+        </div>
+
+        {/* ── Tabs discretos ── */}
+        <div
+          className="flex items-center gap-1 p-1 rounded-xl w-fit"
+          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
         >
-          <Building2 size={18} />
-          <span>General</span>
-        </button>
-        <button
-          onClick={() => setSeccionActiva('tarifas')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-            seccionActiva === 'tarifas'
-              ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-lg'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <DollarSign size={18} />
-          <span>Tarifas</span>
-          {salas.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">
-              {salas.length}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => setSeccionActiva('medios-pago')}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${
-            seccionActiva === 'medios-pago'
-              ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
-        >
-          <Wallet size={18} />
-          <span>Medios de Pago</span>
-          {mediosPago.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">
-              {mediosPago.length}
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Sección General */}
-      {seccionActiva === 'general' && (
-        <div className="max-w-2xl">
-          <form
-            onSubmit={handleSubmit}
-            className="glass-card rounded-2xl p-6 space-y-5"
-          >
-            <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-              <div className="w-12 h-12 rounded-xl bg-blue-500/15 flex items-center justify-center">
-                <Building2 size={24} className="text-blue-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Información del Negocio</h3>
-                <p className="text-sm text-gray-400">Configura los datos generales</p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-400 mb-2">
-                Nombre del negocio
-              </label>
-              <input
-                value={form.nombre_negocio ?? ''}
-                onChange={(e) => setForm((p) => ({ ...p, nombre_negocio: e.target.value }))}
-                placeholder="Ej: GameZone"
-                className="w-full rounded-xl border border-white/5 bg-[#1A1C23] px-4 py-3 text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/30 
-                  focus:shadow-[0_0_20px_rgba(0,214,86,0.15)] transition-all"
-              />
-            </div>
-
+          {TABS.map((tab) => (
             <button
-              type="submit"
-              disabled={cargando}
-              className="btn-premium w-full py-3.5 rounded-xl font-bold text-base
-                disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2"
+              key={tab.id}
+              onClick={() => setSeccionActiva(tab.id)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                seccionActiva === tab.id
+                  ? 'bg-[#00D656]/15 text-[#00D656] border border-[#00D656]/30'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+              aria-pressed={seccionActiva === tab.id}
             >
-              <Save size={20} />
-              {cargando ? 'Guardando...' : 'Guardar cambios'}
+              {tab.icon}
+              {tab.label}
+              {tab.count > 0 && (
+                <span className="text-[10px] tabular-nums opacity-70">({tab.count})</span>
+              )}
             </button>
-          </form>
+          ))}
         </div>
-      )}
 
-      {/* Sección Tarifas */}
-      {seccionActiva === 'tarifas' && (
-        <div className="space-y-6">
-          {/* Guía rápida */}
-          <div className="glass-card rounded-xl p-5 bg-blue-500/5 border-blue-500/20 max-w-4xl">
-            <div className="flex items-start gap-3">
-              <Lightbulb size={20} className="text-blue-400 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2">
-                <p className="text-blue-300 font-semibold text-base flex items-center gap-2">
-                  <Info size={16} />
-                  Consejos para precios atractivos:
+        {/* ═══════════════════════════════════════════════════════════════
+            SECCIÓN: GENERAL
+            ═══════════════════════════════════════════════════════════════ */}
+        {seccionActiva === 'general' && (
+          <div className="max-w-xl">
+            <form
+              onSubmit={handleSubmit}
+              className="rounded-xl p-5 space-y-4"
+              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Building2 size={15} className="text-gray-500" />
+                Información del Negocio
+              </h3>
+
+              <div>
+                <label className={labelCls}>Nombre del negocio</label>
+                <input
+                  value={form.nombre_negocio ?? ''}
+                  onChange={(e) => setForm((p) => ({ ...p, nombre_negocio: e.target.value }))}
+                  placeholder="Ej: GameZone"
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Moneda</label>
+                <select
+                  value={form.moneda ?? 'COP'}
+                  onChange={(e) => setForm((p) => ({ ...p, moneda: e.target.value }))}
+                  className={`${inputCls} cursor-pointer`}
+                >
+                  <option value="COP">Peso Colombiano (COP)</option>
+                  <option value="USD">Dólar (USD)</option>
+                  <option value="EUR">Euro (EUR)</option>
+                  <option value="MXN">Peso Mexicano (MXN)</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={cargando}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: '#00D656', color: '#000' }}
+              >
+                <Save size={15} />
+                {cargando ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECCIÓN: TARIFAS
+            ═══════════════════════════════════════════════════════════════ */}
+        {seccionActiva === 'tarifas' && (
+          <div className="space-y-4">
+            {/* Callout compacto — estrategia de precios */}
+            <div
+              className="flex items-start gap-2.5 rounded-lg px-3.5 py-2.5"
+              style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}
+            >
+              <Lightbulb size={14} className="text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-[11px] font-semibold text-amber-400">Estrategia de precios</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
+                  Las tarifas de mayor duración ofrecen mejor precio/minuto para incentivar sesiones prolongadas.
+                  Las de 2 horas se usan como base para sesiones de tiempo libre.
                 </p>
-                <ul className="text-gray-400 space-y-1.5 text-sm">
-                  <li>• Las sesiones más largas deben tener mejor precio por minuto para incentivar compra</li>
-                  <li>• Ofrece descuentos de 10-30% en bloques de 2 horas para aumentar tus ingresos</li>
-                  <li>• Los precios claros y bien presentados generan confianza en tus clientes</li>
-                </ul>
               </div>
             </div>
-          </div>
 
-          {salas.length === 0 ? (
-            <div className="glass-card rounded-xl p-12 text-center">
-              <Gamepad2 size={64} className="mx-auto mb-4 text-gray-600" />
-              <p className="text-gray-400 text-lg">No hay salas configuradas</p>
-              <p className="text-gray-500 text-sm mt-2">Crea una sala en la sección de Salas primero</p>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmitTarifas} className="space-y-6">
-              {/* Tarjetas de salas */}
-              <div className="grid grid-cols-1 gap-6">
-                {salas.map((sala) => {
-                  const tarifas = tarifasPorSala[sala.id] || {};
-                  const metricas = calcularMetricas(tarifas.t30, tarifas.t60, tarifas.t90, tarifas.t120);
-                  
-                  return (
-                    <div key={sala.id} className="glass-card rounded-2xl p-6 space-y-5 max-w-6xl">
-                      {/* Header de sala */}
-                      <div className="flex items-center justify-between pb-4 border-b border-white/5">
-                        <h4 className="text-white font-bold flex items-center gap-3 text-xl">
-                          <Gamepad2 size={24} className="text-blue-400" />
-                          {sala.nombre}
-                        </h4>
-                        <div className="flex items-center gap-3">
-                          <span className="px-4 py-2 rounded-full bg-blue-500/10 text-blue-400 text-sm font-semibold">
-                            {sala.tipo.toUpperCase()}
-                          </span>
-                          <span className="px-4 py-2 rounded-full bg-purple-500/10 text-purple-400 text-sm font-semibold">
+            {salas.length === 0 ? (
+              <div
+                className="rounded-xl p-12 text-center"
+                style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                <div
+                  className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <Gamepad2 size={24} className="text-gray-600" />
+                </div>
+                <p className="text-gray-400 text-sm font-medium">No hay salas configuradas</p>
+                <p className="text-gray-600 text-xs mt-1">Crea una sala en la sección de Salas primero</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitTarifas} className="space-y-4">
+                {/* Tarjetas de salas — sistema unificado */}
+                <div className="space-y-4">
+                  {salas.map((sala) => {
+                    const tarifas = tarifasPorSala[sala.id] || {};
+                    const metricas = calcularMetricas(tarifas.t30, tarifas.t60, tarifas.t90, tarifas.t120);
+
+                    return (
+                      <div
+                        key={sala.id}
+                        className="rounded-xl overflow-hidden"
+                        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+                      >
+                        {/* Header de sala */}
+                        <div
+                          className="flex items-center justify-between px-4 py-3"
+                          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Gamepad2 size={15} className="text-gray-500" />
+                            <h4 className="text-sm font-bold text-white">{sala.nombre}</h4>
+                            <span
+                              className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded"
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#8B919C' }}
+                            >
+                              {sala.tipo}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-gray-500 tabular-nums">
                             {sala.numEstaciones || 0} estaciones
                           </span>
                         </div>
-                      </div>
-                      
-                      {/* Grid de tarifas mejorado */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-                        {[
-                          { min: '30', label: '30 minutos', IconComponent: Zap, color: 'blue', desc: 'Sesión rápida' },
-                          { min: '60', label: '1 hora', IconComponent: Clock, color: 'purple', popular: true, desc: 'Más popular' },
-                          { min: '90', label: '1.5 horas', IconComponent: Timer, color: 'orange', desc: 'Extendida' },
-                          { min: '120', label: '2 horas', IconComponent: Award, color: 'emerald', mejor: true, desc: 'Mejor valor' }
-                        ].map(({ min, label, IconComponent, color, popular, mejor, desc }) => {
-                          const valor = tarifas[`t${min}`] || 0;
-                          const precioPorMin = metricas.preciosPorMin[`t${min}`];
-                          const descuento = min !== '30' ? metricas.descuentos[`d${min}`] : 0;
-                          
-                          return (
-                            <div key={min} className="relative">
-                              {/* Badge para destacar */}
-                              {popular && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                                  <span className="px-3 py-1 rounded-full bg-purple-500 text-white text-xs font-bold shadow-lg">
-                                    MÁS VENDIDA
+
+                        {/* Grid de tarifas — sistema unificado, no cards independientes */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0"
+                          style={{ borderColor: 'rgba(255,255,255,0.05)' }}
+                        >
+                          {OPCIONES_TARIFA.map(({ min, label, desc, badge }) => {
+                            const valor = tarifas[`t${min}`] || 0;
+                            const precioPorMin = metricas.preciosPorMin[`t${min}`];
+                            const descuento = min !== '30' ? metricas.descuentos[`d${min}`] : 0;
+
+                            return (
+                              <div
+                                key={min}
+                                className="p-4 flex flex-col gap-2"
+                                style={{ borderColor: 'rgba(255,255,255,0.05)' }}
+                              >
+                                {/* Label + badge */}
+                                <div className="flex items-center justify-between gap-1.5">
+                                  <span className="text-[11px] font-bold text-gray-300 uppercase tracking-wider">
+                                    {label}
                                   </span>
+                                  {badge === 'popular' && (
+                                    <span
+                                      className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider whitespace-nowrap"
+                                      style={{ background: 'rgba(168,85,247,0.15)', color: '#A855F7', border: '1px solid rgba(168,85,247,0.25)' }}
+                                    >
+                                      Más vendida
+                                    </span>
+                                  )}
+                                  {badge === 'mejor' && (
+                                    <span
+                                      className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider whitespace-nowrap flex items-center gap-0.5"
+                                      style={{ background: 'rgba(0,214,86,0.12)', color: '#00D656', border: '1px solid rgba(0,214,86,0.22)' }}
+                                    >
+                                      <Award size={8} /> Mejor valor
+                                    </span>
+                                  )}
                                 </div>
-                              )}
-                              {mejor && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                                  <span className="px-3 py-1 rounded-full bg-emerald-500 text-white text-xs font-bold shadow-lg flex items-center gap-1">
-                                    <Award size={12} /> MEJOR VALOR
-                                  </span>
-                                </div>
-                              )}
-                              
-                              <div className={`glass-card rounded-2xl p-5 border-${color}-500/20 hover:border-${color}-500/40 transition-all space-y-4
-                                ${mejor ? 'ring-2 ring-emerald-500/30' : ''}`}>
-                                {/* Header del bloque */}
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-12 h-12 rounded-xl bg-${color}-500/10 flex items-center justify-center`}>
-                                    <IconComponent size={24} className={`text-${color}-400`} />
-                                  </div>
-                                  <div>
-                                    <p className="text-white font-bold">{label}</p>
-                                    <p className="text-gray-500 text-xs flex items-center gap-1">
-                                      <Clock size={12} />
-                                      {desc}
-                                    </p>
-                                  </div>
-                                </div>
-                                
-                                {/* Input de precio */}
+
+                                {/* Input de precio — dato principal */}
                                 <div className="relative">
-                                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">$</span>
+                                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-600 text-sm">$</span>
                                   <input
                                     type="number"
                                     value={valor || ''}
                                     onChange={(e) => handleTarifaChange(sala.id, `t${min}`, e.target.value)}
                                     min="0"
-                                    step="1000"
+                                    step="500"
                                     placeholder="0"
-                                    className={`w-full pl-10 pr-4 py-4 rounded-xl bg-[#0B0F19] border-2 border-${color}-500/20
-                                      text-white text-xl font-bold focus:outline-none focus:border-${color}-500/50 
-                                      hover:border-${color}-500/30 transition-all placeholder-gray-600`}
+                                    className="w-full pl-7 pr-2 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-lg font-bold tabular-nums focus:outline-none focus:border-[#00D656]/50 transition-colors placeholder-gray-700"
                                   />
                                 </div>
-                                
-                                {/* Información calculada */}
+
+                                {/* Precio/minuto */}
                                 {valor > 0 && (
-                                  <div className="space-y-2 pt-3 border-t border-white/5">
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-gray-400">Precio total:</span>
-                                      <span className="text-emerald-400 font-bold">{formatCOP(valor)}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between text-sm">
-                                      <span className="text-gray-400">Por minuto:</span>
-                                      <span className="text-blue-400 font-semibold">{formatCOP(precioPorMin)}</span>
-                                    </div>
+                                  <div className="space-y-1.5">
+                                    <p className="text-[10px] text-gray-500 tabular-nums">
+                                      {formatCOP(precioPorMin)}<span className="text-gray-600">/min</span>
+                                    </p>
                                     {descuento > 0 && (
-                                      <div className="flex items-center gap-2 mt-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                                        <TrendingDown size={16} className="text-emerald-400" />
-                                        <span className="text-emerald-400 text-sm font-bold">
-                                          {descuento.toFixed(0)}% más económico
-                                        </span>
+                                      <div
+                                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-semibold"
+                                        style={{ background: 'rgba(0,214,86,0.08)', color: '#00D656' }}
+                                      >
+                                        <TrendingDown size={9} />
+                                        {descuento.toFixed(0)}% más económico
                                       </div>
                                     )}
                                   </div>
                                 )}
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Resumen visual de la sala */}
-                      {tarifas.t30 > 0 && tarifas.t120 > 0 && (
-                        <div className="glass-card rounded-xl p-4 bg-gradient-to-r from-blue-500/5 to-emerald-500/5 border-emerald-500/20">
-                          <div className="flex items-center gap-3">
-                            <Zap size={18} className="text-emerald-400 flex-shrink-0" />
-                            <div className="flex items-center flex-wrap gap-2 text-sm">
-                              <span className="text-gray-400">
-                                Ahorro del cliente eligiendo 2h vs 4×30min:
-                              </span>
-                              <span className="text-emerald-400 font-bold text-lg">
-                                {formatCOP((tarifas.t30 * 4) - tarifas.t120)}
-                              </span>
-                              <span className="px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold text-xs">
-                                {metricas.descuentos.d120.toFixed(0)}% de descuento
-                              </span>
-                            </div>
-                          </div>
+                            );
+                          })}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
 
-              {/* Info adicional */}
-              <div className="glass-card rounded-xl p-5 border-yellow-500/20 bg-yellow-500/5 max-w-4xl">
-                <div className="flex gap-4">
-                  <DollarIcon size={24} className="text-yellow-400 flex-shrink-0" />
-                  <div className="space-y-2">
-                    <p className="text-base text-yellow-300 font-semibold">
-                      Estrategia de precios inteligente
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      Las tarifas de 2 horas se usan como base para calcular sesiones de tiempo libre. 
-                      Un descuento atractivo (15-25%) incentiva a los clientes a jugar más tiempo, 
-                      aumentando tus ingresos totales y la satisfacción del cliente.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Botón de guardar */}
-              <div className="flex gap-4 pt-4 max-w-4xl">
-                <button
-                  type="submit"
-                  disabled={cargandoTarifas}
-                  className="btn-premium flex-1 px-8 py-4 rounded-xl font-bold text-lg
-                    disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3"
-                >
-                  <Save size={22} />
-                  {cargandoTarifas ? 'Guardando tarifas...' : 'Guardar todas las tarifas'}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      )}
-
-      {/* Sección Medios de Pago */}
-      {seccionActiva === 'medios-pago' && (
-        <div className="space-y-6 max-w-5xl">
-          {/* Header informativo */}
-          <div className="glass-card rounded-xl p-5 bg-cyan-500/5 border-cyan-500/20">
-            <div className="flex items-start gap-3">
-              <Wallet size={20} className="text-cyan-400 mt-0.5 flex-shrink-0" />
-              <div className="space-y-2">
-                <p className="text-cyan-300 font-semibold text-base flex items-center gap-2">
-                  <Info size={16} />
-                  Configura tus cuentas bancarias y billeteras
-                </p>
-                <p className="text-gray-400 text-sm">
-                  Estos medios de pago aparecerán disponibles al momento de cobrar sesiones. 
-                  Mantén actualizada esta información para facilitar las transacciones.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Lista de medios de pago existentes */}
-          {mediosPago.length > 0 && (
-            <div className="space-y-3">
-              {mediosPago.map((medio) => (
-                <div 
-                  key={medio.id} 
-                  className="glass-card rounded-xl p-5 hover:border-white/20 transition-all group"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      {/* Icono según el banco */}
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0">
-                        {medio.banco.toLowerCase().includes('nequi') || medio.banco.toLowerCase().includes('daviplata') ? (
-                          <Smartphone size={24} className="text-cyan-400" />
-                        ) : (
-                          <Building2 size={24} className="text-blue-400" />
-                        )}
-                      </div>
-                      
-                      {/* Información de la cuenta */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-white font-bold text-lg">{medio.banco}</h3>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-gray-400 flex-wrap">
-                          <span className="flex items-center gap-1">
-                            <CreditCard size={14} />
-                            {medio.tipo.charAt(0).toUpperCase() + medio.tipo.slice(1)}
-                          </span>
-                          <span>•</span>
-                          <span className="font-mono">{medio.numero}</span>
-                          <span>•</span>
-                          <span>{medio.titular}</span>
-                        </div>
-                        {medio.saldo_inicial && (
-                          <div className="mt-2">
-                            <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-semibold">
-                              Saldo inicial: {formatCOP(medio.saldo_inicial)}
+                        {/* Resumen de ahorro — compacto */}
+                        {tarifas.t30 > 0 && tarifas.t120 > 0 && (
+                          <div
+                            className="flex items-center gap-2 px-4 py-2.5"
+                            style={{ background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)' }}
+                          >
+                            <span className="text-[11px] text-gray-500">
+                              Ahorro con 2h vs 4×30min:
+                            </span>
+                            <span className="text-[11px] font-bold text-[#00D656] tabular-nums">
+                              {formatCOP((tarifas.t30 * 4) - tarifas.t120)}
+                            </span>
+                            <span className="text-[10px] text-gray-600">
+                              · {metricas.descuentos.d120.toFixed(0)}% descuento
                             </span>
                           </div>
                         )}
                       </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
-                    {/* Botón eliminar */}
+        {/* ═══════════════════════════════════════════════════════════════
+            SECCIÓN: MEDIOS DE PAGO
+            ═══════════════════════════════════════════════════════════════ */}
+        {seccionActiva === 'medios-pago' && (
+          <div className="space-y-4 max-w-3xl">
+            {/* Lista de medios existentes */}
+            {mediosPago.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Cuentas configuradas</h3>
+                {mediosPago.map((medio) => (
+                  <div
+                    key={medio.id}
+                    className="rounded-lg p-3.5 flex items-center justify-between gap-3 group"
+                    style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div
+                        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                      >
+                        {medio.banco.toLowerCase().includes('nequi') || medio.banco.toLowerCase().includes('daviplata') ? (
+                          <Smartphone size={16} className="text-gray-400" />
+                        ) : (
+                          <Building2 size={16} className="text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{medio.banco}</p>
+                        <p className="text-[11px] text-gray-500 truncate">
+                          {medio.tipo.charAt(0).toUpperCase() + medio.tipo.slice(1)} · <span className="font-mono">{medio.numero}</span> · {medio.titular}
+                        </p>
+                        {medio.saldo_inicial != null && (
+                          <p className="text-[10px] text-[#00D656] mt-0.5 tabular-nums">
+                            Saldo inicial: {formatCOP(medio.saldo_inicial)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
                     <button
                       onClick={() => handleEliminarMedioPago(medio.id)}
-                      className="p-3 rounded-xl text-gray-400 hover:text-red-400 hover:bg-red-500/10 
-                        transition-all opacity-0 group-hover:opacity-100"
-                      title="Eliminar medio de pago"
+                      className="p-2 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                      title="Eliminar"
+                      aria-label="Eliminar medio de pago"
                     >
-                      <Trash2 size={20} />
+                      <Trash2 size={15} />
                     </button>
                   </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formulario agregar cuenta */}
+            <div
+              className="rounded-xl p-5 space-y-4"
+              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Plus size={15} className="text-[#00D656]" />
+                Agregar nueva cuenta
+              </h3>
+
+              <form onSubmit={handleAgregarMedioPago} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Banco / Billetera <span className="text-red-400">*</span></label>
+                    <input
+                      type="text"
+                      value={nuevaCuenta.banco}
+                      onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, banco: e.target.value })}
+                      placeholder="Ej: Bancolombia, Nequi…"
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Tipo <span className="text-red-400">*</span></label>
+                    <select
+                      value={nuevaCuenta.tipo}
+                      onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, tipo: e.target.value })}
+                      className={`${inputCls} cursor-pointer`}
+                    >
+                      <option value="ahorros">Ahorros</option>
+                      <option value="corriente">Corriente</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Número de cuenta <span className="text-red-400">*</span></label>
+                    <input
+                      type="text"
+                      value={nuevaCuenta.numero}
+                      onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, numero: e.target.value })}
+                      placeholder="Ej: 1234567890"
+                      className={`${inputCls} font-mono`}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Titular <span className="text-red-400">*</span></label>
+                    <input
+                      type="text"
+                      value={nuevaCuenta.titular}
+                      onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, titular: e.target.value })}
+                      placeholder="Ej: Julio Hernández"
+                      className={inputCls}
+                      required
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={labelCls}>
+                      Saldo inicial <span className="text-gray-600 normal-case tracking-normal">(opcional)</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 text-sm">$</span>
+                      <input
+                        type="number"
+                        value={nuevaCuenta.saldo_inicial}
+                        onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, saldo_inicial: e.target.value })}
+                        placeholder="Ej: 2500000"
+                        min="0"
+                        step="1000"
+                        className={`${inputCls} pl-7 tabular-nums`}
+                      />
+                    </div>
+                  </div>
                 </div>
-              ))}
+
+                <button
+                  type="submit"
+                  disabled={cargandoMedios}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: '#00D656', color: '#000' }}
+                >
+                  <Plus size={15} />
+                  {cargandoMedios ? 'Agregando…' : 'Agregar cuenta'}
+                </button>
+              </form>
             </div>
-          )}
-
-          {/* Formulario para agregar nueva cuenta */}
-          <div className="glass-card rounded-2xl p-6 space-y-5 border-[#00D656]/20">
-            <div className="flex items-center gap-3 pb-4 border-b border-white/5">
-              <div className="w-12 h-12 rounded-xl bg-[#00D656]/15 flex items-center justify-center">
-                <Plus size={24} className="text-[#00D656]" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">Agregar nueva cuenta</h3>
-                <p className="text-sm text-gray-400">Configura un nuevo medio de pago</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleAgregarMedioPago} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Banco / Billetera */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-400 mb-2">
-                    Banco / Billetera *
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevaCuenta.banco}
-                    onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, banco: e.target.value })}
-                    placeholder="ej. Bancolombia, Nequi..."
-                    className="w-full rounded-xl border border-white/10 bg-[#1A1C23] px-4 py-3 text-white
-                      placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 
-                      focus:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all"
-                    required
-                  />
-                </div>
-
-                {/* Tipo */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-400 mb-2">
-                    Tipo *
-                  </label>
-                  <select
-                    value={nuevaCuenta.tipo}
-                    onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, tipo: e.target.value })}
-                    className="w-full rounded-xl border border-white/10 bg-[#1A1C23] px-4 py-3 text-white
-                      focus:outline-none focus:border-cyan-500/50 
-                      focus:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all"
-                  >
-                    <option value="ahorros">Ahorros</option>
-                    <option value="corriente">Corriente</option>
-                  </select>
-                </div>
-
-                {/* Número de cuenta */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-400 mb-2">
-                    Número de cuenta *
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevaCuenta.numero}
-                    onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, numero: e.target.value })}
-                    placeholder="ej. 1234567890"
-                    className="w-full rounded-xl border border-white/10 bg-[#1A1C23] px-4 py-3 text-white font-mono
-                      placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 
-                      focus:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all"
-                    required
-                  />
-                </div>
-
-                {/* Titular */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-400 mb-2">
-                    Titular *
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevaCuenta.titular}
-                    onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, titular: e.target.value })}
-                    placeholder="ej. Julio Hernández"
-                    className="w-full rounded-xl border border-white/10 bg-[#1A1C23] px-4 py-3 text-white
-                      placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 
-                      focus:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all"
-                    required
-                  />
-                </div>
-
-                {/* Saldo inicial (opcional) */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-400 mb-2">
-                    Saldo inicial ($) <span className="text-gray-600">(opcional — para validar fondos al registrar gastos)</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={nuevaCuenta.saldo_inicial}
-                    onChange={(e) => setNuevaCuenta({ ...nuevaCuenta, saldo_inicial: e.target.value })}
-                    placeholder="ej. 2500000"
-                    min="0"
-                    step="1000"
-                    className="w-full rounded-xl border border-white/10 bg-[#1A1C23] px-4 py-3 text-white
-                      placeholder-gray-500 focus:outline-none focus:border-cyan-500/50 
-                      focus:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Botón de agregar */}
-              <button
-                type="submit"
-                disabled={cargandoMedios}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 
-                  hover:from-cyan-600 hover:to-blue-600 text-white font-bold text-base
-                  transition-all disabled:opacity-50 disabled:cursor-not-allowed 
-                  shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                {cargandoMedios ? 'Agregando...' : 'Agregar cuenta'}
-              </button>
-            </form>
           </div>
+        )}
+      </main>
 
-          {/* Nota informativa */}
-          <div className="glass-card rounded-xl p-4 bg-yellow-500/5 border-yellow-500/20">
-            <p className="text-gray-400 text-sm text-center">
-              Presiona <span className="text-white font-semibold">Agregar cuenta</span> para guardar los cambios inmediatamente.
-            </p>
+      {/* ── Footer sticky — solo visible en tarifas con cambios ── */}
+      {seccionActiva === 'tarifas' && salas.length > 0 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 px-4 py-3 md:px-6"
+          style={{
+            background: hayCambiosTarifas ? 'rgba(10,14,25,0.98)' : 'transparent',
+            backdropFilter: hayCambiosTarifas ? 'blur(20px)' : 'none',
+            borderTop: hayCambiosTarifas ? '1px solid rgba(255,255,255,0.06)' : 'none',
+            transition: 'all 0.2s ease',
+            pointerEvents: hayCambiosTarifas ? 'auto' : 'none',
+          }}
+        >
+          <div className={`flex items-center justify-between gap-3 max-w-5xl mx-auto transition-opacity ${hayCambiosTarifas ? 'opacity-100' : 'opacity-0'}`}>
+            <span className="text-xs text-amber-400 font-medium flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-400" />
+              Cambios sin guardar
+            </span>
+            <button
+              onClick={handleSubmitTarifas}
+              disabled={cargandoTarifas || !hayCambiosTarifas}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: '#00D656', color: '#000' }}
+            >
+              <Save size={14} />
+              {cargandoTarifas ? 'Guardando…' : 'Guardar cambios'}
+            </button>
           </div>
         </div>
       )}
