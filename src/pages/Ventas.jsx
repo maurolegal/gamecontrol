@@ -305,7 +305,9 @@ export default function Ventas() {
 
       // ── 0. Actualizar campos metadata de la cabecera ──
       //     (cliente, sala_id, estacion, fechas, notas)
-      //     Estos campos NO los maneja corregirMetodoPago ni editarVenta RPC.
+      //     Estos campos NO los manejan corregirMetodoPago ni editarVenta RPC.
+      //     El total se actualiza al FINAL (paso 3) para que no sea
+      //     sobrescrito por el recálculo de la RPC editar_venta.
       const camposMetadata = {};
       if (datos.cliente !== undefined)      camposMetadata.cliente = datos.cliente;
       if (datos.sala_id !== undefined)      camposMetadata.sala_id = datos.sala_id;
@@ -362,6 +364,51 @@ export default function Ventas() {
           } else {
             throw rpcErr; // Re-lanzar otros errores
           }
+        }
+      }
+
+      // ── 3. Actualizar total manualmente (override del admin) ──
+      //     Se hace DESPUÉS de editarVenta RPC para que el recálculo
+      //     automático no sobrescriba el valor que el admin ingresó.
+      //     También sincroniza subtotal_tiempo para sesiones (consistencia).
+      if (datos.total !== undefined && datos.total !== null) {
+        const nuevoTotal = parseFloat(datos.total) || 0;
+        const updateTotal = { total: nuevoTotal, updated_at: new Date().toISOString() };
+
+        // Para ventas de sesión: ajustar subtotal_tiempo = total - subtotal_productos
+        // Para ventas POS: ajustar descuento = subtotal_productos - total
+        // Esto mantiene consistencia entre los componentes y el total final.
+        const { data: ventaActual } = await supabase
+          .from('ventas')
+          .select('sesion_id, subtotal_productos, subtotal_tiempo, descuento')
+          .eq('id', id)
+          .single();
+
+        if (ventaActual) {
+          const subtotalProd = parseFloat(ventaActual.subtotal_productos) || 0;
+          if (ventaActual.sesion_id) {
+            // Sesión: subtotal_tiempo = total - subtotal_productos
+            updateTotal.subtotal_tiempo = Math.max(0, nuevoTotal - subtotalProd);
+          } else {
+            // POS: descuento = subtotal_productos - total
+            updateTotal.descuento = Math.max(0, subtotalProd - nuevoTotal);
+          }
+        }
+
+        const { error: errTotal } = await supabase
+          .from('ventas')
+          .update(updateTotal)
+          .eq('id', id);
+        if (errTotal) {
+          throw new Error(`Error actualizando total: ${errTotal.message}`);
+        }
+
+        // Si hay sesión vinculada, sincronizar total_general
+        if (ventaActual?.sesion_id) {
+          await supabase
+            .from('sesiones')
+            .update({ total_general: nuevoTotal, fecha_actualizacion: new Date().toISOString() })
+            .eq('id', ventaActual.sesion_id);
         }
       }
 
