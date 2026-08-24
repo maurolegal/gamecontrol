@@ -9,6 +9,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { Truck, Search, Plus, Trash2, Package, X, Calculator, Minus, ArrowUp } from 'lucide-react';
 import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
+import { getUsuarioIdSimple } from '../../lib/authHelpers';
 
 function formatCOP(v) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
@@ -169,6 +170,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
 
     setCargando(true);
     try {
+      const usuarioId = await getUsuarioIdSimple();
       // 1. Registrar gasto
       const conceptoProductos = items.map(i => `${i.nombre} x${i.cantidad}`).join(', ');
       await db.insert('gastos', {
@@ -181,6 +183,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
         proveedor: proveedor || null,
         numero_factura: numFactura || null,
         estado: 'aprobado',
+        usuario_id: usuarioId,
       });
 
       // 2. Actualizar stock + registrar movimiento por producto
@@ -201,6 +204,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
 
         await db.insert('movimientos_stock', {
           producto_id: prod.id,
+          usuario_id: usuarioId,
           tipo: 'entrada',
           cantidad: cant,
           stock_anterior: stockAnterior,

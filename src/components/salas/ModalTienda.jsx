@@ -20,6 +20,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { useSalas } from '../../hooks/useSalas';
 import { registrarVentaPos, generarIdempotencyKey, USE_RPC_V3 } from '../../lib/posService';
 import { agregarProductosSesion, generarIdempotencyKey as generarSessionKey, USE_SESSION_RPC_V4 } from '../../lib/sessionService';
+import { getUsuarioIdSimple } from '../../lib/authHelpers';
 
 // Sub-componentes memoizados (Sprint 0.4-E)
 import {
@@ -272,13 +273,14 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
         } else {
           // LEGACY
           const fechaCierre = new Date().toISOString();
+          const usuarioIdLegacy = await getUsuarioIdSimple();
           for (const item of carrito) {
             const producto = productos.find(p => p.id === item.id);
             if (!producto) continue;
             const nuevoStock = producto.stock - item.cantidad;
             await db.update('productos', item.id, { stock: nuevoStock });
             await db.insert('movimientos_stock', {
-              producto_id: item.id, tipo: 'venta', cantidad: item.cantidad,
+              producto_id: item.id, usuario_id: usuarioIdLegacy, tipo: 'venta', cantidad: item.cantidad,
               stock_anterior: producto.stock, stock_nuevo: nuevoStock,
               costo_unitario: item.precio, valor_total: item.precio * item.cantidad,
               motivo: `Venta POS - ${metodoPago}`, fecha_movimiento: fechaCierre,
@@ -287,8 +289,8 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
           try {
             const { data: sessionData } = await supabase.auth.getSession();
             const authEmail = sessionData?.session?.user?.email ?? null;
-            let usuarioPublicId = null;
-            if (authEmail) {
+            let usuarioPublicId = usuarioIdLegacy;
+            if (!usuarioPublicId && authEmail) {
               const emailLower = String(authEmail).toLowerCase();
               const usuarios = await db.select('usuarios', { filtros: { email: emailLower } }).catch(() => null);
               usuarioPublicId = Array.isArray(usuarios) ? usuarios[0]?.id ?? null : null;

@@ -164,6 +164,23 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
           notasCierre: notas.trim() || null,
           idempotencyKey: `fin-${sesion.id}-${Date.now()}`,
         };
+
+        // ── DIAGNÓSTICO: logging de trazabilidad de tiempo ──
+        console.log('[FinalizarSesion] DEBUG tiempo:', {
+          sesionId: sesion.id,
+          esLibre,
+          tarifa_base_sesion: sesion.tarifa_base,
+          tarifa_sesion: sesion.tarifa,
+          tarifaSugerida,
+          montoManualLibre,
+          tarifaTiempoBase,
+          costoExtras,
+          tarifaTiempo,
+          totalProductos,
+          totalGeneral,
+          rpcMontoManualLibre: rpcParams.montoManualLibre,
+          salaTarifas: sala.tarifas,
+        });
         if (metodoPago === 'efectivo') {
           const recibido = Number(montoRecibido) || 0;
           rpcParams.montoEfectivo = recibido > 0 ? recibido : null;
@@ -178,8 +195,25 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
           rpcParams.montoTransferencia = transferParcial > 0 ? transferParcial : null;
         }
         const result = await finalizarSesionRPC(rpcParams);
+
+        // ── DIAGNÓSTICO: resultado del RPC ──
+        console.log('[FinalizarSesion] RPC resultado:', {
+          status: result.status,
+          total: result.total,
+          totalTiempo: result.totalTiempo,
+          totalProductos: result.totalProductos,
+          mensaje: result.mensaje,
+          ventaId: result.ventaId,
+        });
+
         if (result.status === 'ok' || result.status === 'ok_idempotente') {
           const totalFinal = result.total ?? totalGeneral;
+
+          // ── WARN: si el tiempo viene 0 del RPC ──
+          if (result.totalTiempo === 0 || result.totalTiempo === null) {
+            console.warn('[FinalizarSesion] ⚠️ totalTiempo=0 — el tiempo NO se registró. tarifa_base sesion:', sesion.tarifa_base, 'esLibre:', esLibre, 'montoManualLibre enviado:', rpcParams.montoManualLibre);
+          }
+
           exito(`Sesión finalizada. Total: ${formatCOP(totalFinal)}`);
           await cargarSesionesActivas();
           onCerrar();

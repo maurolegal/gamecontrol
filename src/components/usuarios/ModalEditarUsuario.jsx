@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
 
 // ===================================================================
-// MODAL EDITAR USUARIO – Centro de pantalla
+// MODAL EDITAR USUARIO – Design System GameControl (dark explícito)
 // ===================================================================
 export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
   const { exito, error: notifError } = useNotifications();
@@ -43,7 +43,17 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
     }
     setGuardando(true);
     try {
-      const { error } = await supabase
+      // ── DIAGNÓSTICO: verificar contexto de auth antes del update ──
+      const { data: sessionData } = await supabase.auth.getSession();
+      const authUid = sessionData?.session?.user?.id ?? null;
+      const authEmail = sessionData?.session?.user?.email ?? null;
+      console.log('[EditarUsuario] Auth context:', { authUid, authEmail });
+
+      // Verificar qué rol resuelve obtener_rol_actual() desde el frontend
+      const { data: rolData, error: rolErr } = await supabase.rpc('obtener_rol_actual');
+      console.log('[EditarUsuario] obtener_rol_actual():', { rol: rolData, error: rolErr?.message });
+
+      const { error, count, data: updateData } = await supabase
         .from('usuarios')
         .update({
           nombre: form.nombre.trim(),
@@ -53,9 +63,25 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
           permisos,
           fecha_actualizacion: new Date().toISOString(),
         })
-        .eq('id', usuario.id);
+        .eq('id', usuario.id)
+        .select('id, rol');
+
+      console.log('[EditarUsuario] Update result:', {
+        error: error?.message,
+        count,
+        data: updateData,
+        targetId: usuario.id,
+        newRol: form.rol,
+      });
 
       if (error) throw error;
+
+      // Verificar que el update realmente afectó filas
+      // (RLS puede bloquear silenciosamente: error=null pero 0 filas actualizadas)
+      if (count === 0) {
+        throw new Error('No se pudo actualizar el usuario. Es posible que no tengas permisos para cambiar el rol. Verifica las políticas RLS en Supabase.');
+      }
+
       exito(`Usuario "${form.nombre}" actualizado`);
       onGuardado?.();
       onClose();
@@ -67,59 +93,102 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
   };
 
   const open = !!usuario;
-  const inputCls = 'w-full px-3.5 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[--accent-primary,#00D656] transition';
+
+  const labelCls = 'block text-[11px] font-medium text-gray-500 mb-1.5';
+  const inputCls = 'w-full px-3 py-2 text-[13px] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 transition-colors';
+  const inputStyle = { background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' };
 
   return (
     <>
-      <div className={`fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
-      <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 max-h-[90vh] flex flex-col">
-
+      <div
+        className={`fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={onClose}
+      />
+      <div
+        className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity ${open ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      >
+        <div
+          className="rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
+          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">Editar Usuario</h2>
-            <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-              <X size={17} className="text-gray-500" />
+          <div className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <h2 className="text-[14px] font-bold text-white">Editar Usuario</h2>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+              aria-label="Cerrar"
+            >
+              <X size={16} />
             </button>
           </div>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {/* Datos */}
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre completo</label>
-                <input value={form.nombre} onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))} className={inputCls} />
+                <label className={labelCls}>Nombre completo</label>
+                <input
+                  value={form.nombre}
+                  onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))}
+                  className={inputCls}
+                  style={inputStyle}
+                />
               </div>
               <div className="col-span-2">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email</label>
-                <input type="email" value={form.email} onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))} className={inputCls} />
+                <label className={labelCls}>Email</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))}
+                  className={inputCls}
+                  style={inputStyle}
+                />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Rol</label>
-                <select value={form.rol} onChange={(e) => handleRolChange(e.target.value)} className={inputCls}>
-                  <option value="administrador">👑 Administrador</option>
-                  <option value="supervisor">🔷 Supervisor</option>
-                  <option value="operador">🔵 Operador</option>
-                  <option value="vendedor">🟢 Vendedor</option>
+                <label className={labelCls}>Rol</label>
+                <select
+                  value={form.rol}
+                  onChange={(e) => handleRolChange(e.target.value)}
+                  className={inputCls}
+                  style={inputStyle}
+                >
+                  <option value="administrador">Administrador</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="operador">Operador</option>
+                  <option value="vendedor">Vendedor</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Estado</label>
-                <select value={form.estado} onChange={(e) => setForm(p => ({ ...p, estado: e.target.value }))} className={inputCls}>
-                  <option value="activo">✅ Activo</option>
-                  <option value="inactivo">⛔ Inactivo</option>
-                  <option value="bloqueado">🔒 Bloqueado</option>
+                <label className={labelCls}>Estado</label>
+                <select
+                  value={form.estado}
+                  onChange={(e) => setForm(p => ({ ...p, estado: e.target.value }))}
+                  className={inputCls}
+                  style={inputStyle}
+                >
+                  <option value="activo">Activo</option>
+                  <option value="inactivo">Inactivo</option>
+                  <option value="bloqueado">Bloqueado</option>
                 </select>
               </div>
             </div>
 
             {/* Permisos */}
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Permisos de acceso</p>
-                <button type="button" onClick={() => setPermisos(aplicarRol(form.rol))} className="flex items-center gap-1 text-xs text-[--accent-primary,#00D656] hover:underline">
-                  <RefreshCw size={11}/> Restablecer por rol
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                  Permisos de acceso
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setPermisos(aplicarRol(form.rol))}
+                  className="flex items-center gap-1 text-[11px] text-[#00D656] hover:underline"
+                >
+                  <RefreshCw size={11} /> Restablecer por rol
                 </button>
               </div>
               <PermisoGrid permisos={permisos} onChange={cambiarPermiso} />
@@ -127,16 +196,25 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors">
+          <div className="px-5 py-4 flex gap-2.5"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 text-[13px] font-medium text-gray-400 rounded-lg transition-colors hover:bg-white/5"
+            >
               Cancelar
             </button>
             <button
               onClick={handleSubmit}
               disabled={guardando}
-              className="flex-1 py-2.5 text-sm font-semibold bg-[--accent-primary,#00D656] text-white rounded-xl hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 text-[13px] font-semibold text-white rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{ background: '#00D656', boxShadow: '0 0 12px rgba(0,214,86,0.25)' }}
             >
-              {guardando ? <><span className="animate-spin">↻</span> Guardando…</> : <><Save size={15}/> Guardar</>}
+              {guardando
+                ? <><span className="animate-spin">↻</span> Guardando…</>
+                : <><Save size={14} /> Guardar</>}
             </button>
           </div>
         </div>

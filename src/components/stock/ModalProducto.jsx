@@ -8,6 +8,7 @@ import Modal from '../ui/Modal';
 import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
 import { usePermisos } from '../../hooks/usePermisos';
+import { getUsuarioIdSimple } from '../../lib/authHelpers';
 
 function formatCOP(v) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
@@ -126,6 +127,7 @@ export default function ModalProducto({ abierto, producto, categorias = [], onCe
         setSubiendoImg(false);
       }
 
+      const usuarioId = await getUsuarioIdSimple();
       const datos = {
         nombre: form.nombre.trim(),
         categoria: form.categoria || null,
@@ -140,10 +142,10 @@ export default function ModalProducto({ abierto, producto, categorias = [], onCe
       };
 
       if (esEdicion) {
-        await db.update('productos', producto.id, datos);
+        await db.update('productos', producto.id, { ...datos, updated_by: usuarioId });
         exito('Producto actualizado');
       } else {
-        await db.insert('productos', datos);
+        await db.insert('productos', { ...datos, created_by: usuarioId });
         exito('Producto creado');
       }
       onGuardado?.();

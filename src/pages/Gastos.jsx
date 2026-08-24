@@ -164,6 +164,7 @@ export default function Gastos() {
     setCargando(true);
     try {
       const data = await db.select('gastos', {
+        select: '*, usuario:usuarios!usuario_id(nombre,rol)',
         ordenPor: { campo: 'fecha_gasto', direccion: 'desc' },
       });
       setGastos(data ?? []);

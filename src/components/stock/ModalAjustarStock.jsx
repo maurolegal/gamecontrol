@@ -7,6 +7,7 @@ import { Plus, Minus, Package } from 'lucide-react';
 import Modal from '../ui/Modal';
 import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
+import { getUsuarioIdSimple } from '../../lib/authHelpers';
 
 export default function ModalAjustarStock({ abierto, producto, onCerrar, onGuardado }) {
   const { exito, error: notifError } = useNotifications();
@@ -32,10 +33,12 @@ export default function ModalAjustarStock({ abierto, producto, onCerrar, onGuard
 
     setCargando(true);
     try {
-      await db.update('productos', producto.id, { stock: nuevoStock });
+      const usuarioId = await getUsuarioIdSimple();
+      await db.update('productos', producto.id, { stock: nuevoStock, updated_by: usuarioId });
 
       await db.insert('movimientos_stock', {
         producto_id: producto.id,
+        usuario_id: usuarioId,
         tipo: tipo === 'entrada' ? 'entrada' : 'salida',
         cantidad: tipo === 'entrada' ? cantNum : -cantNum,
         stock_anterior: stockActual,

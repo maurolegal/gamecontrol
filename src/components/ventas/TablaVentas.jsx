@@ -222,6 +222,13 @@ function SalesCard({ v, nombreSala, filtroMetodo, onDetalle, onEditar, onElimina
         {v.estacion && <span> · {v.estacion}</span>}
       </p>
 
+      {/* Fila 3b: operador (trazabilidad) */}
+      {v.usuario?.nombre && (
+        <p className="text-[11px] text-gray-600 mt-0.5 truncate">
+          Operador: <span className="text-gray-400">{v.usuario.nombre}</span>
+        </p>
+      )}
+
       {/* Fila 4: metadata */}
       <p className="text-[11px] text-gray-500 mt-1.5">
         {formatFecha(v.fecha_cierre ?? v.created_at)}
@@ -324,6 +331,7 @@ export default function TablaVentas({
               <th className="px-4 py-2.5 text-left font-medium">Sesión</th>
               <th className="px-4 py-2.5 text-left font-medium">Fecha</th>
               <th className="px-4 py-2.5 text-left font-medium">Cliente</th>
+              <th className="px-4 py-2.5 text-left font-medium">Operador</th>
               <th className="px-4 py-2.5 text-left font-medium">Sala / Est.</th>
               <th className="px-4 py-2.5 text-left font-medium">Inicio</th>
               <th className="px-4 py-2.5 text-left font-medium">Cierre</th>
@@ -339,7 +347,7 @@ export default function TablaVentas({
               Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
             ) : ventas.length === 0 ? (
               <tr>
-                <td colSpan={10} className="p-0">
+                <td colSpan={11} className="p-0">
                   <EmptyState onLimpiar={onLimpiar} hayFiltros={hayFiltros} />
                 </td>
               </tr>
@@ -371,6 +379,11 @@ export default function TablaVentas({
                     {/* Cliente */}
                     <td className="px-4 py-2.5 font-medium text-gray-200 max-w-[140px] truncate">
                       {v.cliente || '—'}
+                    </td>
+
+                    {/* Operador (trazabilidad) */}
+                    <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-xs">
+                      {v.usuario?.nombre || '—'}
                     </td>
 
                     {/* Sala / Estación */}

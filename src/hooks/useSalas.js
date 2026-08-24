@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
 import { subscribe as realtimeSubscribe } from '../lib/realtimeService';
+import { getUsuarioIdSimple } from '../lib/authHelpers';
 
 // ===================================================================
 // FEATURE FLAGS — Sprint 0.3-A
@@ -201,6 +202,15 @@ export function useSalas() {
         finalizada: false,
         notas: notaFinal,
       };
+
+      // ── DIAGNÓSTICO: verificar tarifa al abrir sesión ──
+      console.log('[abrirSesion] DEBUG tarifa:', {
+        salaId,
+        modo,
+        tiempo,
+        tarifa_recibida: tarifa,
+        tarifa_base_a_guardar: payload.tarifa_base,
+      });
       
       // Agregar cliente_id si está disponible (conexión con CRM)
       if (cliente_id) {
@@ -232,9 +242,11 @@ export function useSalas() {
       const sesion = sesiones.find((s) => s.id === sesionId);
       if (!sesion) return;
 
+      const usuarioId = await getUsuarioIdSimple();
+
       const nuevosTiempos = [
         ...(sesion.tiemposAdicionales || []),
-        { minutos, costo, timestamp: new Date().toISOString() },
+        { minutos, costo, timestamp: new Date().toISOString(), usuario_id: usuarioId },
       ];
       const nuevoTiempoAdicional = (sesion.tiempoAdicional || 0) + minutos;
       const nuevoCostoAdicional = (sesion.costoAdicional || 0) + costo;
@@ -288,8 +300,10 @@ export function useSalas() {
             });
 
             // 3. Registrar movimiento de venta
+            const usuarioId = await getUsuarioIdSimple();
             await db.insert('movimientos_stock', {
               producto_id: producto.id,
+              usuario_id: usuarioId,
               tipo: 'venta',
               cantidad,
               stock_anterior: stockAnterior,
@@ -333,6 +347,7 @@ export function useSalas() {
       });
 
       // 2. Descontar stock y registrar movimientos (en paralelo)
+      const usuarioIdBatch = await getUsuarioIdSimple();
       await Promise.all(
         nuevosItems
           .filter((p) => {
@@ -351,6 +366,7 @@ export function useSalas() {
               await db.update('productos', producto.id, { stock: stockNuevo });
               await db.insert('movimientos_stock', {
                 producto_id: producto.id,
+                usuario_id: usuarioIdBatch,
                 tipo: 'venta',
                 cantidad,
                 stock_anterior: stockAnterior,
@@ -375,10 +391,22 @@ export function useSalas() {
   // ── Trasladar sesión a otra estación ──────────────────────────────
   const trasladarSesion = useCallback(
     async (sesionId, nuevaSalaId, nuevaEstacion) => {
+      const usuarioId = await getUsuarioIdSimple();
       await db.update('sesiones', sesionId, {
         sala_id: nuevaSalaId,
         estacion: nuevaEstacion,
       });
+      // Registrar traslado en auditoría (trazabilidad operativa)
+      try {
+        await supabase.from('auditoria').insert({
+          usuario_id: usuarioId,
+          tabla: 'sesiones',
+          registro_id: sesionId,
+          accion: 'UPDATE',
+          datos_nuevos: { tipo: 'traslado', sala_id: nuevaSalaId, estacion: nuevaEstacion },
+          actor_type: 'user',
+        });
+      } catch { /* auditoría no bloquea operación */ }
       cargarSesionesActivas();
     },
     [cargarSesionesActivas]
@@ -442,6 +470,8 @@ export function useSalas() {
         tarifa_base: tarifaTiempoBase,
         notas: notasFinal || null,
         vendedor: null,
+        // Trazabilidad: quién finaliza la sesión
+        closed_by: await getUsuarioIdSimple(),
         ...(metodoPago === 'parcial' && montosParciales
           ? {
               monto_efectivo:      montosParciales.efectivo      || null,
@@ -525,6 +555,7 @@ export function useSalas() {
           total_productos: 0,
           total_general: 0,
           notas: notasFinal,
+          cancelled_by: await getUsuarioIdSimple(),
         });
 
         await _registrarVentaContable(sesion, {
@@ -548,6 +579,7 @@ export function useSalas() {
 
   // ── Crear nueva sala ──────────────────────────────────────────────
   const crearSala = useCallback(async ({ nombre, tipo, numEstaciones, prefijo }) => {
+    const created_by = await getUsuarioIdSimple();
     const nuevaSala = {
       nombre,
       num_estaciones: numEstaciones,
@@ -562,6 +594,7 @@ export function useSalas() {
         t90: 0,
         t120: 0,
       },
+      created_by,
     };
 
     const res = await db.insert('salas', nuevaSala);
@@ -571,15 +604,18 @@ export function useSalas() {
 
   // ── Actualizar tarifas de sala ────────────────────────────────────
   const actualizarTarifasSala = useCallback(async (salaId, tarifas) => {
-    await db.update('salas', salaId, { tarifas });
+    const updated_by = await getUsuarioIdSimple();
+    await db.update('salas', salaId, { tarifas, updated_by });
     await cargarSalas();
   }, [cargarSalas]);
 
   const actualizarSala = useCallback(async (salaId, { nombre, tipo, numEstaciones, prefijo, icono_url }) => {
+    const updated_by = await getUsuarioIdSimple();
     await db.update('salas', salaId, {
       nombre,
       num_estaciones: numEstaciones,
       equipamiento: { tipo_consola: tipo, prefijo, icono_url: icono_url || null },
+      updated_by,
     });
     await cargarSalas();
   }, [cargarSalas]);

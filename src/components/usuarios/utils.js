@@ -31,16 +31,16 @@ export const PERMISOS_DEFAULT = {
 };
 
 export const ROL_STYLE = {
-  administrador: { cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',       label: 'Administrador' },
-  supervisor:    { cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300', label: 'Supervisor'    },
-  operador:      { cls: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',     label: 'Operador'      },
-  vendedor:      { cls: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300', label: 'Vendedor'      },
+  administrador: { cls: 'bg-red-500/10 text-red-400 border border-red-500/20',         label: 'Administrador' },
+  supervisor:    { cls: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',    label: 'Supervisor'    },
+  operador:      { cls: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',       label: 'Operador'      },
+  vendedor:      { cls: 'bg-[#00D656]/10 text-[#00D656] border border-[#00D656]/20',    label: 'Vendedor'      },
 };
 
 export const ESTADO_STYLE = {
-  activo:    { cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500', label: '✓ Activo'    },
-  inactivo:  { cls: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400',                dot: 'bg-gray-400',    label: '— Inactivo'  },
-  bloqueado: { cls: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',                 dot: 'bg-red-500',     label: '🔒 Bloqueado' },
+  activo:    { cls: 'bg-[#00D656]/10 text-[#00D656] border border-[#00D656]/20', dot: '#00D656', label: 'Activo'    },
+  inactivo:  { cls: 'bg-white/5 text-gray-400 border border-white/10',            dot: '#6B7280', label: 'Inactivo'  },
+  bloqueado: { cls: 'bg-red-500/10 text-red-400 border border-red-500/20',        dot: '#EF4444', label: 'Bloqueado' },
 };
 
 const AVATAR_PALETTE = [

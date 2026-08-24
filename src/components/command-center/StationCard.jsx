@@ -20,10 +20,23 @@ function formatCOP(valor) {
 
 function formatearTiempoCorto(sesion, now) {
   if (!sesion) return '—';
-  if (sesion.modo === 'libre') return '∞';
   if (sesion.finalizada) return '00:00';
 
   const inicio = new Date(sesion.fecha_inicio).getTime();
+
+  // Modo libre: mostrar tiempo transcurrido (no hay tiempo contratado fijo)
+  if (sesion.modo === 'libre') {
+    const transcurridoMs = now - inicio;
+    if (transcurridoMs <= 0) return '0m';
+    const transcurridoMin = Math.floor(transcurridoMs / 60000);
+    if (transcurridoMin >= 60) {
+      const h = Math.floor(transcurridoMin / 60);
+      const m = transcurridoMin % 60;
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+    return `${transcurridoMin}m`;
+  }
+
   const tiempoTotalMin = (sesion.tiempoOriginal || sesion.tiempo || 60) + (sesion.tiempoAdicional || 0);
   const finMs = inicio + tiempoTotalMin * 60 * 1000;
   const restanteMs = finMs - now;
@@ -43,8 +56,17 @@ function formatearTiempoCorto(sesion, now) {
 }
 
 function calcularProgreso(sesion, now) {
-  if (!sesion || sesion.modo === 'libre') return 0;
+  if (!sesion) return 0;
   const inicio = new Date(sesion.fecha_inicio).getTime();
+
+  // Modo libre: barra de progreso basada en tiempo transcurrido
+  // Usa 120 min como referencia visual (2h = sesión típica larga)
+  if (sesion.modo === 'libre') {
+    const transcurridoMin = (now - inicio) / 60000;
+    const referenciaMin = 120; // 2h como referencia visual
+    return Math.min((transcurridoMin / referenciaMin) * 100, 100);
+  }
+
   const tiempoTotalMin = (sesion.tiempoOriginal || sesion.tiempo || 60) + (sesion.tiempoAdicional || 0);
   const duracion = tiempoTotalMin * 60 * 1000;
   const transcurrido = now - inicio;
@@ -147,8 +169,10 @@ const StationCardInner = memo(function StationCardInner({
   const alerta = useDerivedAlerts([sesion].filter(Boolean), [sala]);
   const alertaEstado = alerta.alertas[0];
   const estadoDerivado = alertaEstado?.estado || (sesion ? (sesion.modo === 'libre' ? 'libre-tiempo' : 'activa') : 'libre');
-  const esLibre = !sesion || estadoDerivado === 'libre' || estadoDerivado === 'libre-tiempo';
-  const esOcupada = sesion && !esLibre;
+  // esEstacionLibre = NO hay sesión (estación disponible para iniciar)
+  // esOcupada = hay sesión activa (fija o tiempo libre)
+  const esEstacionLibre = !sesion;
+  const esOcupada = !!sesion;
   const esModoLibre = sesion?.modo === 'libre';
   const esVencida = estadoDerivado === 'vencida' || estadoDerivado === 'critica' || estadoDerivado === 'excedida';
   const esPorVencer = estadoDerivado === 'por-vencer';
@@ -164,7 +188,7 @@ const StationCardInner = memo(function StationCardInner({
     border: `${alertaEstado.color}35`,
     glowColor: alertaEstado.color,
   } : esOcupada ? {
-    badge: esModoLibre ? 'EN JUEGO ∞' : 'EN JUEGO',
+    badge: 'EN JUEGO',
     color: esModoLibre ? '#22D3EE' : '#00D656',
     bg: esModoLibre ? 'rgba(34,211,238,0.10)' : 'rgba(0,214,86,0.10)',
     border: esModoLibre ? 'rgba(34,211,238,0.25)' : 'rgba(0,214,86,0.25)',
@@ -235,18 +259,18 @@ const StationCardInner = memo(function StationCardInner({
         : colorBordeConsola,
     borderWidth: focused ? 2 : 1,
     borderRadius: 14,
-    background: esLibre
+    background: esEstacionLibre
       ? 'rgba(15, 16, 20, 0.7)'  // surface oscura sutil
       : 'rgba(20, 22, 28, 0.85)', // surface ligeramente más clara para activas
     boxShadow: focused
       ? `0 0 0 3px rgba(255,255,255,0.9), 0 0 24px ${config.glowColor}80, inset 0 1px 0 rgba(255,255,255,0.04)`
-      : esLibre
+      : esEstacionLibre
         ? '0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02)' // plano, silencioso
         : alertaEstado?.prioridad <= 3
           ? `0 0 0 1px ${config.glowColor}35, 0 0 16px ${config.glowColor}20, 0 0 30px ${config.glowColor}10, inset 0 1px 0 rgba(255,255,255,0.03)` // alerta
           : `0 0 0 1px ${colorBordeConsola}30, 0 0 12px ${colorBordeConsola}12, 0 0 24px ${colorBordeConsola}06, inset 0 1px 0 rgba(255,255,255,0.03)`, // en juego normal
     transition: 'box-shadow 0.25s ease, border-color 0.25s, background 0.2s',
-    opacity: esLibre ? 0.9 : 1,
+    opacity: esEstacionLibre ? 0.9 : 1,
   };
 
   const badgeStyle = {
@@ -318,7 +342,7 @@ const StationCardInner = memo(function StationCardInner({
 
         {/* ── ICONO CONSOLA + CLIENTE ── */}
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xl shrink-0 overflow-hidden relative ${esLibre ? 'bg-white/[0.02] border-white/5' : 'bg-white/5 border-white/10'}`}>
+          <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-xl shrink-0 overflow-hidden relative ${esEstacionLibre ? 'bg-white/[0.02] border-white/5' : 'bg-white/5 border-white/10'}`}>
             <span className="absolute inset-0 flex items-center justify-center">{iconoEmoji}</span>
             {iconoUrl && (
               <img
@@ -331,26 +355,35 @@ const StationCardInner = memo(function StationCardInner({
             )}
           </div>
           <div className="min-w-0 flex-1">
-            {esLibre ? (
+            {esEstacionLibre && !sesion ? (
               <div className="text-sm font-medium text-gray-500">—</div>
-            ) : (
+            ) : sesion ? (
               <>
                 <div className="text-sm font-semibold text-white truncate" title={sesion?.cliente || 'Sin cliente'}>
                   {clienteDisplay}
                 </div>
-                {sesion && !esLibre && (
-                  <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
-                    <span className="font-mono tabular-nums" style={{ color: progressColor }}>
-                      {sesion.tiempoOriginal || 60}m
-                      {tiempoExtraMin > 0 && ` +${tiempoExtraMin}m`}
-                    </span>
-                    <span className="px-1.5 py-0.5 rounded bg-white/5 text-gray-500 font-medium text-[9px]">
-                      ${Math.round((sesion.tarifa || sesion.tarifa_base || 0) / 1000)}k/h
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+                  {esModoLibre ? (
+                    <>
+                      <span className="font-mono tabular-nums" style={{ color: '#22D3EE' }}>
+                        Libre
+                        {tiempoExtraMin > 0 && ` +${tiempoExtraMin}m`}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-mono tabular-nums" style={{ color: progressColor }}>
+                        {sesion.tiempoOriginal || 60}m
+                        {tiempoExtraMin > 0 && ` +${tiempoExtraMin}m`}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-white/5 text-gray-500 font-medium text-[9px]">
+                        ${Math.round((sesion.tarifa || sesion.tarifa_base || 0) / 1000)}k/h
+                      </span>
+                    </>
+                  )}
+                </div>
               </>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -369,7 +402,7 @@ const StationCardInner = memo(function StationCardInner({
         )}
 
         {/* ── Separador visual para libres ── */}
-        {esLibre && <div className="h-px bg-white/5" />}
+        {esEstacionLibre && <div className="h-px bg-white/5" />}
 
         {/* ── TOTAL + CONSUMO ── */}
         {esOcupada && (
@@ -405,7 +438,7 @@ const StationCardInner = memo(function StationCardInner({
 
         {/* ── QUICK ACTIONS — solo iconos, centrados ── */}
         <div className="flex items-center justify-center gap-1 pt-1">
-          {esLibre ? (
+          {esEstacionLibre ? (
             <button
               onClick={handleClickIniciar}
               className="flex-1 h-10 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-sm transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"

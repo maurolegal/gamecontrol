@@ -6,7 +6,7 @@
 // ===================================================================
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { UserPlus, RefreshCw, Users } from 'lucide-react';
+import { UserPlus, RefreshCw, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -94,41 +94,47 @@ export default function Usuarios() {
   }, [cargar, exito, notifError]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
 
-      {/* Cabecera */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-[--accent-primary,#00D656]/10 text-[--accent-primary,#00D656]">
-              <Users size={22} />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Usuarios</h1>
+      {/* ── Header compacto (sin card) ── */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#9CA3AF' }}
+            >
+              <Shield size={16} />
+            </span>
+            <h1 className="text-xl font-bold text-white tracking-tight">Usuarios</h1>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-1">
+          <p className="text-[12px] text-gray-500 mt-1 ml-0.5">
             Gestión de cuentas, roles y permisos por módulo
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={cargar}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-gray-400 rounded-lg transition-colors"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            title="Actualizar lista"
           >
-            <RefreshCw size={14} className={cargando ? 'animate-spin' : ''} /> Actualizar
+            <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} /> Actualizar
           </button>
           <button
             onClick={() => setModalCrear(true)}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-[--accent-primary,#00D656] text-white rounded-xl hover:opacity-90 transition-all shadow-sm"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-white rounded-lg transition-all"
+            style={{ background: '#00D656', boxShadow: '0 0 12px rgba(0,214,86,0.25)' }}
+            title="Crear nuevo usuario"
           >
-            <UserPlus size={15} /> Nuevo Usuario
+            <UserPlus size={14} /> Nuevo usuario
           </button>
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* ── KPI strip compacto ── */}
       <KpiUsuarios kpis={kpis} cargando={cargando} />
 
-      {/* Tabla */}
+      {/* ── Tabla + filtros ── */}
       <TablaUsuarios
         usuarios={usuarios}
         cargando={cargando}
@@ -138,7 +144,7 @@ export default function Usuarios() {
         onEliminar={eliminarUsuario}
       />
 
-      {/* Matriz de permisos por rol */}
+      {/* ── Matriz de permisos por rol ── */}
       <MatrizPermisos />
 
       {/* ── Modales ─────────────────────────────────────────────── */}

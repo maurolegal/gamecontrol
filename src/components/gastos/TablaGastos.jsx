@@ -115,6 +115,13 @@ function GastoCard({ g, categorias, onEditar, onEliminar }) {
         {g.proveedor && <span> · {g.proveedor}</span>}
       </p>
 
+      {/* Fila 4b: operador (trazabilidad) */}
+      {(g.usuario?.nombre || g.editor?.nombre) && (
+        <p className="text-[11px] text-gray-600 mt-0.5 truncate">
+          Operador: <span className="text-gray-400">{g.usuario?.nombre || g.editor?.nombre}</span>
+        </p>
+      )}
+
       {/* Fila 5: id + acciones */}
       <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-white/5">
         <span className="font-mono text-[10px] text-gray-600">
@@ -176,6 +183,7 @@ export default function TablaGastos({ gastos, cargando, categorias, onEditar, on
               <th className="px-4 py-2.5 text-left font-medium">Categoría</th>
               <th className="px-4 py-2.5 text-left font-medium">Descripción</th>
               <th className="px-4 py-2.5 text-left font-medium">Proveedor</th>
+              <th className="px-4 py-2.5 text-left font-medium">Operador</th>
               <th className="px-4 py-2.5 text-left font-medium">Pago</th>
               <th className="px-4 py-2.5 text-right font-medium">Monto</th>
               <th className="px-4 py-2.5 text-center font-medium">Acciones</th>
@@ -185,7 +193,7 @@ export default function TablaGastos({ gastos, cargando, categorias, onEditar, on
           <tbody>
             {cargando ? (
               <tr>
-                <td colSpan={8} className="py-12 text-center text-gray-500">
+                <td colSpan={9} className="py-12 text-center text-gray-500">
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-6 h-6 border-2 border-[#00D656]/40 border-t-[#00D656] rounded-full animate-spin" />
                     <span className="text-xs">Cargando gastos…</span>
@@ -194,7 +202,7 @@ export default function TablaGastos({ gastos, cargando, categorias, onEditar, on
               </tr>
             ) : gastos.length === 0 ? (
               <tr>
-                <td colSpan={8} className="p-0">
+                <td colSpan={9} className="p-0">
                   <EmptyState onLimpiar={onLimpiar} hayFiltros={hayFiltros} />
                 </td>
               </tr>
@@ -232,6 +240,11 @@ export default function TablaGastos({ gastos, cargando, categorias, onEditar, on
                   {/* Proveedor */}
                   <td className="px-4 py-2.5 text-gray-400 text-xs">
                     {g.proveedor ?? <span className="text-gray-600 italic">No especificado</span>}
+                  </td>
+
+                  {/* Operador (trazabilidad) */}
+                  <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-xs">
+                    {g.usuario?.nombre || g.editor?.nombre || '—'}
                   </td>
 
                   {/* Método pago */}

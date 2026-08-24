@@ -3,45 +3,67 @@ import { MODULOS, PERMISOS_ROL } from './utils';
 const ROLES = ['administrador', 'supervisor', 'operador', 'vendedor'];
 
 const ROL_HEADER = {
-  administrador: { label: 'Administrador', cls: 'text-red-400' },
-  supervisor:    { label: 'Supervisor',    cls: 'text-amber-400' },
-  operador:      { label: 'Operador',      cls: 'text-blue-400' },
-  vendedor:      { label: 'Vendedor',      cls: 'text-green-400' },
+  administrador: { label: 'Administrador', color: '#F87171' },
+  supervisor:    { label: 'Supervisor',    color: '#FBBF24' },
+  operador:      { label: 'Operador',      color: '#60A5FA' },
+  vendedor:      { label: 'Vendedor',      color: '#00D656' },
 };
 
 export default function MatrizPermisos() {
   return (
-    <div className="glass-card rounded-2xl overflow-hidden border border-white/5">
-      <div className="px-6 py-4 border-b border-white/5">
-        <h3 className="text-sm font-bold text-white">Permisos por Rol</h3>
-        <p className="text-xs text-gray-500 mt-0.5">Centro de mando · control de acceso por módulo y rol</p>
+    <div className="rounded-xl overflow-hidden"
+      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
+      {/* ── Header ── */}
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <h3 className="text-[13px] font-bold text-white tracking-tight">Permisos por rol</h3>
+        <p className="text-[11px] text-gray-500 mt-0.5">
+          Centro de mando · control de acceso por módulo y rol
+        </p>
       </div>
+
+      {/* ── Tabla ── */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-white/5">
-            <tr>
-              <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Módulo</th>
+          <thead>
+            <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
+              <th className="px-4 py-2.5 text-left text-[9px] font-semibold text-gray-500 uppercase tracking-wider">
+                Módulo
+              </th>
               {ROLES.map((r) => (
-                <th key={r} className={`px-5 py-3 text-center text-xs font-bold uppercase tracking-wide ${ROL_HEADER[r].cls}`}>
+                <th key={r} className="px-4 py-2.5 text-center text-[9px] font-bold uppercase tracking-wider"
+                  style={{ color: ROL_HEADER[r].color }}
+                >
                   {ROL_HEADER[r].label}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/5">
-            {MODULOS.map((m) => (
-              <tr key={m.key} className="hover:bg-white/5 transition-colors">
-                <td className="px-5 py-3 font-medium text-gray-300">
-                  <span className="mr-2">{m.emoji}</span>{m.label}
+          <tbody>
+            {MODULOS.map((m, idx) => (
+              <tr key={m.key} className="transition-colors hover:bg-white/[0.02]"
+                style={{ borderBottom: idx < MODULOS.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}
+              >
+                <td className="px-4 py-2.5 text-[12px] font-medium text-gray-300">
+                  <span className="mr-2 opacity-60 text-[11px]">{m.emoji}</span>{m.label}
                 </td>
-                {ROLES.map((r) => (
-                  <td key={r} className="px-5 py-3 text-center">
-                    {PERMISOS_ROL[r]?.[m.key]
-                      ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#00D656]/20 text-[#00D656] text-xs font-bold">✓</span>
-                      : <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-500/10 text-red-400 text-xs font-bold">✗</span>
-                    }
-                  </td>
-                ))}
+                {ROLES.map((r) => {
+                  const permitido = !!PERMISOS_ROL[r]?.[m.key];
+                  return (
+                    <td key={r} className="px-4 py-2.5 text-center">
+                      <span
+                        className="inline-flex items-center justify-center w-5 h-5 rounded text-[11px] font-bold"
+                        style={
+                          permitido
+                            ? { background: 'rgba(0,214,86,0.08)', color: '#00D656' }
+                            : { background: 'rgba(239,68,68,0.06)', color: '#6B7280' }
+                        }
+                      >
+                        {permitido ? '✓' : '×'}
+                      </span>
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>

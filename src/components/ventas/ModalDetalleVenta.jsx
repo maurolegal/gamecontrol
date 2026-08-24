@@ -250,7 +250,7 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
           })()}
 
           {/* ── Info cards ── */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {/* Cliente */}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
               <div className="flex items-center gap-1.5 mb-3">
@@ -287,6 +287,29 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
                   {formatFecha(venta.fecha_cierre ?? venta.fecha_inicio)}
                 </span>
               </div>
+            </div>
+
+            {/* Operador (trazabilidad) */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
+              <div className="flex items-center gap-1.5 mb-3">
+                <User size={13} className="text-indigo-500" />
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  Operador
+                </h4>
+              </div>
+              <p className="font-bold text-gray-900 dark:text-white text-base">
+                {venta.usuario?.nombre || '—'}
+              </p>
+              {venta.usuario?.rol && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 capitalize">
+                  {venta.usuario.rol}
+                </p>
+              )}
+              {venta.cancelador?.nombre && (
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                  Anulada por: {venta.cancelador.nombre}
+                </p>
+              )}
             </div>
           </div>
 

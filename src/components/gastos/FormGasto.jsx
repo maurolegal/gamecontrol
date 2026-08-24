@@ -3,6 +3,7 @@ import { Save, X, Tags, Plus, Pencil } from 'lucide-react';
 import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useAuth } from '../../hooks/useAuth';
+import { getUsuarioIdSimple } from '../../lib/authHelpers';
 import { hoyBogota } from '../../pages/Gastos';
 
 // ===================================================================
@@ -83,7 +84,8 @@ export default function FormGasto({
       };
 
       if (gastoEditar) {
-        await db.update('gastos', gastoEditar.id, datos);
+        const updated_by = await getUsuarioIdSimple();
+        await db.update('gastos', gastoEditar.id, { ...datos, updated_by });
         exito('Gasto actualizado exitosamente');
       } else {
         try {

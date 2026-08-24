@@ -9,6 +9,7 @@ import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
 import { useNotifications } from '../hooks/useNotifications';
 import { useSalas } from '../hooks/useSalas';
+import { getUsuarioIdSimple } from '../lib/authHelpers';
 import {
   Settings, Building2, DollarSign, Save, TrendingDown, Award,
   Gamepad2, Lightbulb, Wallet, Trash2, Plus, Smartphone, CreditCard,
@@ -134,15 +135,16 @@ export default function Ajustes() {
     e.preventDefault();
     setCargando(true);
     try {
+      const updated_by = await getUsuarioIdSimple();
       const nuevaConfig = { ...configuracion, ...form };
       const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
       if (existente?.[0]?.id) {
         await db.update('configuracion', existente[0].id, {
-          datos: nuevaConfig, updated_at: new Date().toISOString(),
+          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
         });
       } else {
         await db.insert('configuracion', {
-          id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(),
+          id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
         });
       }
       setConfiguracion(nuevaConfig);

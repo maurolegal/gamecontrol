@@ -39,6 +39,7 @@ import Modal from '../components/ui/Modal';
 import * as db from '../lib/databaseService';
 import { useNotifications } from '../hooks/useNotifications';
 import { useAuth } from '../hooks/useAuth';
+import { getUsuarioIdSimple } from '../lib/authHelpers';
 
 function formatCOP(valor) {
   return new Intl.NumberFormat('es-CO', {
@@ -208,6 +209,7 @@ export default function Clientes() {
     }
 
     try {
+      const created_by = await getUsuarioIdSimple();
       const nuevoCliente = {
         nombre: form.nombre.trim(),
         email: form.email.trim() || null,
@@ -223,7 +225,8 @@ export default function Clientes() {
         acepta_emails: form.acepta_emails,
         estado: 'activo',
         fecha_registro: new Date().toISOString(),
-        ultima_visita: new Date().toISOString()
+        ultima_visita: new Date().toISOString(),
+        created_by,
       };
 
       const insertado = await db.insert('clientes', nuevoCliente);
@@ -243,6 +246,7 @@ export default function Clientes() {
     if (!clienteSeleccionado) return;
 
     try {
+      const updated_by = await getUsuarioIdSimple();
       const datosActualizados = {
         nombre: form.nombre.trim(),
         email: form.email.trim() || null,
@@ -256,7 +260,8 @@ export default function Clientes() {
         saldo_cuenta: form.saldo_cuenta ? Number(form.saldo_cuenta) : 0,
         acepta_promociones: form.acepta_promociones,
         acepta_emails: form.acepta_emails,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        updated_by,
       };
 
       await db.update('clientes', clienteSeleccionado.id, datosActualizados);

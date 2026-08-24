@@ -134,6 +134,13 @@ function MovementCard({ m }) {
           {formatFecha(m.fecha_movimiento)}
         </span>
       </div>
+
+      {/* Fila 3b: operador (trazabilidad) */}
+      {m.usuario?.nombre && (
+        <p className="text-[11px] text-gray-600 mt-1.5 truncate">
+          Operador: <span className="text-gray-400">{m.usuario.nombre}</span>
+        </p>
+      )}
     </div>
   );
 }
@@ -151,7 +158,7 @@ export default function MovimientosStock() {
     setCargando(true);
     try {
       const data = await db.select('movimientos_stock', {
-        select: '*, producto:productos(nombre, imagen_url)',
+        select: '*, producto:productos(nombre, imagen_url), usuario:usuarios!usuario_id(nombre,rol)',
         ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
         range: [0, LOTE_CARGA - 1],
       });
@@ -171,7 +178,7 @@ export default function MovimientosStock() {
     try {
       const desde = movimientos.length;
       const data = await db.select('movimientos_stock', {
-        select: '*, producto:productos(nombre, imagen_url)',
+        select: '*, producto:productos(nombre, imagen_url), usuario:usuarios!usuario_id(nombre,rol)',
         ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
         range: [desde, desde + LOTE_CARGA - 1],
       });
@@ -299,6 +306,7 @@ export default function MovimientosStock() {
                 <th className="px-4 py-2.5 text-center font-medium">Tipo</th>
                 <th className="px-4 py-2.5 text-center font-medium">Cantidad</th>
                 <th className="px-4 py-2.5 text-left font-medium">Detalle</th>
+                <th className="px-4 py-2.5 text-left font-medium">Operador</th>
                 <th className="px-4 py-2.5 text-center font-medium">Stock final</th>
                 <th className="px-4 py-2.5 text-right font-medium">Fecha</th>
               </tr>
@@ -306,7 +314,7 @@ export default function MovimientosStock() {
             <tbody>
               {cargando ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center">
+                  <td colSpan={7} className="py-12 text-center">
                     <div className="flex flex-col items-center gap-2 text-gray-500">
                       <div className="w-6 h-6 border-2 border-[#00D656]/40 border-t-[#00D656] rounded-full animate-spin" />
                       <span className="text-xs">Cargando movimientos…</span>
@@ -315,7 +323,7 @@ export default function MovimientosStock() {
                 </tr>
               ) : paginados.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-0">
+                  <td colSpan={7} className="p-0">
                     <EmptyState onLimpiar={limpiarFiltros} hayFiltros={hayFiltros} />
                   </td>
                 </tr>
@@ -378,6 +386,11 @@ export default function MovimientosStock() {
                         ) : (
                           detalleMovimiento(m)
                         )}
+                      </td>
+
+                      {/* Operador (trazabilidad) */}
+                      <td className="px-4 py-2.5 text-gray-400 whitespace-nowrap text-xs">
+                        {m.usuario?.nombre || '—'}
                       </td>
 
                       {/* Stock final */}

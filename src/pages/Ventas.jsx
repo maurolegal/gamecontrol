@@ -230,7 +230,7 @@ export default function Ventas() {
 
       let q = supabase
         .from('ventas')
-        .select('*')
+        .select('*, usuario:usuarios!usuario_id(nombre,rol)')
         .order('fecha_cierre', { ascending: false, nullsFirst: false })
         .limit(2000);
 
