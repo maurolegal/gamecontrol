@@ -303,6 +303,27 @@ export default function Ventas() {
       delete datos._productosOriginales;
       delete datos.productos; // No existe como columna en la tabla ventas
 
+      // ── 0. Actualizar campos metadata de la cabecera ──
+      //     (cliente, sala_id, estacion, fechas, notas)
+      //     Estos campos NO los maneja corregirMetodoPago ni editarVenta RPC.
+      const camposMetadata = {};
+      if (datos.cliente !== undefined)      camposMetadata.cliente = datos.cliente;
+      if (datos.sala_id !== undefined)      camposMetadata.sala_id = datos.sala_id;
+      if (datos.estacion !== undefined)     camposMetadata.estacion = datos.estacion;
+      if (datos.fecha_inicio !== undefined) camposMetadata.fecha_inicio = datos.fecha_inicio;
+      if (datos.fecha_cierre !== undefined) camposMetadata.fecha_cierre = datos.fecha_cierre;
+      if (datos.notas !== undefined)        camposMetadata.notas = datos.notas;
+
+      if (Object.keys(camposMetadata).length > 0) {
+        const { error: errMeta } = await supabase
+          .from('ventas')
+          .update(camposMetadata)
+          .eq('id', id);
+        if (errMeta) {
+          throw new Error(`Error actualizando datos de la venta: ${errMeta.message}`);
+        }
+      }
+
       // ── 1. Corregir método de pago (siempre permitido, incluso en cerradas) ──
       const metodoCambiado = datos.metodo_pago !== undefined;
       if (metodoCambiado) {
