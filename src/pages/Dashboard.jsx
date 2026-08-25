@@ -224,8 +224,6 @@ function ResumenFinanciero({ kpis, metodosPago, cargando }) {
                   data={donutData}
                   size={80}
                   thickness={9}
-                  centerValue={formatCOP(totalMetodos).replace(/\s/g, '').slice(0, 6)}
-                  centerLabel="Total"
                 />
                 <div className="flex-1 space-y-1.5">
                   {donutData.map(d => (
