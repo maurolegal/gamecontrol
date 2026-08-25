@@ -15,7 +15,7 @@ import useGlobalTick from '../hooks/useGlobalTick';
 
 function horaActual() {
   return new Date().toLocaleTimeString('es-CO', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
   });
 }
 
@@ -543,7 +543,7 @@ export default function EventLive() {
   // Sprint 0.3-C/D Fase 5: tick global para reloj (elimina setInterval propio)
   const now = useGlobalTick();
   const hora = new Date(now).toLocaleTimeString('es-CO', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
   });
   const intervalRef = useRef(null);
 

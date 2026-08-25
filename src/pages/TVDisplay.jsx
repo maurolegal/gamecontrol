@@ -25,7 +25,7 @@ function horaActual() {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false,
+    hour12: true,
   });
 }
 
@@ -283,7 +283,7 @@ export default function TVDisplay() {
   // Sprint 0.3-C/D Fase 5: tick global para reloj (elimina setInterval propio)
   const now = useGlobalTick();
   const hora = new Date(now).toLocaleTimeString('es-CO', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
   });
   const fecha = new Date(now).toLocaleDateString('es-CO', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
