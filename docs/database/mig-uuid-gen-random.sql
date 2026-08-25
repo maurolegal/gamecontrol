@@ -133,8 +133,4 @@ $$;
 -- 4. Otorgar permisos
 GRANT EXECUTE ON FUNCTION crear_usuario TO authenticated;
 
--- 5. Verificar
-DO $$
-BEGIN
-  RAISE NOTICE 'Migración completada: uuid_generate_v4() -> gen_random_uuid()';
-END $$;
+-- Migracion completada: uuid_generate_v4() -> gen_random_uuid()
