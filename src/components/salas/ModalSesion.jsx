@@ -45,6 +45,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
   const [tiempoSeleccionado, setTiempoSeleccionado] = useState(60);
   const [tiempoPersonalizado, setTiempoPersonalizado] = useState('');
   const [cargando, setCargando] = useState(false);
+  const enviandoRef = useRef(false); // Guard sincrónico anti-doble-click
   
   // Modal agregar cliente rápido
   const [modalAgregarCliente, setModalAgregarCliente] = useState(false);
@@ -71,6 +72,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
       setMostrarDropdown(false);
       setTiempoSeleccionado(60);
       setTiempoPersonalizado('');
+      enviandoRef.current = false;
     }
   }, [sala, estacion]);
 
@@ -205,9 +207,14 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
     e.preventDefault();
     if (!estacion) return;
 
+    // Guard sincrónico: si ya se está enviando, ignorar el click
+    if (enviandoRef.current) return;
+    enviandoRef.current = true;
+
     const tiempoFinal = getTiempoFinal();
     if (!esLibre && tiempoFinal <= 0) {
       notifError('Ingresa un tiempo válido');
+      enviandoRef.current = false;
       return;
     }
 
@@ -234,6 +241,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
       notifError(err.message);
     } finally {
       setCargando(false);
+      enviandoRef.current = false;
     }
   }
 
