@@ -188,29 +188,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── Ingresos activos (sesiones en juego) ── */}
-      {ingresosActivos > 0 && (
-        <div className="mb-4">
-          <div
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-            style={{
-              background: 'rgba(0,214,86,0.08)',
-              border: '1px solid rgba(0,214,86,0.20)',
-            }}
-            title={`Ingresos potenciales de ${sesionesActivas.length} sesión(es) activa(s)`}
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D656] opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00D656]" />
-            </span>
-            <div className="leading-tight">
-              <p className="text-[8px] uppercase tracking-wider text-[#00D656]/70 font-medium">En juego</p>
-              <p className="text-[12px] font-bold text-[#00D656] tabular-nums">{formatCOP(ingresosActivos)}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── KPI Cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
         {/* 1. Ingresos del día (solo ventas cerradas, igual que /ventas) */}
