@@ -20,7 +20,7 @@ DO $$
 DECLARE
   t TEXT;
   tablas TEXT[] := ARRAY['salas','sesiones','ventas','gastos','productos','cierres_turno','caja','clientes','dispositivos'];
-  is_identity BOOLEAN;
+  v_es_identity BOOLEAN;
 BEGIN
   FOREACH t IN ARRAY tablas LOOP
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = t) THEN
@@ -29,11 +29,11 @@ BEGIN
     END IF;
 
     -- Verificar si la columna id es identity column
-    SELECT (is_identity = 'YES') INTO is_identity
-    FROM information_schema.columns
-    WHERE table_name = t AND column_name = 'id';
+    SELECT (c.is_identity = 'YES') INTO v_es_identity
+    FROM information_schema.columns c
+    WHERE c.table_name = t AND c.column_name = 'id';
 
-    IF is_identity THEN
+    IF v_es_identity THEN
       RAISE NOTICE 'Tabla % usa IDENTITY, se omite', t;
       CONTINUE;
     END IF;
