@@ -80,7 +80,7 @@ export default function Ajustes() {
   // ── Juegos ──
   const [catalogoJuegos, setCatalogoJuegos] = useState([]);
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
-  const [nuevoJuego, setNuevoJuego] = useState({ nombre: '', plataforma: '', portada_url: '' });
+  const [nuevoJuego, setNuevoJuego] = useState({ nombre: '', portada_url: '' });
   const [guardandoJuego, setGuardandoJuego] = useState(false);
   // Asignación por estación
   const [juegoSalaId, setJuegoSalaId] = useState('');
@@ -325,7 +325,7 @@ export default function Ajustes() {
     try {
       const { data, error } = await supabase
         .from('juegos')
-        .select('id, nombre, plataforma, portada_url, estado')
+        .select('id, nombre, portada_url, estado')
         .order('nombre', { ascending: true });
       if (error) throw error;
       setCatalogoJuegos(data ?? []);
@@ -354,15 +354,14 @@ export default function Ajustes() {
         .from('juegos')
         .insert({
           nombre: nuevoJuego.nombre.trim(),
-          plataforma: nuevoJuego.plataforma.trim() || null,
           portada_url: nuevoJuego.portada_url || null,
           estado: 'activo',
         })
-        .select('id, nombre, plataforma, portada_url, estado')
+        .select('id, nombre, portada_url, estado')
         .single();
       if (error) throw error;
       setCatalogoJuegos(prev => [...prev, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-      setNuevoJuego({ nombre: '', plataforma: '', portada_url: '' });
+      setNuevoJuego({ nombre: '', portada_url: '' });
       exito(`Juego "${data.nombre}" agregado al catálogo`);
     } catch (err) {
       if (err.code === '23505') {
@@ -575,9 +574,7 @@ export default function Ajustes() {
   const catalogoFiltrado = useMemo(() => {
     if (!busquedaJuego.trim()) return catalogoJuegos;
     const q = busquedaJuego.toLowerCase();
-    return catalogoJuegos.filter(j =>
-      j.nombre.toLowerCase().includes(q) || (j.plataforma || '').toLowerCase().includes(q)
-    );
+    return catalogoJuegos.filter(j => j.nombre.toLowerCase().includes(q));
   }, [catalogoJuegos, busquedaJuego]);
 
   const TABS = [
@@ -1239,7 +1236,6 @@ export default function Ajustes() {
                               )}
                               <div className="flex-1 min-w-0">
                                 <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
-                                <p className="text-[10px] text-gray-500">{juego.plataforma || '—'}</p>
                               </div>
                               {instalado && <Check size={14} className="text-[#00D656] shrink-0" />}
                             </label>
@@ -1291,7 +1287,7 @@ export default function Ajustes() {
 
               {/* Formulario agregar juego */}
               <form onSubmit={handleAgregarJuego} className="space-y-3">
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2.5">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2.5">
                   <input
                     type="text"
                     value={nuevoJuego.nombre}
@@ -1299,13 +1295,6 @@ export default function Ajustes() {
                     placeholder="Nombre del juego *"
                     className={inputCls}
                     required
-                  />
-                  <input
-                    type="text"
-                    value={nuevoJuego.plataforma}
-                    onChange={(e) => setNuevoJuego(prev => ({ ...prev, plataforma: e.target.value }))}
-                    placeholder="Plataforma (PS5, Xbox, PC…)"
-                    className={inputCls}
                   />
                   <button
                     type="submit"
@@ -1409,7 +1398,6 @@ export default function Ajustes() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
-                        <p className="text-[10px] text-gray-500">{juego.plataforma || '—'}</p>
                       </div>
                       <button
                         onClick={() => handleEliminarJuegoCatalogo(juego.id, juego.nombre)}

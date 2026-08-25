@@ -156,7 +156,7 @@ const StationCardInner = memo(function StationCardInner({
       if (dispositivo?.id) {
         const { data: dj } = await supabase
           .from('dispositivo_juegos')
-          .select('juego_id, juegos(nombre, plataforma, portada_url)')
+          .select('juego_id, juegos(nombre, portada_url)')
           .eq('dispositivo_id', dispositivo.id);
         setJuegosData({
           dispositivoNombre: dispositivo.nombre,
@@ -673,7 +673,6 @@ const StationCardInner = memo(function StationCardInner({
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
-                      <p className="text-[9px] text-gray-500">{juego.plataforma || '—'}</p>
                     </div>
                   </div>
                 ))}
