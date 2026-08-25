@@ -46,7 +46,7 @@ function AlertaItem({ icon, color, titulo, desc, accion, onAction }) {
   return (
     <button
       onClick={onAction}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors hover:bg-white/[0.03] text-left"
+      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors hover:bg-white/[0.03] text-left"
       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--gc-border)' }}
     >
       <div
@@ -134,16 +134,16 @@ function AtencionPrioritaria({ kpis, dispositivos, cargando, navigate }) {
 
   return (
     <div
-      className="rounded-xl p-4 h-full flex flex-col"
+      className="rounded-xl p-3 h-full flex flex-col"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
-      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
         <ShieldAlert size={15} className="text-gray-400" />
         Atención Prioritaria
       </h3>
 
       {cargando ? (
-        <div className="space-y-2 flex-1">
+        <div className="space-y-1.5 flex-1">
           {[0, 1, 2].map(i => (
             <div key={i} className="h-14 rounded-lg bg-white/5 animate-pulse" />
           ))}
@@ -155,7 +155,7 @@ function AtencionPrioritaria({ kpis, dispositivos, cargando, navigate }) {
           <p className="text-[11px] text-gray-600 mt-0.5">Sin alertas operacionales</p>
         </div>
       ) : (
-        <div className="space-y-2 flex-1">
+        <div className="space-y-1.5 flex-1">
           {alertas.map((a, i) => (
             <AlertaItem key={i} {...a} />
           ))}
@@ -182,17 +182,17 @@ function ResumenFinanciero({ kpis, metodosPago, cargando }) {
 
   return (
     <div
-      className="rounded-xl p-4 h-full"
+      className="rounded-xl p-3 h-full"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
-      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
         <Wallet size={15} className="text-gray-400" />
         Resumen Financiero
         <span className="text-[10px] font-normal text-gray-600 ml-1">· Hoy</span>
       </h3>
 
       {cargando ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="h-8 bg-white/5 rounded-lg animate-pulse" />
           <div className="h-8 bg-white/5 rounded-lg animate-pulse" />
           <div className="h-8 bg-white/5 rounded-lg animate-pulse" />
@@ -200,16 +200,16 @@ function ResumenFinanciero({ kpis, metodosPago, cargando }) {
       ) : (
         <>
           {/* Ventas / Gastos / Neto */}
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+          <div className="space-y-1 mb-3">
+            <div className="flex items-center justify-between py-1 border-b border-white/5">
               <span className="text-xs text-gray-400">Ventas</span>
               <span className="text-sm font-bold text-[#00D656] tabular-nums">{formatCOP(kpis.ingresosHoy)}</span>
             </div>
-            <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+            <div className="flex items-center justify-between py-1 border-b border-white/5">
               <span className="text-xs text-gray-400">Gastos</span>
               <span className="text-sm font-bold text-red-400 tabular-nums">-{formatCOP(kpis.gastosHoy)}</span>
             </div>
-            <div className="flex items-center justify-between py-1.5">
+            <div className="flex items-center justify-between py-1">
               <span className="text-xs font-semibold text-gray-300">Neto</span>
               <span className="text-sm font-bold text-white tabular-nums">{formatCOP(neto)}</span>
             </div>
@@ -219,11 +219,11 @@ function ResumenFinanciero({ kpis, metodosPago, cargando }) {
           {totalMetodos > 0 && (
             <div>
               <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Métodos de pago</p>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <DonutChart
                   data={donutData}
-                  size={90}
-                  thickness={10}
+                  size={80}
+                  thickness={9}
                   centerValue={formatCOP(totalMetodos).replace(/\s/g, '').slice(0, 6)}
                   centerLabel="Total"
                 />
@@ -253,7 +253,7 @@ function ResumenFinanciero({ kpis, metodosPago, cargando }) {
 
 function RendimientoItem({ label, value, sparkData, color, sub }) {
   return (
-    <div className="flex items-center gap-3 py-2">
+    <div className="flex items-center gap-3 py-1.5">
       <div className="flex-1 min-w-0">
         <p className="text-[10px] text-gray-500 uppercase tracking-wider">{label}</p>
         <p className="text-sm font-bold text-white tabular-nums leading-tight mt-0.5">{value}</p>
@@ -276,10 +276,10 @@ function Rendimiento({ grafico, kpis, periodo, setPeriodo, cargando }) {
 
   return (
     <div
-      className="rounded-xl p-4 h-full"
+      className="rounded-xl p-3 h-full"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
           <TrendingUp size={15} className="text-gray-400" />
           Rendimiento
@@ -302,8 +302,8 @@ function Rendimiento({ grafico, kpis, periodo, setPeriodo, cargando }) {
       </div>
 
       {cargando ? (
-        <div className="space-y-3">
-          {[0, 1, 2].map(i => <div key={i} className="h-10 bg-white/5 rounded-lg animate-pulse" />)}
+        <div className="space-y-2">
+          {[0, 1, 2].map(i => <div key={i} className="h-9 bg-white/5 rounded-lg animate-pulse" />)}
         </div>
       ) : (
         <div className="divide-y divide-white/5">
@@ -343,16 +343,16 @@ function Rendimiento({ grafico, kpis, periodo, setPeriodo, cargando }) {
 function InventarioCritico({ productos, cargando, navigate }) {
   return (
     <div
-      className="rounded-xl p-4 h-full flex flex-col"
+      className="rounded-xl p-3 h-full flex flex-col"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
-      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
         <Package size={15} className="text-gray-400" />
         Inventario Crítico
       </h3>
 
       {cargando ? (
-        <div className="space-y-2 flex-1">
+        <div className="space-y-1.5 flex-1">
           {[0, 1, 2, 3].map(i => <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />)}
         </div>
       ) : productos.length === 0 ? (
@@ -363,11 +363,11 @@ function InventarioCritico({ productos, cargando, navigate }) {
         </div>
       ) : (
         <>
-          <div className="space-y-2 flex-1">
+          <div className="space-y-1.5 flex-1">
             {productos.slice(0, 5).map(p => (
               <div
                 key={p.id}
-                className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
                 style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)' }}
               >
                 {p.imagen_url ? (
@@ -388,7 +388,7 @@ function InventarioCritico({ productos, cargando, navigate }) {
           </div>
           <button
             onClick={() => navigate('/stock')}
-            className="flex items-center justify-center gap-1 mt-3 pt-2 text-[11px] text-gray-400 hover:text-[#00D656] border-t border-white/5 transition-colors"
+            className="flex items-center justify-center gap-1 mt-2 pt-1.5 text-[11px] text-gray-400 hover:text-[#00D656] border-t border-white/5 transition-colors"
           >
             Ver todos los productos críticos <ChevronRight size={12} />
           </button>
@@ -421,10 +421,10 @@ function EstadoDispositivos({ dispositivos, cargando, navigate }) {
 
   return (
     <div
-      className="rounded-xl p-4 h-full flex flex-col"
+      className="rounded-xl p-3 h-full flex flex-col"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
-      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+      <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
         <Cpu size={15} className="text-gray-400" />
         Estado de Dispositivos
       </h3>
@@ -440,11 +440,11 @@ function EstadoDispositivos({ dispositivos, cargando, navigate }) {
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-3 flex-1">
             <DonutChart
               data={donutData}
-              size={110}
-              thickness={12}
+              size={95}
+              thickness={11}
               centerValue={stats.total}
               centerLabel="Total"
             />
@@ -475,7 +475,7 @@ function EstadoDispositivos({ dispositivos, cargando, navigate }) {
           </div>
           <button
             onClick={() => navigate('/dispositivos')}
-            className="flex items-center justify-center gap-1 mt-3 pt-2 text-[11px] text-gray-400 hover:text-[#00D656] border-t border-white/5 transition-colors"
+            className="flex items-center justify-center gap-1 mt-2 pt-1.5 text-[11px] text-gray-400 hover:text-[#00D656] border-t border-white/5 transition-colors"
           >
             Ver Dispositivos <ChevronRight size={12} />
           </button>
@@ -493,14 +493,14 @@ function TurnoActual({ turno, usuario, navigate }) {
   if (!turno) {
     return (
       <div
-        className="rounded-xl p-4 h-full flex flex-col"
+        className="rounded-xl p-3 h-full flex flex-col"
         style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
       >
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
           <Banknote size={15} className="text-gray-400" />
           Turno Actual
         </h3>
-        <div className="flex-1 flex flex-col items-center justify-center py-6">
+        <div className="flex-1 flex flex-col items-center justify-center py-4">
           <Clock size={24} className="text-gray-600 mb-2 opacity-40" />
           <p className="text-xs text-gray-500">Sin turno activo</p>
           <button
@@ -517,10 +517,10 @@ function TurnoActual({ turno, usuario, navigate }) {
 
   return (
     <div
-      className="rounded-xl p-4 h-full"
+      className="rounded-xl p-3 h-full"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
           <Banknote size={15} className="text-gray-400" />
           Turno Actual
@@ -530,7 +530,7 @@ function TurnoActual({ turno, usuario, navigate }) {
         </span>
       </div>
 
-      <div className="space-y-2 mb-3">
+      <div className="space-y-1 mb-2">
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-gray-500">Responsable</span>
           <span className="text-[11px] font-medium text-white truncate ml-2">
@@ -559,7 +559,7 @@ function TurnoActual({ turno, usuario, navigate }) {
 
       <button
         onClick={() => navigate('/cerrar-turno')}
-        className="w-full flex items-center justify-center gap-1 py-2 text-[11px] font-medium text-gray-400 hover:text-[#00D656] border-t border-white/5 transition-colors"
+        className="w-full flex items-center justify-center gap-1 py-1.5 text-[11px] font-medium text-gray-400 hover:text-[#00D656] border-t border-white/5 transition-colors"
       >
         Ver cierre <ChevronRight size={12} />
       </button>
@@ -610,7 +610,7 @@ export default function Dashboard() {
   return (
     <>
       {/* ── Título + fecha ── */}
-      <div className="flex items-end justify-between gap-3 flex-wrap mb-4">
+      <div className="flex items-end justify-between gap-3 flex-wrap mb-3">
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Panel de Control</h2>
           <p className="text-[11px] text-gray-500 mt-0.5 capitalize">
@@ -630,7 +630,7 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════════════════════════
           KPIs SUPERIORES — 5 compactos
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-2 mb-3">
         {/* 1. Ventas Hoy */}
         <KpiCard
           titulo="Ventas Hoy"
@@ -699,7 +699,7 @@ export default function Dashboard() {
           Centro: Resumen Financiero + Rendimiento
           Derecha: Inventario + Dispositivos + Turno
           ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
         {/* Columna izquierda — Atención Prioritaria */}
         <div className="xl:col-span-4">
           <AtencionPrioritaria
@@ -711,7 +711,7 @@ export default function Dashboard() {
         </div>
 
         {/* Columna centro — Resumen Financiero + Rendimiento */}
-        <div className="xl:col-span-4 space-y-4">
+        <div className="xl:col-span-4 space-y-3">
           <ResumenFinanciero
             kpis={kpis}
             metodosPago={metodosPagoHoy}
@@ -727,7 +727,7 @@ export default function Dashboard() {
         </div>
 
         {/* Columna derecha — Inventario + Dispositivos + Turno */}
-        <div className="xl:col-span-4 space-y-4">
+        <div className="xl:col-span-4 space-y-3">
           <InventarioCritico
             productos={productosAlerta}
             cargando={cargando}
