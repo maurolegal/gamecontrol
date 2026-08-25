@@ -44,6 +44,11 @@ BEGIN
 END $$;
 
 -- 3. Recrear la función crear_usuario usando gen_random_uuid() en lugar de uuid_generate_v4()
+-- Primero eliminar cualquier versión existente con diferentes parámetros
+DROP FUNCTION IF EXISTS crear_usuario(TEXT, TEXT, TEXT, TEXT, JSONB);
+DROP FUNCTION IF EXISTS crear_usuario(TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS crear_usuario(TEXT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION crear_usuario(
   p_nombre TEXT,
   p_email TEXT,
