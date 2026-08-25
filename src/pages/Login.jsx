@@ -238,7 +238,7 @@ export default function Login() {
           <div className="relative z-10 flex flex-col items-center text-center">
             {/* Controller icon */}
             <motion.div
-              className="relative mb-5"
+              className="relative mb-1"
               animate={{
                 filter: [
                   'drop-shadow(0 0 12px rgba(0,255,120,0.5))',
