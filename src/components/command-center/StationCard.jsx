@@ -612,7 +612,7 @@ const StationCardInner = memo(function StationCardInner({
     {/* ── POPOVER JUEGOS ── */}
     {juegosOpen && (
       <div
-        className="fixed inset-0 z-[100] flex items-start justify-start p-4 pointer-events-none"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none"
         onClick={() => setJuegosOpen(false)}
       >
         <div
