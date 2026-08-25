@@ -11,7 +11,7 @@ import {
   User, Gamepad2, Zap, Trophy,
   Monitor, Radio, CheckCircle2, ExternalLink, ArrowLeft,
   ChevronLeft, ChevronRight, Castle, Film, Package, Tv,
-  Mountain, Bird, Apple, Fish,
+  Mountain, Bird, Apple, Fish, Settings, X,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useSalas } from '../hooks/useSalas';
@@ -223,6 +223,25 @@ const PROMOS_DEFAULT = [
   'Membresía mensual — descuentos todo el mes',
   'Trae a un amigo y obtén 15 min gratis',
 ];
+
+const PROMOS_STORAGE_KEY = 'gc_eventlive_promos';
+
+function loadPromos() {
+  try {
+    const raw = localStorage.getItem(PROMOS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (_e) {}
+  return PROMOS_DEFAULT;
+}
+
+function savePromos(promos) {
+  try {
+    localStorage.setItem(PROMOS_STORAGE_KEY, JSON.stringify(promos));
+  } catch (_e) {}
+}
 
 function TickerPromos({ promos = PROMOS_DEFAULT }) {
   const text = [...promos, ...promos].join('   ·   ');
@@ -539,7 +558,7 @@ function AreaVideo({ streamUrl }) {
                   boxShadow: '0 0 20px rgba(124,58,237,0.4)',
                 }}
               >
-                ▶ Cargar
+                Cargar
               </button>
             </div>
           </div>
@@ -560,6 +579,24 @@ export default function EventLive() {
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
   });
   const intervalRef = useRef(null);
+
+  // ── Promos del ticker (editables via engranaje) ──
+  const [promos, setPromos] = useState(loadPromos);
+  const [modalPromosAbierto, setModalPromosAbierto] = useState(false);
+  const [promosDraft, setPromosDraft] = useState([]);
+
+  function abrirModalPromos() {
+    setPromosDraft([...promos]);
+    setModalPromosAbierto(true);
+  }
+
+  function guardarPromos() {
+    const limpias = promosDraft.map(p => p.trim()).filter(Boolean);
+    if (limpias.length === 0) return;
+    setPromos(limpias);
+    savePromos(limpias);
+    setModalPromosAbierto(false);
+  }
 
   // Derivar sesiones enriquecidas con sala_nombre + alias snake_case
   const sesionesEnriched = useMemo(
@@ -647,29 +684,44 @@ export default function EventLive() {
           ))}
         </div>
 
-        {/* Reloj digital */}
-        <div
-          className="min-w-fit text-right px-4 py-2 rounded-xl"
-          style={{
-            background: 'rgba(0,0,0,0.4)',
-            border: '1px solid var(--gc-border)',
-          }}
-        >
-          <p
-            className="text-2xl font-black tabular-nums leading-none"
+        {/* Reloj digital + engranaje de ajustes */}
+        <div className="flex items-center gap-2 min-w-fit">
+          <div
+            className="text-right px-4 py-2 rounded-xl"
             style={{
-              background: 'linear-gradient(135deg, #22d3ee, #818cf8)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: 'none',
-              filter: 'drop-shadow(0 0 8px rgba(34,211,238,0.4))',
+              background: 'rgba(0,0,0,0.4)',
+              border: '1px solid var(--gc-border)',
             }}
           >
-            {hora}
-          </p>
-          <p className="text-xs mt-0.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
-            {new Date().toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}
-          </p>
+            <p
+              className="text-2xl font-black tabular-nums leading-none"
+              style={{
+                background: 'linear-gradient(135deg, #22d3ee, #818cf8)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: 'none',
+                filter: 'drop-shadow(0 0 8px rgba(34,211,238,0.4))',
+              }}
+            >
+              {hora}
+            </p>
+            <p className="text-xs mt-0.5 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              {new Date().toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })}
+            </p>
+          </div>
+          <button
+            onClick={abrirModalPromos}
+            className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:rotate-45"
+            style={{
+              background: 'rgba(0,0,0,0.4)',
+              border: '1px solid var(--gc-border)',
+              color: 'rgba(255,255,255,0.4)',
+            }}
+            title="Editar ticker de promos"
+            aria-label="Editar ticker de promos"
+          >
+            <Settings size={18} />
+          </button>
         </div>
       </div>
 
@@ -735,8 +787,106 @@ export default function EventLive() {
 
       {/* ══ TICKER INFERIOR ════════════════════════════════════════ */}
       <div className="flex-none">
-        <TickerPromos />
+        <TickerPromos promos={promos} />
       </div>
+
+      {/* ══ MODAL EDITAR PROMOS ═════════════════════════════════════ */}
+      {modalPromosAbierto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(5,8,16,0.92)', backdropFilter: 'blur(8px)' }}
+          onClick={() => setModalPromosAbierto(false)}
+        >
+          <div
+            className="rounded-2xl p-6 flex flex-col gap-4 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto"
+            style={{
+              background: 'linear-gradient(145deg, #0f1420, #131929)',
+              border: '1px solid rgba(139,92,246,0.3)',
+              boxShadow: '0 0 40px rgba(139,92,246,0.2)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings size={20} className="text-purple-400" />
+                <p className="text-white font-black text-lg">Editar ticker de promos</p>
+              </div>
+              <button
+                onClick={() => setModalPromosAbierto(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm">
+              Una promo por línea. El texto se mostrará en el ticker inferior animado.
+            </p>
+
+            <div className="flex flex-col gap-2">
+              {promosDraft.map((promo, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={promo}
+                    onChange={e => {
+                      const next = [...promosDraft];
+                      next[i] = e.target.value;
+                      setPromosDraft(next);
+                    }}
+                    className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
+                    style={{
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'white',
+                    }}
+                    placeholder={`Promo ${i + 1}`}
+                  />
+                  <button
+                    onClick={() => setPromosDraft(promosDraft.filter((_, idx) => idx !== i))}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                    aria-label="Eliminar promo"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setPromosDraft([...promosDraft, ''])}
+              className="w-full py-2 rounded-lg text-sm font-bold transition-all"
+              style={{
+                background: 'rgba(139,92,246,0.1)',
+                border: '1px dashed rgba(139,92,246,0.3)',
+                color: '#c4b5fd',
+              }}
+            >
+              + Agregar promo
+            </button>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setModalPromosAbierto(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold"
+                style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={guardarPromos}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, #7c3aed, #5b21b6)',
+                  color: 'white',
+                  boxShadow: '0 0 20px rgba(124,58,237,0.4)',
+                }}
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
