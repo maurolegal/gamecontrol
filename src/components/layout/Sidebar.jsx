@@ -150,15 +150,14 @@ export default function Sidebar() {
               background: 'radial-gradient(ellipse at bottom, rgba(0,214,86,0.15) 0%, transparent 70%)',
             }}
           />
-          <div className="flex items-center justify-center flex-1 min-w-0 relative z-10 px-3">
+          <div className="flex items-center justify-center flex-1 min-w-0 relative z-10">
             <img
               src="/gamecontrol-horizontal.png"
               alt="GameControl"
-              className="w-full"
               style={{
-                height: 'auto',
+                width: '250px',
+                height: '80px',
                 objectFit: 'contain',
-                maxHeight: '60px',
                 filter: 'drop-shadow(0 0 10px rgba(0,214,86,0.5))',
               }}
             />
