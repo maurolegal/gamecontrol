@@ -248,7 +248,7 @@ export default function Gastos() {
   return (
     <>
       {/* Título de página (jerarquía clara, compacto) */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
           <div>
             <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Gastos</h2>
             <p className="text-xs text-gray-500 mt-0.5">Control y seguimiento de gastos operativos</p>
@@ -256,20 +256,24 @@ export default function Gastos() {
         </div>
 
         {/* ── KPI Strip ── */}
-        <KpiGastos kpis={kpis} />
+        <div className="mb-4">
+          <KpiGastos kpis={kpis} />
+        </div>
 
         {/* ── Toolbar de filtros ── */}
-        <FiltrosGastos
-          filtros={filtros}
-          setFiltros={setFiltros}
-          categorias={categorias}
-          proveedores={proveedores}
-          totalResultados={gastosFiltrados.length}
-          onLimpiar={limpiarFiltros}
-        />
+        <div className="mb-4">
+          <FiltrosGastos
+            filtros={filtros}
+            setFiltros={setFiltros}
+            categorias={categorias}
+            proveedores={proveedores}
+            totalResultados={gastosFiltrados.length}
+            onLimpiar={limpiarFiltros}
+          />
+        </div>
 
         {/* ── Formulario + Resumen por categoría (55/45 desktop) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-4" id="seccion-formulario">
+        <div className="grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-4 mb-4" id="seccion-formulario">
           <FormGasto
             categorias={categorias}
             gastoEditar={gastoEditar}
