@@ -555,10 +555,10 @@ export default function CommandCenter() {
             ))}
           </div>
         )}
-      </main>
 
-      {/* ── MOVIMIENTO DE HOY ── */}
-      <MovimientoDeHoyCC salas={salas} sesionesActivas={sesiones} />
+        {/* ── MOVIMIENTO DE HOY ── */}
+        <MovimientoDeHoyCC salas={salas} sesionesActivas={sesiones} />
+      </main>
 
       {/* ── FOOTER ── */}
       <CommandCenterFooter
