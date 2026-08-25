@@ -10,7 +10,7 @@ import {
   DollarSign, Tv2, AlertTriangle, Ticket, ShieldAlert,
   TrendingUp, TrendingDown, Minus, ChevronRight, Cpu,
   Package, Clock, Wallet, Banknote, ArrowRight, CheckCircle2,
-  RefreshCw, Wrench, MonitorOff,
+  RefreshCw, Wrench, MonitorOff, Gamepad2, Timer, Users,
 } from 'lucide-react';
 
 import { useDashboard } from '../hooks/useDashboard';
@@ -690,6 +690,61 @@ export default function Dashboard() {
           bgColor={totalAlertas > 0 ? 'bg-red-500/10' : 'bg-white/5'}
           cargando={cargando}
           alerta={totalAlertas > 0}
+        />
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          KPIs OPERATIVOS — datos en tiempo real
+          ═══════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-2 mb-3">
+        {/* Sesiones Activas */}
+        <KpiCard
+          titulo="Sesiones Activas"
+          valor={kpis.sesionesActivas}
+          subtitulo={`${kpis.salasOcupadas} sala${kpis.salasOcupadas !== 1 ? 's' : ''} en uso`}
+          tendencia={kpis.sesionesActivas > 0 ? 'up' : 'neutral'}
+          Icon={Gamepad2}
+          accentColor="text-[#00D656]"
+          bgColor="bg-[#00D656]/10"
+          cargando={cargando}
+        />
+
+        {/* Estaciones Libres */}
+        <KpiCard
+          titulo="Estaciones Libres"
+          valor={Math.max(0, kpis.totalEstaciones - kpis.estacionesOcupadas)}
+          subtitulo={`de ${kpis.totalEstaciones} totales`}
+          tendencia="neutral"
+          Icon={Tv2}
+          accentColor="text-indigo-400"
+          bgColor="bg-indigo-500/10"
+          cargando={cargando}
+        />
+
+        {/* Por Vencer */}
+        <KpiCard
+          titulo="Por Vencer"
+          valor={kpis.sesionesPorVencer}
+          subtitulo={kpis.sesionesPorVencer > 0 ? '< 5 min restantes' : 'Sin urgencias'}
+          tendencia={kpis.sesionesPorVencer > 0 ? 'down' : 'neutral'}
+          Icon={Timer}
+          accentColor={kpis.sesionesPorVencer > 0 ? 'text-yellow-400' : 'text-gray-400'}
+          bgColor={kpis.sesionesPorVencer > 0 ? 'bg-yellow-400/10' : 'bg-white/5'}
+          cargando={cargando}
+          alerta={kpis.sesionesPorVencer > 0}
+        />
+
+        {/* Vencidas */}
+        <KpiCard
+          titulo="Vencidas"
+          valor={kpis.sesionesVencidas}
+          subtitulo={kpis.sesionesVencidas > 0 ? 'Requieren cierre' : 'Al día'}
+          tendencia={kpis.sesionesVencidas > 0 ? 'down' : 'neutral'}
+          Icon={Clock}
+          accentColor={kpis.sesionesVencidas > 0 ? 'text-red-400' : 'text-gray-400'}
+          bgColor={kpis.sesionesVencidas > 0 ? 'bg-red-500/10' : 'bg-white/5'}
+          cargando={cargando}
+          alerta={kpis.sesionesVencidas > 0}
         />
       </div>
 
