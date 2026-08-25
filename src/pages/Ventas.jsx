@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 
 // ── Utilidades ─────────────────────────────────────────────────────
-export 
 
 const TIMEZONE_BOGOTA = 'America/Bogota';
 
