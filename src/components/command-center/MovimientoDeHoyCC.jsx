@@ -236,7 +236,8 @@ export default function MovimientoDeHoyCC({ salas = [], sesionesActivas = [] }) 
           return (
             <div
               key={k.label}
-              className="glass-card rounded-xl p-2.5 border border-white/5 flex items-center gap-2.5"
+              className="rounded-xl p-2.5 flex items-center gap-2.5"
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -259,20 +260,20 @@ export default function MovimientoDeHoyCC({ salas = [], sesionesActivas = [] }) 
 
       {/* ── Tabla / Cards ── */}
       {cargando && movimientos.length === 0 ? (
-        <div className="glass-card rounded-xl p-6 text-center text-gray-500 text-sm">
+        <div className="rounded-xl p-6 text-center text-gray-500 text-sm" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           Cargando movimiento...
         </div>
       ) : movimientos.length === 0 ? (
-        <div className="glass-card rounded-xl p-6 text-center text-gray-500 text-sm">
+        <div className="rounded-xl p-6 text-center text-gray-500 text-sm" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           <List size={28} className="mx-auto mb-2 opacity-20" />
           Sin movimientos registrados hoy
         </div>
       ) : (
         <>
           {/* ── Desktop: Tabla ── */}
-          <div className="hidden md:block glass-card rounded-xl overflow-hidden">
+          <div className="hidden md:block rounded-xl overflow-hidden" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
             <table className="w-full">
-              <thead className="bg-white/[0.02]">
+              <thead style={{ background: 'var(--gc-surface-elevated)' }}>
                 <tr>
                   <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Hora</th>
                   <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Tipo</th>
@@ -283,13 +284,13 @@ export default function MovimientoDeHoyCC({ salas = [], sesionesActivas = [] }) 
                   <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider">Estado</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody>
                 {movimientos.map((m) => {
                   const conf = TIPOS_VISTA[m.tipo] || TIPOS_VISTA.venta;
                   const Icono = conf.Icono;
                   const nombreSala = salasMap.get(m.salaId) || '';
                   return (
-                    <tr key={m.id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={m.id} className="hover:bg-white/[0.02] transition-colors" style={{ borderBottom: '1px solid var(--gc-border)' }}>
                       <td className="px-3 py-2 text-xs text-gray-400 font-mono whitespace-nowrap">
                         {formatHora(m.ts)}
                       </td>
@@ -333,7 +334,7 @@ export default function MovimientoDeHoyCC({ salas = [], sesionesActivas = [] }) 
               const conf = TIPOS_VISTA[m.tipo] || TIPOS_VISTA.venta;
               const Icono = conf.Icono;
               return (
-                <div key={m.id} className="glass-card rounded-xl p-2.5 border border-white/5">
+                <div key={m.id} className="rounded-xl p-2.5" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <Icono size={12} style={{ color: conf.color }} className="flex-shrink-0" />
