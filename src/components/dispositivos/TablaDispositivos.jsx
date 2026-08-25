@@ -6,6 +6,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Search, Filter, ChevronDown, RefreshCw, Plus, Settings, Truck, Monitor, Gamepad2, Smartphone, Package, Tv } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useConfirm } from '../ui/ConfirmProvider';
 
 const TIPOS_DISPOSITIVO = [
   { value: 'todos', label: 'Todos', icon: Package },
@@ -33,6 +34,7 @@ export default function TablaDispositivos({
   onEliminar,
 }) {
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
   const [busqueda, setBusqueda] = useState('');
   const [filtroTipo, setFiltroTipo] = useState('todos');
   const [filtroSala, setFiltroSala] = useState('todas');
@@ -61,7 +63,8 @@ export default function TablaDispositivos({
   }, [dispositivos, busqueda, filtroTipo, filtroSala, filtroEstado]);
 
   const handleEliminar = useCallback(async (d) => {
-    if (!window.confirm(`¿Dar de baja a "${d.nombre}"?\n\nSe marcará como "Baja".`)) return;
+    const ok = await confirm(`¿Dar de baja a "${d.nombre}"?\n\nSe marcará como "Baja".`, { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       const { error } = await supabase
         .from('dispositivos')
@@ -73,7 +76,7 @@ export default function TablaDispositivos({
     } catch (err) {
       notifError('Error: ' + err.message);
     }
-  }, [exito, notifError, onEliminar]);
+  }, [exito, notifError, onEliminar, confirm]);
 
   const getTipoIcon = (tipo) => {
     const t = TIPOS_DISPOSITIVO.find(x => x.value === tipo);

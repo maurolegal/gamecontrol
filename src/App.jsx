@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { usePermisos } from './hooks/usePermisos';
+import { ConfirmProvider } from './components/ui/ConfirmProvider';
 import Layout from './components/layout/Layout';
 
 import Login      from './pages/Login';
@@ -36,6 +37,7 @@ function ProtectedRoute({ modulo, children }) {
 
 export default function App() {
   return (
+    <ConfirmProvider>
     <BrowserRouter>
       <Routes>
         {/* Pública */}
@@ -70,5 +72,6 @@ export default function App() {
         />
       </Routes>
     </BrowserRouter>
+    </ConfirmProvider>
   );
 }

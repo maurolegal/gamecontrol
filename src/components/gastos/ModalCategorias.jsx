@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Plus, Edit2, Trash2, Tags } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useConfirm } from '../ui/ConfirmProvider';
 
 // ===================================================================
 // MODAL GESTIONAR CATEGORÍAS DE GASTOS
@@ -50,6 +51,7 @@ const FORM_DEFAULT = {
 
 export default function ModalCategorias({ abierto, onCerrar, categorias, onGuardar }) {
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
   const [nuevaCat,  setNuevaCat]  = useState(FORM_DEFAULT);
   const [catEditar, setCatEditar] = useState(null);
   const [guardando, setGuardando] = useState(false);
@@ -115,7 +117,8 @@ export default function ModalCategorias({ abierto, onCerrar, categorias, onGuard
 
   // ── Eliminar categoría ────────────────────────────────────────
   const handleEliminar = async (id) => {
-    if (!confirm('¿Eliminar esta categoría?')) return;
+    const ok = await confirm('¿Eliminar esta categoría?', { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       await onGuardar(categorias.filter((c) => c.id !== id));
       exito('Categoría eliminada');
@@ -126,7 +129,8 @@ export default function ModalCategorias({ abierto, onCerrar, categorias, onGuard
 
   // ── Limpiar todas ─────────────────────────────────────────────
   const handleLimpiarTodas = async () => {
-    if (!confirm('¿Eliminar TODAS las categorías personalizadas? Esta acción no se puede deshacer.')) return;
+    const ok = await confirm('¿Eliminar TODAS las categorías personalizadas? Esta acción no se puede deshacer.', { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       await onGuardar([]);
       exito('Categorías eliminadas');

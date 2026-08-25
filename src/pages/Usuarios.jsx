@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { UserPlus, RefreshCw, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useNotifications } from '../hooks/useNotifications';
+import { useConfirm } from '../components/ui/ConfirmProvider';
 
 import KpiUsuarios        from '../components/usuarios/KpiUsuarios';
 import TablaUsuarios      from '../components/usuarios/TablaUsuarios';
@@ -19,6 +20,7 @@ import MatrizPermisos     from '../components/usuarios/MatrizPermisos';
 
 export default function Usuarios() {
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
 
   const [usuarios,  setUsuarios]  = useState([]);
   const [cargando,  setCargando]  = useState(true);
@@ -63,7 +65,8 @@ export default function Usuarios() {
   const toggleEstado = useCallback(async (u) => {
     const nuevo  = u.estado === 'activo' ? 'inactivo' : 'activo';
     const accion = nuevo === 'activo' ? 'Activar' : 'Desactivar';
-    if (!window.confirm(`¿${accion} a "${u.nombre}"?`)) return;
+    const ok = await confirm(`¿${accion} a "${u.nombre}"?`, { tipo: 'warning', confirmText: 'Aceptar' });
+    if (!ok) return;
     try {
       const { error } = await supabase
         .from('usuarios')
@@ -75,11 +78,12 @@ export default function Usuarios() {
     } catch (err) {
       notifError('Error: ' + err.message);
     }
-  }, [cargar, exito, notifError]);
+  }, [cargar, exito, notifError, confirm]);
 
   // ── Desactivar usuario ──────────────────────────────────────────
   const eliminarUsuario = useCallback(async (u) => {
-    if (!window.confirm(`¿Desactivar a "${u.nombre}"?\n\nSe puede revertir activando el usuario nuevamente.`)) return;
+    const ok = await confirm(`¿Desactivar a "${u.nombre}"?\n\nSe puede revertir activando el usuario nuevamente.`, { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       const { error } = await supabase
         .from('usuarios')
@@ -91,7 +95,7 @@ export default function Usuarios() {
     } catch (err) {
       notifError('Error: ' + err.message);
     }
-  }, [cargar, exito, notifError]);
+  }, [cargar, exito, notifError, confirm]);
 
   return (
     <div className="space-y-5">

@@ -8,6 +8,7 @@ import { useLocation } from 'react-router-dom';
 import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
 import { useNotifications } from '../hooks/useNotifications';
+import { useConfirm } from '../components/ui/ConfirmProvider';
 import { useSalas } from '../hooks/useSalas';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
 import {
@@ -54,6 +55,7 @@ export default function Ajustes() {
   const { configuracion, setConfiguracion } = useGameStore();
   const { salas, actualizarTarifasSala } = useSalas();
   const { exito, error: notifError } = useNotifications();
+  const { confirm } = useConfirm();
   const location = useLocation();
 
   const [form, setForm] = useState({ nombre_negocio: '', moneda: 'COP' });
@@ -216,7 +218,8 @@ export default function Ajustes() {
   };
 
   const handleEliminarMedioPago = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este medio de pago?')) return;
+    const ok = await confirm('¿Estás seguro de eliminar este medio de pago?', { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       await db.remove('medios_pago', id);
       setMediosPago(mediosPago.filter(m => m.id !== id));
@@ -278,7 +281,8 @@ export default function Ajustes() {
   };
 
   const handleEliminarQr = async () => {
-    if (!window.confirm('¿Eliminar la imagen QR?')) return;
+    const ok = await confirm('¿Eliminar la imagen QR?', { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       const nuevaConfig = { ...configuracion };
       delete nuevaConfig.qr_imagen_url;

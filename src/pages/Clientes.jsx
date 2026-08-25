@@ -38,6 +38,7 @@ import {
 import Modal from '../components/ui/Modal';
 import * as db from '../lib/databaseService';
 import { useNotifications } from '../hooks/useNotifications';
+import { useConfirm } from '../components/ui/ConfirmProvider';
 import { useAuth } from '../hooks/useAuth';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
 
@@ -94,6 +95,7 @@ function getEstadoInfo(estado) {
 
 export default function Clientes() {
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
   const { usuario } = useAuth();
   
   const [clientes, setClientes] = useState([]);
@@ -282,7 +284,8 @@ export default function Clientes() {
   }
 
   async function handleEliminar(id) {
-    if (!window.confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')) {
+    const ok = await confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.', { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) {
       return;
     }
 

@@ -7,6 +7,7 @@ import { Tag, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import Modal from '../ui/Modal';
 import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useConfirm } from '../ui/ConfirmProvider';
 
 const COLORES = [
   { id: 'primary', label: 'Azul', clase: 'bg-blue-500' },
@@ -45,6 +46,7 @@ function generarId(nombre) {
 
 export default function ModalCategorias({ abierto, categorias = [], onCerrar, onActualizado }) {
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
   const [nombre, setNombre] = useState('');
   const [color, setColor] = useState('primary');
   const [icono, setIcono] = useState('fas fa-box');
@@ -95,7 +97,8 @@ export default function ModalCategorias({ abierto, categorias = [], onCerrar, on
   };
 
   const handleEliminar = async (cat) => {
-    if (!confirm(`¿Eliminar categoría "${cat.nombre}"?`)) return;
+    const ok = await confirm(`¿Eliminar categoría "${cat.nombre}"?`, { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       await db.remove('categorias_productos', cat.id);
       exito('Categoría eliminada');

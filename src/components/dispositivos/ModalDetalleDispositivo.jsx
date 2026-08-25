@@ -7,6 +7,7 @@ import { X, Settings, Calendar, Shield, Truck, CreditCard, Wrench, DollarSign, C
 import ModalCrearMantenimiento from './ModalCrearMantenimiento';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useConfirm } from '../ui/ConfirmProvider';
 
 const ESTADOS = {
   operativo: { label: 'Operativo', color: '#00D656', bg: 'rgba(0,214,86,0.1)', border: 'rgba(0,214,86,0.2)' },
@@ -48,6 +49,7 @@ function formatFecha(iso) {
 
 export default function ModalDetalleDispositivo({ dispositivo, onClose, onActualizado }) {
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
   const [mantenimientos, setMantenimientos] = useState([]);
   const [cargandoMant, setCargandoMant] = useState(true);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
@@ -89,7 +91,8 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
 
   const handleEliminar = useCallback(async () => {
     if (!dispositivo) return;
-    if (!window.confirm(`¿Dar de baja a "${dispositivo.nombre}"?\n\nSe marcará como "Baja".`)) return;
+    const ok = await confirm(`¿Dar de baja a "${dispositivo.nombre}"?\n\nSe marcará como "Baja".`, { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     setCambiandoEstado(true);
     try {
       const { error } = await supabase
@@ -105,7 +108,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
     } finally {
       setCambiandoEstado(false);
     }
-  }, [dispositivo, exito, notifError, onActualizado, onClose]);
+  }, [dispositivo, exito, notifError, onActualizado, onClose, confirm]);
 
   if (!dispositivo) return null;
 

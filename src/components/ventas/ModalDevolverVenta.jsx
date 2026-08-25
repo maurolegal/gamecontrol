@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { X, RotateCcw, Undo2, Package, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { useConfirm } from '../ui/ConfirmProvider';
 
 function formatCOP(v) {
   return new Intl.NumberFormat('es-CO', {
@@ -32,6 +33,7 @@ export default function ModalDevolverVenta({ venta, onConfirm, onCerrar }) {
   const [motivo, setMotivo] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [errorCarga, setErrorCarga] = useState(null);
+  const { confirm, alert: alertMsg } = useConfirm();
 
   // Cargar venta_items (tipo='producto') de la venta
   useEffect(() => {
@@ -116,7 +118,7 @@ export default function ModalDevolverVenta({ venta, onConfirm, onCerrar }) {
   async function handleParcial() {
     if (!haySeleccion) return;
     if (!motivo.trim()) {
-      window.alert('Debe ingresar un motivo para la devolución.');
+      await alertMsg('Debe ingresar un motivo para la devolución.', { tipo: 'warning' });
       return;
     }
     setGuardando(true);
@@ -133,12 +135,14 @@ export default function ModalDevolverVenta({ venta, onConfirm, onCerrar }) {
   }
 
   async function handleTotal() {
-    if (!window.confirm(
+    const ok = await confirm(
       '¿Anular la venta COMPLETA?\n\nSe devolverá el stock de TODOS los productos ' +
-      'y la venta quedará anulada. Esta acción no se puede deshacer.'
-    )) return;
+      'y la venta quedará anulada. Esta acción no se puede deshacer.',
+      { tipo: 'danger', confirmText: 'Eliminar' }
+    );
+    if (!ok) return;
     if (!motivo.trim()) {
-      window.alert('Debe ingresar un motivo para la anulación.');
+      await alertMsg('Debe ingresar un motivo para la anulación.', { tipo: 'warning' });
       return;
     }
     setGuardando(true);

@@ -3,26 +3,39 @@ import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { useNotifications } from '../../hooks/useNotifications';
 
 // ===================================================================
-// SISTEMA DE NOTIFICACIONES TOAST
-// Migrado desde js/notifications.js
+// SISTEMA DE NOTIFICACIONES TOAST — GameControl Design System
 // ===================================================================
 
-const ICONOS = {
-  success: <CheckCircle size={18} className="text-green-500" />,
-  error: <XCircle size={18} className="text-red-500" />,
-  warning: <AlertTriangle size={18} className="text-yellow-500" />,
-  info: <Info size={18} className="text-blue-500" />,
-};
-
-const COLORES = {
-  success: 'border-green-400 bg-green-50 dark:bg-green-900/20',
-  error: 'border-red-400 bg-red-50 dark:bg-red-900/20',
-  warning: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20',
-  info: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20',
+const STYLES = {
+  success: {
+    Icon: CheckCircle,
+    color: '#00D656',
+    bg: 'rgba(0,214,86,0.08)',
+    border: 'rgba(0,214,86,0.2)',
+  },
+  error: {
+    Icon: XCircle,
+    color: '#EF4444',
+    bg: 'rgba(239,68,68,0.08)',
+    border: 'rgba(239,68,68,0.2)',
+  },
+  warning: {
+    Icon: AlertTriangle,
+    color: '#F59E0B',
+    bg: 'rgba(245,158,11,0.08)',
+    border: 'rgba(245,158,11,0.2)',
+  },
+  info: {
+    Icon: Info,
+    color: '#3B82F6',
+    bg: 'rgba(59,130,246,0.08)',
+    border: 'rgba(59,130,246,0.2)',
+  },
 };
 
 function ToastItem({ id, mensaje, tipo }) {
   const { eliminarNotificacion } = useNotifications();
+  const s = STYLES[tipo] ?? STYLES.info;
 
   useEffect(() => {
     const timer = setTimeout(() => eliminarNotificacion(id), 4000);
@@ -31,18 +44,26 @@ function ToastItem({ id, mensaje, tipo }) {
 
   return (
     <div
-      className={`flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg text-sm
-        text-gray-800 dark:text-gray-100 ${COLORES[tipo] ?? COLORES.info}
-        animate-toast`}
+      className="flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl text-sm animate-toast"
+      style={{
+        background: '#111318',
+        border: `1px solid ${s.border}`,
+        backdropFilter: 'blur(20px)',
+      }}
     >
-      <span className="mt-0.5 shrink-0">{ICONOS[tipo] ?? ICONOS.info}</span>
-      <p className="flex-1">{mensaje}</p>
+      <span
+        className="inline-flex items-center justify-center w-6 h-6 rounded-lg shrink-0 mt-0.5"
+        style={{ background: s.bg, border: `1px solid ${s.border}` }}
+      >
+        <s.Icon size={14} style={{ color: s.color }} />
+      </span>
+      <p className="flex-1 text-gray-200 leading-snug">{mensaje}</p>
       <button
         onClick={() => eliminarNotificacion(id)}
-        className="shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        className="shrink-0 text-gray-600 hover:text-gray-300 transition-colors mt-0.5"
         aria-label="Cerrar"
       >
-        <X size={14} />
+        <X size={13} />
       </button>
     </div>
   );

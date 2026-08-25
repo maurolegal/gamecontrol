@@ -17,6 +17,7 @@ import ModalIngresarMercancia from '../components/stock/ModalIngresarMercancia';
 import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
 import { useNotifications } from '../hooks/useNotifications';
+import { useConfirm } from '../components/ui/ConfirmProvider';
 import { usePermisos }      from '../hooks/usePermisos';
 import { useAuth }          from '../hooks/useAuth';
 
@@ -27,6 +28,7 @@ function formatCOP(v) {
 export default function Stock() {
   const { productos, setProductos } = useGameStore();
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
   const { puedeEditar, puedeEliminar, puedeAjustarStock, puedeGestionarProductos, puedeGestionarCategorias } = usePermisos();
   const { usuario } = useAuth();
   const [cargando, setCargando] = useState(false);
@@ -84,7 +86,8 @@ export default function Stock() {
   }, [productos]);
 
   const handleEliminar = async (producto) => {
-    if (!confirm(`¿Eliminar "${producto.nombre}"? Esta acción no se puede deshacer.`)) return;
+    const ok = await confirm(`¿Eliminar "${producto.nombre}"? Esta acción no se puede deshacer.`, { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
     try {
       await db.remove('productos', producto.id);
       exito('Producto eliminado');

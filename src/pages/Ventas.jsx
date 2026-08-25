@@ -7,6 +7,7 @@ import { supabase }  from '../lib/supabaseClient';
 import * as db       from '../lib/databaseService';
 import { editarVenta, devolverVenta, corregirMetodoPago } from '../lib/ventasService';
 import { useNotifications } from '../hooks/useNotifications';
+import { useConfirm } from '../components/ui/ConfirmProvider';
 import { usePermisos }      from '../hooks/usePermisos';
 import { useAuth }          from '../hooks/useAuth';
 
@@ -183,6 +184,7 @@ const POR_PAGINA = 15;
 
 export default function Ventas() {
   const { exito, error: notifError } = useNotifications();
+  const { confirm } = useConfirm();
   const { puedeEditar, puedeEliminar } = usePermisos();
   const { usuario } = useAuth();
 
@@ -323,7 +325,8 @@ export default function Ventas() {
 
   // ── Anular/Devolver venta ───────────────────────────────────────────
   async function anularVenta(id, motivo = null) {
-    if (!window.confirm('¿Anular esta venta? Se devolverá el stock de los productos. Esta acción no se puede deshacer.')) return;
+    const ok = await confirm('¿Anular esta venta? Se devolverá el stock de los productos. Esta acción no se puede deshacer.', { tipo: 'danger', confirmText: 'Anular venta' });
+    if (!ok) return;
     try {
       const venta = ventas.find((v) => v.id === id);
       if (!venta) throw new Error('Venta no encontrada en la lista');

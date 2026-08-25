@@ -10,6 +10,7 @@ import { Settings, RefreshCw } from 'lucide-react';
 
 import * as db from '../lib/databaseService';
 import { useNotifications }    from '../hooks/useNotifications';
+import { useConfirm }          from '../components/ui/ConfirmProvider';
 import { useCategoriasGastos } from '../hooks/useCategoriasGastos';
 import { useAuth }             from '../hooks/useAuth';
 
@@ -150,6 +151,7 @@ const FILTROS_DEFAULT = {
 
 export default function Gastos() {
   const { exito, error: notifError } = useNotifications();
+  const { confirm, alert: alertMsg } = useConfirm();
   const { categorias, guardar: guardarCategorias } = useCategoriasGastos();
   const { usuario } = useAuth();
 
@@ -219,7 +221,8 @@ export default function Gastos() {
 
   const handleEliminar = useCallback(
     async (id) => {
-      if (!confirm('¿Seguro que deseas eliminar este gasto? Esta acción no se puede deshacer.')) return;
+      const ok = await confirm('¿Seguro que deseas eliminar este gasto? Esta acción no se puede deshacer.', { tipo: 'danger', confirmText: 'Eliminar' });
+      if (!ok) return;
       try {
         await db.remove('gastos', id);
         exito('Gasto eliminado correctamente');
@@ -228,7 +231,7 @@ export default function Gastos() {
         notifError(err.message ?? 'Error al eliminar');
       }
     },
-    [exito, notifError, cargar]
+    [exito, notifError, cargar, confirm]
   );
 
   const handleGuardado = useCallback(() => {
