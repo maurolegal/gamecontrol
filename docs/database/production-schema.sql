@@ -20,7 +20,7 @@
 -- ===================================================================
 -- EXTENSIONES
 -- ===================================================================
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto; -- provee gen_random_uuid()
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ===================================================================
@@ -55,7 +55,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: usuarios
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- nombre VARCHAR(100) NOT NULL
 -- email VARCHAR(255) UNIQUE NOT NULL
 -- password_hash TEXT NOT NULL              -- auth dual (bcrypt)
@@ -75,7 +75,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: salas
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- nombre VARCHAR(100) NOT NULL
 -- tipo VARCHAR(50) DEFAULT 'Estándar'      -- CHECK IN ('VIP','Premium','Estándar','Básico','Torneo')
 -- num_estaciones INTEGER NOT NULL DEFAULT 1 -- CHECK > 0
@@ -95,7 +95,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: sesiones
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- sala_id UUID NOT NULL FK→salas(id) ON DELETE CASCADE
 -- usuario_id UUID FK→usuarios(id) ON DELETE SET NULL
 -- estacion VARCHAR(50) NOT NULL
@@ -139,7 +139,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: productos
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- codigo VARCHAR(50) UNIQUE
 -- nombre VARCHAR(200) NOT NULL
 -- descripcion TEXT
@@ -169,7 +169,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: movimientos_stock
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- producto_id UUID NOT NULL FK→productos(id) ON DELETE CASCADE
 -- usuario_id UUID FK→usuarios(id) ON DELETE SET NULL
 -- tipo VARCHAR(50) NOT NULL                 -- CHECK IN ('entrada','salida','ajuste','venta','devolucion','merma')
@@ -189,7 +189,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: gastos
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- usuario_id UUID FK→usuarios(id) ON DELETE SET NULL
 -- categoria VARCHAR(100) NOT NULL
 -- subcategoria VARCHAR(100)
@@ -286,7 +286,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: ventas (cabecera contable)
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- sesion_id UUID UNIQUE FK→sesiones(id) ON DELETE SET NULL
 -- sala_id UUID FK→salas(id) ON DELETE SET NULL
 -- usuario_id UUID FK→usuarios(id) ON DELETE SET NULL
@@ -317,7 +317,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: venta_items
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- venta_id UUID NOT NULL FK→ventas(id) ON DELETE CASCADE
 -- line_no INT NOT NULL
 -- tipo VARCHAR(20) NOT NULL                  -- CHECK IN ('tiempo','producto')
@@ -333,7 +333,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: cierres_turno
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- usuario_id UUID NOT NULL
 -- usuario_email TEXT
 -- usuario_nombre TEXT
@@ -364,7 +364,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ===================================================================
 -- TABLA: cierre_turno_items
 -- ===================================================================
--- id UUID PK DEFAULT uuid_generate_v4()
+-- id UUID PK DEFAULT gen_random_uuid()
 -- cierre_turno_id UUID NOT NULL FK→cierres_turno(id) ON DELETE CASCADE
 -- producto_id UUID FK→productos(id) ON DELETE SET NULL
 -- nombre_producto TEXT NOT NULL
