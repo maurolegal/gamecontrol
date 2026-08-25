@@ -140,22 +140,21 @@ export default function Sidebar() {
           className="flex items-center justify-between px-4 py-3"
           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#000' }}
         >
-          <div className="flex items-center">
+          <div className="flex items-center justify-center flex-1 min-w-0">
             <img
-              src="https://res.cloudinary.com/dtygv4kfq/image/upload/v1778156200/Firefly_quitar_fondo_sin_borrar_nada_del_logo_imagen_ni_letras_48350_ugcdry.png"
+              src="/GAMECONTROL-LOGO.png"
               alt="GameControl"
               style={{
-                height: 44,
+                height: 48,
                 width: 'auto',
                 objectFit: 'contain',
-                maxWidth: '160px',
-                mixBlendMode: 'screen',
+                maxWidth: '180px',
               }}
             />
           </div>
           <button
             onClick={cerrarMenu}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center md:hidden"
+            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center md:hidden shrink-0 ml-2"
             aria-label="Cerrar menú"
           >
             <X size={16} className="text-gray-400" />
