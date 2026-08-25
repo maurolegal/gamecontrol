@@ -495,15 +495,27 @@ const StationCardInner = memo(function StationCardInner({
         {/* ── QUICK ACTIONS — solo iconos, centrados ── */}
         <div className="flex items-center justify-center gap-1 pt-1">
           {esEstacionLibre ? (
-            <button
-              onClick={handleClickIniciar}
-              className="flex-1 h-10 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-sm transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
-              aria-label={`Iniciar sesión en ${estacionId}`}
-              title="Iniciar sesión"
-            >
-              <Plus size={16} />
-              <span className="hidden sm:inline">INICIAR</span>
-            </button>
+            <>
+              <button
+                onClick={handleClickIniciar}
+                className="flex-1 h-10 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-sm transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
+                aria-label={`Iniciar sesión en ${estacionId}`}
+                title="Iniciar sesión"
+              >
+                <Plus size={16} />
+                <span className="hidden sm:inline">INICIAR</span>
+              </button>
+
+              {/* Juegos — púrpura ── */}
+              <button
+                onClick={toggleJuegos}
+                className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-purple-500/20 text-purple-400 transition-all hover:bg-purple-500/10 hover:border-purple-500/35 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                aria-label={`Ver juegos de ${estacionId}`}
+                title="Juegos instalados"
+              >
+                <Gamepad2 size={16} />
+              </button>
+            </>
           ) : (
             <>
               {/* +Tiempo — verde de consola/estado ── */}
