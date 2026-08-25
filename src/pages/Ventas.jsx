@@ -9,7 +9,6 @@ import { editarVenta, devolverVenta, corregirMetodoPago } from '../lib/ventasSer
 import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../components/ui/ConfirmProvider';
 import { usePermisos }      from '../hooks/usePermisos';
-import { useAuth }          from '../hooks/useAuth';
 
 import TablaVentas      from '../components/ventas/TablaVentas';
 import ModalDetalleVenta from '../components/ventas/ModalDetalleVenta';
@@ -186,7 +185,6 @@ export default function Ventas() {
   const { exito, error: notifError } = useNotifications();
   const { confirm } = useConfirm();
   const { puedeEditar, puedeEliminar } = usePermisos();
-  const { usuario } = useAuth();
 
   const [ventas,   setVentas]   = useState([]);
   const [salas,    setSalas]    = useState([]);
@@ -568,15 +566,6 @@ export default function Ventas() {
               <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">Actualizar</span>
             </button>
-
-            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-white text-xs font-medium transition-all">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00D656]/20 to-green-600/20 flex items-center justify-center text-[10px] font-bold text-[#00D656] border border-[#00D656]/30">
-                {usuario?.nombre?.[0]?.toUpperCase() || usuario?.email?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <span className="hidden md:inline max-w-[120px] truncate">
-                {usuario?.nombre || usuario?.email || 'Usuario'}
-              </span>
-            </div>
           </div>
         </div>
       </header>
