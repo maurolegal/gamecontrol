@@ -70,6 +70,8 @@ export default function CierreTurno() {
   const [turnoDesde, setTurnoDesde] = useState(null);
 
   const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [categoriaActiva, setCategoriaActiva] = useState('todas');
   const [conteosInventario, setConteosInventario] = useState({});
   const [observaciones, setObservaciones] = useState('');
 
@@ -101,6 +103,7 @@ export default function CierreTurno() {
     gastosEfectivo: 0,
     gastosTotal: 0,
     ventasTotal: 0,
+    fondoInicial: 0,
   });
 
   const [auditoria, setAuditoria] = useState(null);
@@ -112,37 +115,65 @@ export default function CierreTurno() {
     async function cargar() {
       setCargando(true);
       try {
-        // 1) Top 5 productos para arqueo
-        const topProductosRes = await supabase
-          .from('productos')
-          .select('id, nombre, precio, costo, stock')
-          .eq('activo', true)
-          .eq('es_critico_arqueo', true)
-          .order('precio', { ascending: false })
-          .limit(5);
+        // 1) Cargar TODOS los productos activos + categorías
+        const [productosRes, categoriasRes] = await Promise.all([
+          supabase
+            .from('productos')
+            .select('id, nombre, precio, costo, stock, categoria, es_critico_arqueo')
+            .eq('activo', true)
+            .order('nombre', { ascending: true }),
+          supabase
+            .from('categorias_productos')
+            .select('id, nombre, estado')
+            .eq('estado', 'activa')
+            .order('nombre', { ascending: true }),
+        ]);
 
-        if (topProductosRes.error) throw topProductosRes.error;
-        const lista = topProductosRes.data ?? [];
+        if (productosRes.error) throw productosRes.error;
+        if (categoriasRes.error) throw categoriasRes.error;
+
+        const lista = productosRes.data ?? [];
         setProductos(lista);
+        setCategorias(categoriasRes.data ?? []);
         const initConteos = Object.fromEntries(lista.map((p) => [p.id, '']));
         setConteosInventario(initConteos);
 
-        // 2) Último cierre para saber turno_desde
+        // 2) Último cierre para saber turno_desde + fondo inicial de apertura
         const cierreRes = await supabase
           .from('cierres_turno')
-          .select('turno_hasta')
+          .select('turno_hasta, fondo_inicial, observaciones')
           .eq('usuario_id', usuario.id)
           .order('created_at', { ascending: false })
           .limit(1);
 
         if (cierreRes.error) throw cierreRes.error;
         const ultimo = cierreRes.data?.[0];
-        const desde = ultimo?.turno_hasta ?? new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-        if (!(desde instanceof Date)) desde.setHours(0, 0, 0, 0);
+        let desde;
+        let fondoInicial = 0;
+
+        // Buscar la apertura de caja más reciente (registro con [APERTURA_CAJA])
+        const { data: aperturaData } = await supabase
+          .from('cierres_turno')
+          .select('turno_desde, fondo_inicial, observaciones')
+          .eq('usuario_id', usuario.id)
+          .like('observaciones', '%APERTURA_CAJA%')
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (aperturaData?.[0]) {
+          // El turno inicia desde la apertura de caja
+          desde = new Date(aperturaData[0].turno_desde);
+          fondoInicial = numero(aperturaData[0].fondo_inicial);
+        } else if (ultimo?.turno_hasta) {
+          desde = new Date(ultimo.turno_hasta);
+        } else {
+          desde = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+          desde.setHours(0, 0, 0, 0);
+        }
         setTurnoDesde(desde.toISOString());
 
         // 3) Calcular totales por medio de pago del turno actual (preview)
-        await calcularTotalesTurno(desde.toISOString());
+        await calcularTotalesTurno(desde.toISOString(), fondoInicial);
       } catch (err) {
         notifError(err?.message ?? 'No se pudo cargar el cierre de turno');
       } finally {
@@ -150,7 +181,7 @@ export default function CierreTurno() {
       }
     }
 
-    async function calcularTotalesTurno(desdeIso) {
+    async function calcularTotalesTurno(desdeIso, fondoInicial = 0) {
       const ahora = new Date().toISOString();
 
       // Ventas del turno
@@ -220,6 +251,7 @@ export default function CierreTurno() {
         gastosEfectivo,
         gastosTotal,
         ventasTotal,
+        fondoInicial,
       });
     }
 
@@ -236,17 +268,23 @@ export default function CierreTurno() {
     if (bloqueado) return false;
     if (guardando || cargando) return false;
     if (efectivoContado < 0) return false;
-    if (productos.length > 0) {
-      for (const p of productos) {
-        const v = conteosInventario[p.id];
-        if (v === '' || v === null || v === undefined) return false;
-        if (numero(v) < 0) return false;
-      }
-    }
+    // Inventario es opcional: no exigir conteo de todos los productos
     return true;
-  }, [turnoDesde, bloqueado, guardando, cargando, efectivoContado, productos, conteosInventario]);
+  }, [turnoDesde, bloqueado, guardando, cargando, efectivoContado]);
 
   const imprimir = () => window.print();
+
+  // Productos filtrados por categoría activa
+  const productosFiltrados = useMemo(() => {
+    if (categoriaActiva === 'todas') return productos;
+    return productos.filter(p => p.categoria === categoriaActiva);
+  }, [productos, categoriaActiva]);
+
+  // Categorías que tienen productos
+  const categoriasConProductos = useMemo(() => {
+    const ids = new Set(productos.map(p => p.categoria).filter(Boolean));
+    return categorias.filter(c => ids.has(c.id));
+  }, [productos, categorias]);
 
   const tituloAuditoria = auditoria?.rojo ? 'Auditoría: Faltante detectado' : 'Auditoría: cierre registrado';
   const descAuditoria = auditoria?.mensaje ?? '';
@@ -309,7 +347,11 @@ export default function CierreTurno() {
           </span>
           <h2 className="text-[13px] font-semibold text-white">Resumen del Turno</h2>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
+          <div className="rounded-lg p-3" style={{ background: 'rgba(0,214,86,0.08)', border: '1px solid rgba(0,214,86,0.15)' }}>
+            <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Fondo inicial</p>
+            <p className="text-[18px] font-bold text-[#00D656] tabular-nums mt-0.5">{formatCOP(datosTurno.fondoInicial)}</p>
+          </div>
           <div className="rounded-lg p-3" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.15)' }}>
             <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Ventas totales</p>
             <p className="text-[18px] font-bold text-white tabular-nums mt-0.5">{formatCOP(datosTurno.ventasTotal)}</p>
@@ -378,57 +420,111 @@ export default function CierreTurno() {
             </div>
           </div>
 
-          {/* ── INVENTARIO (opcional) ── */}
+          {/* ── INVENTARIO por categorías (opcional) ── */}
           <div className="rounded-xl overflow-hidden" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}>
             <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
               <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)', color: '#F59E0B' }}>
                 <Package size={14} />
               </span>
               <h2 className="text-[13px] font-semibold text-white">Inventario</h2>
-              <span className="ml-auto text-[10px] text-gray-500">Reconciliación opcional</span>
+              <span className="ml-auto text-[10px] text-gray-500">
+                {productos.length} productos · Reconciliación opcional
+              </span>
             </div>
 
-            <div className="p-4 space-y-2">
+            {/* Pestañas de categorías */}
+            {productos.length > 0 && (
+              <div className="flex gap-1.5 overflow-x-auto px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+                <button
+                  onClick={() => setCategoriaActiva('todas')}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                    categoriaActiva === 'todas' ? 'text-[#00D656]' : 'text-gray-400 hover:text-white'
+                  }`}
+                  style={{
+                    background: categoriaActiva === 'todas' ? 'rgba(0,214,86,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: categoriaActiva === 'todas' ? '1px solid rgba(0,214,86,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  Todas ({productos.length})
+                </button>
+                {categoriasConProductos.map(c => {
+                  const count = productos.filter(p => p.categoria === c.id).length;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setCategoriaActiva(c.id)}
+                      className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                        categoriaActiva === c.id ? 'text-[#00D656]' : 'text-gray-400 hover:text-white'
+                      }`}
+                      style={{
+                        background: categoriaActiva === c.id ? 'rgba(0,214,86,0.1)' : 'rgba(255,255,255,0.03)',
+                        border: categoriaActiva === c.id ? '1px solid rgba(0,214,86,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      {c.nombre} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Lista de productos de la categoría activa */}
+            <div className="p-4 space-y-2 max-h-[400px] overflow-y-auto">
               {productos.length === 0 ? (
                 <div className="py-6 text-center text-gray-500">
                   <Package size={24} className="mx-auto mb-2 opacity-30" />
-                  No hay productos marcados para arqueo
+                  No hay productos activos
+                </div>
+              ) : productosFiltrados.length === 0 ? (
+                <div className="py-6 text-center text-gray-500">
+                  <Package size={20} className="mx-auto mb-2 opacity-30" />
+                  Sin productos en esta categoría
                 </div>
               ) : (
-                productos.map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg p-3"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
-                  >
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,214,86,0.1)', border: '1px solid rgba(0,214,86,0.2)', color: '#00D656' }}>
-                        <Package size={14} />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[12px] font-medium text-white truncate">{p.nombre}</p>
-                        <p className="text-[9px] text-gray-500">Cantidad contada físicamente</p>
+                productosFiltrados.map((p) => {
+                  const cat = categorias.find(c => c.id === p.categoria);
+                  const contado = conteosInventario[p.id];
+                  const lleno = contado !== '' && contado !== null && contado !== undefined;
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg p-3"
+                      style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        border: lleno ? '1px solid rgba(0,214,86,0.15)' : '1px solid rgba(255,255,255,0.04)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(0,214,86,0.1)', border: '1px solid rgba(0,214,86,0.2)', color: '#00D656' }}>
+                          <Package size={14} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[12px] font-medium text-white truncate">{p.nombre}</p>
+                          <p className="text-[9px] text-gray-500">
+                            {cat?.nombre ?? 'Sin categoría'} · {p.es_critico_arqueo ? 'Crítico' : 'Opcional'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="sm:w-28">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={conteosInventario[p.id] ?? ''}
+                          onChange={(e) => setConteosInventario((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                          disabled={bloqueado || guardando}
+                          placeholder="0"
+                          className="w-full px-2.5 py-2 rounded-lg text-center text-[13px] font-bold focus:outline-none disabled:opacity-50 transition-colors"
+                          style={{
+                            background: '#0F1117',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            color: '#FFFFFF',
+                          }}
+                        />
                       </div>
                     </div>
-                    <div className="sm:w-28">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={conteosInventario[p.id] ?? ''}
-                        onChange={(e) => setConteosInventario((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                        disabled={bloqueado || guardando}
-                        placeholder="0"
-                        className="w-full px-2.5 py-2 rounded-lg text-center text-[13px] font-bold focus:outline-none disabled:opacity-50 transition-colors"
-                        style={{
-                          background: '#0F1117',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                          color: '#FFFFFF',
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -547,6 +643,10 @@ export default function CierreTurno() {
                     <span className="text-white font-medium">{turnoDesde ? formatFechaHora(turnoDesde) : '—'}</span>
                   </div>
                   <div className="flex justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '4px' }}>
+                    <span className="text-gray-400">Fondo Inicial</span>
+                    <span className="text-white font-semibold">{formatCOP(datosTurno.fondoInicial)}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-gray-400">Efectivo Contado</span>
                     <span className="text-white font-semibold">{formatCOP(efectivoContado)}</span>
                   </div>
@@ -663,30 +763,36 @@ export default function CierreTurno() {
       }
 
       const ventasTotal = ventasEfectivo + ventasTransferencia + ventasTarjeta + ventasDigital;
-      const efectivoEsperado = ventasEfectivo - gastosEfectivo;
+      // Efectivo esperado = fondo inicial + ventas efectivo - gastos efectivo
+      const efectivoEsperado = datosTurno.fondoInicial + ventasEfectivo - gastosEfectivo;
       const efectivoDescuadre = efectivoContadoNum - efectivoEsperado;
 
       // ══════════════════════════════════════════════════════════════
-      // 2) INVENTARIO
+      // 2) INVENTARIO - solo productos con conteo ingresado
       // ══════════════════════════════════════════════════════════════
-      const items = productos.map((p) => {
-        const contado = numero(conteosInventario[p.id]);
-        const sistema = numero(p.stock);
-        const diferencia_unidades = contado - sistema;
-        const precio_unitario = numero(p.precio ?? p.costo ?? 0);
-        const valor_descuadre = diferencia_unidades * precio_unitario;
+      const items = productos
+        .filter(p => {
+          const v = conteosInventario[p.id];
+          return v !== '' && v !== null && v !== undefined;
+        })
+        .map((p) => {
+          const contado = numero(conteosInventario[p.id]);
+          const sistema = numero(p.stock);
+          const diferencia_unidades = contado - sistema;
+          const precio_unitario = numero(p.precio ?? p.costo ?? 0);
+          const valor_descuadre = diferencia_unidades * precio_unitario;
 
-        return {
-          producto_id: p.id,
-          nombre_producto: p.nombre,
-          stock_sistema: sistema,
-          stock_contado: contado,
-          diferencia_unidades,
-          precio_unitario,
-          valor_descuadre,
-          detalles: { producto_id: p.id, nombre: p.nombre, contado, diferencia: diferencia_unidades },
-        };
-      });
+          return {
+            producto_id: p.id,
+            nombre_producto: p.nombre,
+            stock_sistema: sistema,
+            stock_contado: contado,
+            diferencia_unidades,
+            precio_unitario,
+            valor_descuadre,
+            detalles: { producto_id: p.id, nombre: p.nombre, contado, diferencia: diferencia_unidades },
+          };
+        });
 
       const inventarioEsperadoValor = items.reduce((sum, it) => sum + it.stock_sistema * it.precio_unitario, 0);
       const inventarioContadoValor = items.reduce((sum, it) => sum + it.stock_contado * it.precio_unitario, 0);
@@ -709,6 +815,7 @@ export default function CierreTurno() {
           efectivo_contado: efectivoContadoNum,
           efectivo_esperado: efectivoEsperado,
           efectivo_descuadre: efectivoDescuadre,
+          fondo_inicial: datosTurno.fondoInicial,
           ventas_efectivo: ventasEfectivo,
           ventas_transferencia: ventasTransferencia,
           ventas_tarjeta: ventasTarjeta,
