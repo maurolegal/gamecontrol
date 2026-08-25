@@ -11,7 +11,7 @@ import {
   User, Gamepad2, Zap, Trophy,
   Monitor, Radio, CheckCircle2, ExternalLink, ArrowLeft,
   ChevronLeft, ChevronRight, Castle, Film, Package, Tv,
-  Mountain, Bird, Apple, Fish, Settings, X, Image,
+  Mountain, Bird, Apple, Fish, Settings, X, Image, Upload,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useSalas } from '../hooks/useSalas';
@@ -229,6 +229,12 @@ const BANNER_STORAGE_KEY = 'gc_eventlive_banner';
 
 const BANNER_DEFAULT = 'https://i.ibb.co/v4mN2Qb8/Firefly-Gemini-Flash-la-necesito-ajustada-1400-180-px-proporcion-7-8-1-400212.png';
 
+const CLOUDINARY = {
+  cloudName: 'dftbhxwaa',
+  uploadPreset: 'gamehub',
+  folder: 'eventlive_banners',
+};
+
 function loadBanner() {
   try {
     const val = localStorage.getItem(BANNER_STORAGE_KEY);
@@ -241,6 +247,20 @@ function saveBanner(url) {
   try {
     localStorage.setItem(BANNER_STORAGE_KEY, url);
   } catch (_e) {}
+}
+
+async function subirBannerCloudinary(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY.uploadPreset);
+  fd.append('folder', CLOUDINARY.folder);
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/image/upload`,
+    { method: 'POST', body: fd }
+  );
+  if (!res.ok) throw new Error('Error al subir banner a Cloudinary');
+  const data = await res.json();
+  return data.secure_url;
 }
 
 function loadPromos() {
@@ -605,11 +625,31 @@ export default function EventLive() {
   // ── Banner de productos (editable via engranaje) ──
   const [bannerUrl, setBannerUrl] = useState(loadBanner);
   const [bannerDraft, setBannerDraft] = useState('');
+  const [bannerPreview, setBannerPreview] = useState('');
+  const [subiendoBanner, setSubiendoBanner] = useState(false);
+  const bannerFileRef = useRef(null);
 
   function abrirModalPromos() {
     setPromosDraft([...promos]);
     setBannerDraft(bannerUrl);
+    setBannerPreview(bannerUrl);
     setModalPromosAbierto(true);
+  }
+
+  async function handleBannerFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBannerPreview(URL.createObjectURL(file));
+    setSubiendoBanner(true);
+    try {
+      const url = await subirBannerCloudinary(file);
+      setBannerDraft(url);
+      setBannerPreview(url);
+    } catch (_err) {
+      setBannerPreview(bannerDraft || BANNER_DEFAULT);
+    } finally {
+      setSubiendoBanner(false);
+    }
   }
 
   function guardarPromos() {
@@ -897,31 +937,53 @@ export default function EventLive() {
                 <p className="text-sm font-bold text-white">Banner de productos</p>
               </div>
               <p className="text-xs text-gray-500 mb-2">
-                Pega la URL de la imagen del banner (1400×180px recomendado).
+                Sube una imagen para el banner (1400×180px recomendado). Se guarda en Cloudinary.
               </p>
               <input
-                type="url"
-                value={bannerDraft}
-                onChange={e => setBannerDraft(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: 'white',
-                }}
-                placeholder="https://..."
+                ref={bannerFileRef}
+                type="file"
+                accept="image/*"
+                onChange={handleBannerFile}
+                className="hidden"
               />
-              {bannerDraft && (
+              <button
+                onClick={() => bannerFileRef.current?.click()}
+                disabled={subiendoBanner}
+                className="w-full py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
+                style={{
+                  background: 'rgba(139,92,246,0.1)',
+                  border: '1px dashed rgba(139,92,246,0.3)',
+                  color: '#c4b5fd',
+                }}
+              >
+                {subiendoBanner ? (
+                  <>
+                    <div className="w-4 h-4 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+                    Subiendo...
+                  </>
+                ) : (
+                  <>
+                    <Upload size={16} />
+                    Seleccionar imagen
+                  </>
+                )}
+              </button>
+              {bannerPreview && (
                 <div
-                  className="mt-2 rounded-lg overflow-hidden"
+                  className="mt-2 rounded-lg overflow-hidden relative"
                   style={{ border: '1px solid rgba(139,92,246,0.2)', height: '60px' }}
                 >
                   <img
-                    src={bannerDraft}
+                    src={bannerPreview}
                     alt="Preview banner"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     onError={(e) => { e.target.style.opacity = '0.3'; }}
                   />
+                  {subiendoBanner && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                      <div className="w-5 h-5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
