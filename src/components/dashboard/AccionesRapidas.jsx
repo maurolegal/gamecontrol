@@ -274,7 +274,7 @@ export default function AccionesRapidas({ salas = [], productos = [], kpis = {} 
               className="flex items-center gap-3"
               style={{ animation: `fabIn 0.2s ease ${i * 0.05}s both` }}
             >
-              <span className="bg-[#1A1C23] text-white text-xs font-medium px-3 py-1.5 rounded-lg border border-white/10 shadow-xl">
+              <span className="bg-[var(--gc-surface)] text-white text-xs font-medium px-3 py-1.5 rounded-lg border border-white/10 shadow-xl">
                 {label}
               </span>
               <button

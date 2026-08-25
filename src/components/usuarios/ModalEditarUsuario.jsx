@@ -96,7 +96,7 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
 
   const labelCls = 'block text-[11px] font-medium text-gray-500 mb-1.5';
   const inputCls = 'w-full px-3 py-2 text-[13px] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 transition-colors';
-  const inputStyle = { background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' };
+  const inputStyle = { background: 'var(--gc-input)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' };
 
   return (
     <>
@@ -109,11 +109,11 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
       >
         <div
           className="rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col"
-          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border-strong)' }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ borderBottom: '1px solid var(--gc-border)' }}
           >
             <h2 className="text-[14px] font-bold text-white">Editar Usuario</h2>
             <button
@@ -197,7 +197,7 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
 
           {/* Footer */}
           <div className="px-5 py-4 flex gap-2.5"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ borderTop: '1px solid var(--gc-border)' }}
           >
             <button
               type="button"

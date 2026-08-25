@@ -197,7 +197,7 @@ export default function ModalProducto({ abierto, producto, categorias = [], onCe
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
                   <input name="valor_total_compra" type="number" min="0" value={form.valor_total_compra}
                     onChange={cambiar} placeholder="100000"
-                    className="w-full pl-8 pr-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
+                    className="w-full pl-8 pr-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#00D656]" />
                 </div>
                 <p className="text-[10px] text-gray-600 mt-1">Total que pagaste por toda la cantidad</p>
               </div>
@@ -205,7 +205,7 @@ export default function ModalProducto({ abierto, producto, categorias = [], onCe
                 <label className="block text-xs text-gray-500 mb-1">Stock a Ingresar</label>
                 <input name="stock_ingreso" type="number" min="1" value={form.stock_ingreso}
                   onChange={cambiar} placeholder="50"
-                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
+                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#00D656]" />
                 <p className="text-[10px] text-gray-600 mt-1">Cantidad de unidades que compraste</p>
               </div>
             </div>

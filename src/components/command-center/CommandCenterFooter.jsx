@@ -52,7 +52,7 @@ export default function CommandCenterFooter({
       style={{
         background: 'rgba(10,14,25,0.95)',
         backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
+        borderTop: '1px solid var(--gc-border)',
         boxShadow: '0 -4px 24px rgba(0,0,0,0.3)',
       }}
     >

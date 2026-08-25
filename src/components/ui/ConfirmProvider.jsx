@@ -92,11 +92,11 @@ export function ConfirmProvider({ children }) {
         >
           <div
             className="w-full max-w-sm rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-            style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.08)' }}
+            style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border-strong)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid var(--gc-border)' }}>
               <span
                 className="inline-flex items-center justify-center w-10 h-10 rounded-xl shrink-0"
                 style={{ background: conf.bg, border: `1px solid ${conf.border}`, color: conf.color }}
@@ -123,12 +123,12 @@ export function ConfirmProvider({ children }) {
             </div>
 
             {/* Footer */}
-            <div className="flex gap-2 px-5 py-3.5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex gap-2 px-5 py-3.5" style={{ borderTop: '1px solid var(--gc-border)' }}>
               {!modal.esAlert && (
                 <button
                   onClick={cerrar}
                   className="flex-1 py-2.5 rounded-lg text-[13px] font-semibold transition-all hover:bg-white/5"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#9CA3AF' }}
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border-strong)', color: '#9CA3AF' }}
                 >
                   {modal.cancelText}
                 </button>

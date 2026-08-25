@@ -239,7 +239,7 @@ export const ModalFooter = memo(function ModalFooter({
 }) {
   if (modoAnular) return null;
   return (
-    <div className="flex-shrink-0 border-t border-white/10 bg-[#0B0D14] px-4 py-3">
+    <div className="flex-shrink-0 border-t border-white/10 bg-[var(--gc-surface)] px-4 py-3">
       <div className="flex gap-2">
         <button
           onClick={onCancelar}

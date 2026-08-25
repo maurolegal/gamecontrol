@@ -112,7 +112,7 @@ export default function FormGasto({
   // ── Estilos (Design System) ─────────────────────────────────────
   const inputCls =
     'w-full rounded-lg border border-white/10 px-3 py-2 text-sm text-gray-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 ' +
+    'focus:outline-none focus:ring-1 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 ' +
     'transition-colors placeholder:text-gray-500';
 
   const labelCls = 'block text-[10px] text-gray-500 mb-1 uppercase tracking-wider';
@@ -122,8 +122,8 @@ export default function FormGasto({
       onSubmit={handleSubmit}
       className="rounded-xl p-4 space-y-3.5"
       style={{
-        background: '#15171D',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--gc-surface-elevated)',
+        border: '1px solid var(--gc-border)',
       }}
     >
       {/* Header */}
@@ -159,7 +159,7 @@ export default function FormGasto({
             onChange={cambiar}
             required
             className={inputCls}
-            style={{ background: '#111318' }}
+            style={{ background: 'var(--gc-surface)' }}
           />
         </div>
 
@@ -172,7 +172,7 @@ export default function FormGasto({
             onChange={cambiar}
             required
             className={`${inputCls} cursor-pointer`}
-            style={{ background: '#111318' }}
+            style={{ background: 'var(--gc-surface)' }}
           >
             <option value="">Seleccionar…</option>
             {categoriasActivas.map((c) => (
@@ -191,7 +191,7 @@ export default function FormGasto({
             required
             placeholder="Descripción del gasto"
             className={inputCls}
-            style={{ background: '#111318' }}
+            style={{ background: 'var(--gc-surface)' }}
           />
         </div>
 
@@ -204,7 +204,7 @@ export default function FormGasto({
             onChange={cambiar}
             placeholder="Nombre del proveedor"
             className={inputCls}
-            style={{ background: '#111318' }}
+            style={{ background: 'var(--gc-surface)' }}
           />
         </div>
 
@@ -216,7 +216,7 @@ export default function FormGasto({
             value={form.metodo_pago}
             onChange={cambiar}
             className={`${inputCls} cursor-pointer`}
-            style={{ background: '#111318' }}
+            style={{ background: 'var(--gc-surface)' }}
           >
             {METODOS_PAGO.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
@@ -237,7 +237,7 @@ export default function FormGasto({
             required
             placeholder="0"
             className={`${inputCls} text-base font-semibold kpi-number tabular-nums`}
-            style={{ background: '#111318' }}
+            style={{ background: 'var(--gc-surface)' }}
           />
         </div>
       </div>

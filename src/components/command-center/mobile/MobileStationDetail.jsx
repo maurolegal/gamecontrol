@@ -205,12 +205,12 @@ export default function MobileStationDetail({
         onTouchEnd={handleTouchEnd}
       >
         <div
-          className="pointer-events-auto flex flex-col h-full bg-[#0B0D14] overflow-hidden animate-slide-up"
+          className="pointer-events-auto flex flex-col h-full bg-[var(--gc-surface)] overflow-hidden animate-slide-up"
           style={{ maxWidth: '600px', margin: '0 auto', width: '100%' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* ── HEADER: icono + estación + estado + tiempo + close ── */}
-          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 flex-shrink-0 sticky top-0 bg-[#0B0D14] z-10">
+          <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 flex-shrink-0 sticky top-0 bg-[var(--gc-surface)] z-10">
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-xl flex-shrink-0 overflow-hidden relative">
                 <span className="absolute inset-0 flex items-center justify-center">{icono}</span>
@@ -241,7 +241,7 @@ export default function MobileStationDetail({
           <div className="flex-1 overflow-y-auto -webkit-overflow-scrolling-touch p-4 space-y-4">
             {/* Status Row con tick realtime */}
             {tieneSesion && (
-              <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
                 <StatusRow sesion={sesion} />
               </div>
             )}
@@ -249,7 +249,7 @@ export default function MobileStationDetail({
             {/* Cliente + info principal */}
             {tieneSesion && (
               <div className="space-y-3">
-                <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
                   <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl shrink-0 overflow-hidden relative">
                     <span className="absolute inset-0 flex items-center justify-center">{icono}</span>
                   </div>
@@ -262,12 +262,12 @@ export default function MobileStationDetail({
                 {/* Tiempo + Tarifa */}
                 {!esLibre && (
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">TIEMPO CONTRATADO</div>
                       <div className="font-bold text-white text-lg mt-1">{totalMin}m</div>
                       <div className="text-[11px] text-gray-500 mt-0.5">Base: {contratado}m · Extra: +{adicional}m</div>
                     </div>
-                    <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">TARIFA</div>
                       <div className="font-bold text-[#00D656] text-lg mt-1">${Math.round(tarifaBase / 1000)}k/h</div>
                       <div className="text-[11px] text-gray-500 mt-0.5">{adicional > 0 ? `Extra: +${adicional}m` : 'Sin tiempo extra'}</div>
@@ -280,7 +280,7 @@ export default function MobileStationDetail({
                   <div className="space-y-2">
                     <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">CONSUMO</div>
                     {productos.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div key={i} className="flex items-center justify-between p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
                         <div className="flex items-center gap-3">
                           <ShoppingCart size={18} className="text-yellow-500" />
                           <div>
@@ -338,7 +338,7 @@ export default function MobileStationDetail({
               <div className="space-y-2">
                 <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">HISTORIAL</div>
                 {eventos.map((e, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${e.color}20` }}>
                       {e.tipo === 'inicio' && <Play size={16} className={e.color} />}
                       {e.tipo === 'tiempo' && <Clock size={16} className={e.color} />}
@@ -361,7 +361,7 @@ export default function MobileStationDetail({
 
           {/* ── STICKY BOTTOM ACTIONS ── */}
           {tieneSesion && (
-            <div className="p-4 border-t border-white/10 bg-[#0B0D14]/95 backdrop-blur-sm sticky bottom-0 flex flex-col gap-2" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0))' }}>
+            <div className="p-4 border-t border-white/10 bg-[var(--gc-surface)]/95 backdrop-blur-sm sticky bottom-0 flex flex-col gap-2" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0))' }}>
               <div className="grid grid-cols-4 gap-2">
                 <button
                   onClick={hTiempo}
@@ -403,7 +403,7 @@ export default function MobileStationDetail({
           )}
 
           {!tieneSesion && (
-            <div className="p-4 border-t border-white/10 bg-[#0B0D14]/95 backdrop-blur-sm sticky bottom-0" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0))' }}>
+            <div className="p-4 border-t border-white/10 bg-[var(--gc-surface)]/95 backdrop-blur-sm sticky bottom-0" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0))' }}>
               <button
                 onClick={hIniciar}
                 className="w-full h-14 flex items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-[#00D656] to-green-500 text-black font-bold text-lg shadow-lg active:scale-[0.98]"

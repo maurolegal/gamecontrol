@@ -196,7 +196,7 @@ export default function ModalTarifas({ abierto, onCerrar }) {
                                   min="0"
                                   step="1000"
                                   placeholder="0"
-                                  className={`w-full pl-8 pr-4 py-3 rounded-lg bg-[#0B0F19] border-2 border-${color}-500/20
+                                  className={`w-full pl-8 pr-4 py-3 rounded-lg bg-[var(--gc-input)] border-2 border-${color}-500/20
                                     text-white text-lg font-bold focus:outline-none focus:border-${color}-500/50 
                                     hover:border-${color}-500/30 transition-all`}
                                 />
@@ -272,7 +272,7 @@ export default function ModalTarifas({ abierto, onCerrar }) {
               <button
                 type="button"
                 onClick={onCerrar}
-                className="flex-1 px-5 py-3.5 rounded-xl bg-[#1A1C23] border border-white/5 text-gray-400 
+                className="flex-1 px-5 py-3.5 rounded-xl bg-[var(--gc-surface)] border border-white/5 text-gray-400 
                   hover:text-white hover:border-white/10 transition-all font-semibold"
               >
                 Cancelar

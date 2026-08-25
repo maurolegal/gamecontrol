@@ -41,7 +41,7 @@ function GraficoSkeleton() {
   return (
     <div
       className="rounded-xl p-4 animate-pulse h-72"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <div className="flex justify-between mb-4">
         <div className="h-3.5 w-32 bg-white/10 rounded-full" />
@@ -198,7 +198,7 @@ export default function GraficoVentasGastos({
   return (
     <div
       className="rounded-xl p-4 h-full"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
@@ -210,7 +210,7 @@ export default function GraficoVentasGastos({
         {/* Filtros de período — segmented control discreto */}
         <div
           className="flex rounded-lg p-0.5 gap-0.5"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
         >
           {Object.entries(PERIOD_LABELS).map(([key, label]) => (
             <button

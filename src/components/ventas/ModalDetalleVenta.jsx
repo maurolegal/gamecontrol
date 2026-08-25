@@ -217,14 +217,14 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
       <div
         className="w-full md:max-w-[680px] md:rounded-2xl shadow-2xl flex flex-col h-full md:h-auto md:max-h-[88vh]"
         style={{
-          background: '#111318',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--gc-surface)',
+          border: '1px solid var(--gc-border)',
         }}
       >
         {/* ── Header ── */}
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderBottom: '1px solid var(--gc-border)' }}
         >
           <div className="flex items-center gap-2.5">
             <span
@@ -273,7 +273,7 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
           {/* ── Resumen: Cliente · Ubicación · Operador ── */}
           <div
             className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden"
-            style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}
+            style={{ background: 'var(--gc-surface-elevated)', border: '1px solid rgba(255,255,255,0.04)' }}
           >
             {/* Cliente */}
             <div className="px-3.5 py-3" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
@@ -328,7 +328,7 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
           <div>
             <p className={`${sectionTitle} mb-2.5`}>Cronología</p>
             <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden"
-              style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}
+              style={{ background: 'var(--gc-surface-elevated)', border: '1px solid rgba(255,255,255,0.04)' }}
             >
               <div className="px-3.5 py-2.5" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
                 <p className={labelCls}>Inicio</p>
@@ -510,11 +510,11 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
         </div>
 
         {/* ── Total + Footer ── */}
-        <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="shrink-0" style={{ borderTop: '1px solid var(--gc-border)' }}>
           {/* Total */}
           <div
             className="flex items-center justify-between px-5 py-3"
-            style={{ background: '#15171D' }}
+            style={{ background: 'var(--gc-surface-elevated)' }}
           >
             <span className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Total pagado</span>
             <span className="text-2xl font-bold text-[#00D656] tabular-nums">{formatCOP(total)}</span>

@@ -34,7 +34,7 @@ export default function KpiDispositivos({ kpis, cargando }) {
         <div
           key={item.label}
           className="relative p-3 rounded-lg overflow-hidden"
-          style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}
+          style={{ background: 'var(--gc-surface-elevated)', border: '1px solid rgba(255,255,255,0.04)' }}
         >
           {/* Barra lateral de color */}
           <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: item.color }} />

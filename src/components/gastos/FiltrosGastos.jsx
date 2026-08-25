@@ -27,7 +27,7 @@ export default function FiltrosGastos({ filtros, setFiltros, categorias, proveed
 
   const inputCls =
     'w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 ' +
+    'focus:outline-none focus:ring-1 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 ' +
     'transition-colors appearance-none cursor-pointer';
 
   const hayFiltros =
@@ -37,8 +37,8 @@ export default function FiltrosGastos({ filtros, setFiltros, categorias, proveed
     <div
       className="rounded-xl p-3 space-y-3"
       style={{
-        background: '#111318',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--gc-surface)',
+        border: '1px solid var(--gc-border)',
       }}
     >
       {/* Header compacto */}

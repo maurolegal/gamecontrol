@@ -106,7 +106,7 @@ function WeatherWidgetInner() {
       <button
         onClick={handleConfigurar}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all min-h-[36px]"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
         title="Configurar ubicación para ver el clima"
         aria-label="Configurar clima"
       >
@@ -122,7 +122,7 @@ function WeatherWidgetInner() {
       <button
         onClick={handleConfigurar}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all min-h-[36px]"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
         title="Permiso de ubicación denegado. Click para reintentar."
         aria-label="Reconfigurar clima"
       >
@@ -137,7 +137,7 @@ function WeatherWidgetInner() {
     return (
       <div
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg min-h-[36px]"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
       >
         <RefreshCw size={13} className="text-gray-600 animate-spin" />
         <span className="text-[11px] text-gray-600 font-medium">Cargando…</span>
@@ -151,7 +151,7 @@ function WeatherWidgetInner() {
       <button
         onClick={handleRefresh}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all min-h-[36px]"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
         title="Clima no disponible. Click para reintentar."
         aria-label="Reintentar clima"
       >
@@ -177,7 +177,7 @@ function WeatherWidgetInner() {
       <button
         onClick={handleRefresh}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all min-h-[36px] hover:bg-white/8"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
         title={tooltipParts}
         aria-label={`Clima: ${pres.label}, ${clima.temp} grados`}
       >
@@ -213,7 +213,7 @@ function ClockWidget() {
   return (
     <div
       className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg min-h-[36px]"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
     >
       <Clock size={13} className="text-gray-400" />
       <span className="text-[11px] text-gray-200 font-semibold tabular-nums">{horaStr}</span>

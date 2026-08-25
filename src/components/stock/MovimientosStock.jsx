@@ -82,15 +82,15 @@ function MovementCard({ m }) {
   return (
     <div
       className="rounded-xl p-3.5 transition-all"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       {/* Fila 1: producto + cantidad */}
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           {m.producto?.imagen_url ? (
-            <img src={m.producto.imagen_url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" style={{ border: '1px solid rgba(255,255,255,0.07)' }} />
+            <img src={m.producto.imagen_url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" style={{ border: '1px solid var(--gc-border)' }} />
           ) : (
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}>
               <Package size={13} className="text-gray-600" />
             </div>
           )}
@@ -210,12 +210,12 @@ export default function MovimientosStock() {
 
   const inputCls =
     'w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
+    'focus:outline-none focus:ring-1 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
 
   return (
     <div className="space-y-4">
       {/* ── Toolbar Movimientos ── */}
-      <div className="rounded-xl p-3 space-y-3" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+      <div className="rounded-xl p-3 space-y-3" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
@@ -282,7 +282,7 @@ export default function MovimientosStock() {
       </div>
 
       {/* ── Tabla / Lista ── */}
-      <div className="rounded-xl overflow-hidden" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+      <div className="rounded-xl overflow-hidden" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
         {/* Header de sección */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
           <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
@@ -338,7 +338,7 @@ export default function MovimientosStock() {
                     <tr
                       key={m.id}
                       className="transition-colors"
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                      style={{ borderBottom: '1px solid var(--gc-border)' }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
@@ -346,9 +346,9 @@ export default function MovimientosStock() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           {m.producto?.imagen_url ? (
-                            <img src={m.producto.imagen_url} alt="" className="w-8 h-8 rounded-lg object-cover" style={{ border: '1px solid rgba(255,255,255,0.07)' }} />
+                            <img src={m.producto.imagen_url} alt="" className="w-8 h-8 rounded-lg object-cover" style={{ border: '1px solid var(--gc-border)' }} />
                           ) : (
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}>
                               <Package size={13} className="text-gray-600" />
                             </div>
                           )}

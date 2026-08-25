@@ -38,15 +38,20 @@ export default function Modal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        className="absolute inset-0 backdrop-blur-[6px]"
+        style={{ background: 'rgba(0,0,0,0.7)' }}
         onClick={onCerrar}
       />
 
       {/* Panel — fullscreen en mobile, centrado en desktop */}
       <div
-        className={`relative z-10 w-full ${anchoClase} glass-card 
-          rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/10 
+        className={`relative z-10 w-full ${anchoClase}
+          rounded-t-2xl sm:rounded-2xl shadow-2xl
           max-h-[100dvh] sm:max-h-[90vh] overflow-hidden flex flex-col`}
+        style={{
+          background: 'var(--gc-surface)',
+          border: '1px solid var(--gc-border)',
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-titulo"
@@ -59,7 +64,10 @@ export default function Modal({
 
         {/* Encabezado */}
         {titulo && (
-          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-white/5 flex-shrink-0">
+          <div
+            className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+            style={{ borderBottom: '1px solid var(--gc-border)' }}
+          >
             <h2
               id="modal-titulo"
               className="text-lg sm:text-xl font-bold text-white kpi-number truncate pr-2"

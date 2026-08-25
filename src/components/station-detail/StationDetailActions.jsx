@@ -28,7 +28,7 @@ function StationDetailActionsInner({
   const esUrgente = esVencida || esPorVencer;
 
   return (
-    <div className="station-detail-actions flex-shrink-0 border-t border-white/10 bg-[#0B0D14] px-4 py-3 space-y-2">
+    <div className="station-detail-actions flex-shrink-0 border-t border-white/10 bg-[var(--gc-surface)] px-4 py-3 space-y-2">
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={onAgregarTiempo}

@@ -137,8 +137,8 @@ function KpiStrip({ items }) {
     <div
       className="grid grid-cols-2 lg:grid-cols-4 rounded-xl overflow-hidden"
       style={{
-        background: '#111318',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--gc-surface)',
+        border: '1px solid var(--gc-border)',
       }}
     >
       {items.map((k, i) => (
@@ -500,7 +500,7 @@ export default function Ventas() {
   // ── Render ────────────────────────────────────────────────────────
   const inputCls =
     'w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
+    'focus:outline-none focus:ring-1 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
 
   const metodoLabel = {
     efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia',
@@ -537,15 +537,15 @@ export default function Ventas() {
   return (
     <div
       className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
     >
       {/* ── HEADER compacto (Design System Command Center) ── */}
       <header
         className="relative z-40 px-4 py-2.5"
         style={{
-          background: 'rgba(10,14,25,0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--gc-header)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--gc-border)',
         }}
       >
         <div className="flex items-center justify-between gap-3">
@@ -585,8 +585,8 @@ export default function Ventas() {
         <div
           className="rounded-xl p-3 space-y-3"
           style={{
-            background: '#111318',
-            border: '1px solid rgba(255,255,255,0.07)',
+            background: 'var(--gc-surface)',
+            border: '1px solid var(--gc-border)',
           }}
         >
           {/* Buscador ancho */}

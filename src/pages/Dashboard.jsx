@@ -182,15 +182,15 @@ export default function Dashboard() {
   return (
     <div
       className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)] space-y-4"
-      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
     >
       {/* ── HEADER compacto ── */}
       <header
         className="relative z-40 px-4 py-2.5"
         style={{
-          background: 'rgba(10,14,25,0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--gc-header)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--gc-border)',
         }}
       >
         <div className="flex items-center justify-between gap-3">
@@ -332,7 +332,7 @@ export default function Dashboard() {
           {esVendedor || !canViewAdmin ? (
             <div
               className="rounded-xl p-6 flex items-center justify-center h-full min-h-40"
-              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <div className="text-center text-gray-600">
                 <TrendingUp size={28} className="mx-auto mb-2 opacity-30" />
@@ -355,7 +355,7 @@ export default function Dashboard() {
           {productosAlerta.length > 0 ? (
             <div
               className="rounded-xl p-4 h-full"
-              style={{ background: '#111318', border: '1px solid rgba(239,68,68,0.20)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid rgba(239,68,68,0.20)' }}
             >
               <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                 <AlertTriangle size={14} className="text-red-400" />
@@ -383,7 +383,7 @@ export default function Dashboard() {
           ) : (
             <div
               className="rounded-xl p-4 h-full flex items-center justify-center min-h-40"
-              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <div className="text-center text-gray-600">
                 <PackageX size={24} className="mx-auto mb-2 opacity-30" />

@@ -112,20 +112,20 @@ export default function Stock() {
 
   const inputCls =
     'w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
+    'focus:outline-none focus:ring-1 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
 
   return (
     <div
       className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
     >
       {/* ── HEADER compacto (Design System Command Center) ── */}
       <header
         className="relative z-40 px-4 py-2.5"
         style={{
-          background: 'rgba(10,14,25,0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--gc-header)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--gc-border)',
         }}
       >
         <div className="flex items-center justify-between gap-3">
@@ -203,7 +203,7 @@ export default function Stock() {
         {/* ── KPI Strip ── */}
         <div
           className="grid grid-cols-2 lg:grid-cols-4 rounded-xl overflow-hidden"
-          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
         >
           {kpiItems.map((k, i) => {
             const colorMap = {
@@ -238,7 +238,7 @@ export default function Stock() {
         </div>
 
         {/* ── Tabs (navegación de módulo) ── */}
-        <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           {[
             { id: 'inventario', label: 'Inventario', icon: <Package size={14} /> },
             { id: 'movimientos', label: 'Movimientos', icon: <BarChart3 size={14} /> },
@@ -261,7 +261,7 @@ export default function Stock() {
         {vistaActiva === 'inventario' ? (
           <>
             {/* ── Toolbar Inventario ── */}
-            <div className="rounded-xl p-3 space-y-3" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="rounded-xl p-3 space-y-3" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
               <div className="relative">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input
@@ -330,7 +330,7 @@ export default function Stock() {
 
             {/* Inventario — 100% del ancho */}
             {cargando ? (
-              <div className="rounded-xl p-12 text-center" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div className="rounded-xl p-12 text-center" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
                 <RefreshCw size={28} className="animate-spin text-[#00D656] mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">Cargando inventario…</p>
               </div>

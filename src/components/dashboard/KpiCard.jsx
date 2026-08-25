@@ -10,7 +10,7 @@ function KpiSkeleton() {
   return (
     <div
       className="rounded-xl p-3 animate-pulse"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 space-y-1.5">
@@ -64,7 +64,7 @@ export default function KpiCard({
     <div
       className="rounded-xl p-3 transition-all duration-200 cursor-default"
       style={{
-        background: '#111318',
+        background: 'var(--gc-surface)',
         border: alerta
           ? '1px solid rgba(239,68,68,0.30)'
           : '1px solid rgba(255,255,255,0.07)',

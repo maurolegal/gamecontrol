@@ -94,8 +94,8 @@ export default function ModalEditarSesion({ sesion, sala, onCerrar }) {
     <Modal abierto={!!sesion} titulo={`Editar sesión · ${sesion.estacion}`} onCerrar={onCerrar} size="md">
       <div className="space-y-5">
         {/* ── Aviso ── */}
-        <div className="flex items-start gap-2 rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
-          <AlertTriangle size={16} className="text-blue-400 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-xl bg-[#4D8DFF]/10 border border-[#4D8DFF]/20 p-3">
+          <AlertTriangle size={16} className="text-[#4D8DFF] flex-shrink-0 mt-0.5" />
           <div className="text-xs text-blue-300">
             La edición es atómica via RPC. Los totales y stock se recalculan server-side.
             Solo disponible para administradores.
@@ -112,7 +112,7 @@ export default function ModalEditarSesion({ sesion, sala, onCerrar }) {
             min="1"
             value={tiempoContratado}
             onChange={(e) => setTiempoContratado(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-mono text-lg focus:outline-none focus:border-blue-500/50"
+            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-mono text-lg focus:outline-none focus:border-[#00D656]"
           />
         </div>
 
@@ -125,7 +125,7 @@ export default function ModalEditarSesion({ sesion, sala, onCerrar }) {
             min="0"
             value={tiempoAdicional}
             onChange={(e) => setTiempoAdicional(Math.max(0, parseInt(e.target.value) || 0))}
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-mono text-lg focus:outline-none focus:border-blue-500/50"
+            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white font-mono text-lg focus:outline-none focus:border-[#00D656]"
           />
         </div>
 
@@ -185,7 +185,7 @@ export default function ModalEditarSesion({ sesion, sala, onCerrar }) {
           <button
             onClick={handleConfirmar}
             disabled={cargando}
-            className="flex-1 h-11 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-400 font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 h-11 rounded-xl bg-[#00D656]/15 hover:bg-[#00D656]/25 border border-[#00D656]/40 text-[#00D656] font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {cargando ? (
               <><div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" /> Guardando...</>

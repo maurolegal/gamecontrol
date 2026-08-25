@@ -117,7 +117,7 @@ export default function ModalAgregarProductos({ sesion, sala, onCerrar }) {
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar producto..."
             className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700
-              bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-1 focus:ring-[#00D656]"
           />
         </div>
 
@@ -136,7 +136,7 @@ export default function ModalAgregarProductos({ sesion, sala, onCerrar }) {
                   key={p.id}
                   className={`flex items-center justify-between p-3 rounded-xl border transition-all
                     ${seleccionado
-                      ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-900/20'
+                      ? 'border-[#00D656] bg-[#00D656]/10'
                       : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
                     }`}
                 >
@@ -153,11 +153,11 @@ export default function ModalAgregarProductos({ sesion, sala, onCerrar }) {
                         >
                           <Minus size={12} />
                         </button>
-                        <span className="w-6 text-center text-sm font-bold text-indigo-600">{cantidad}</span>
+                        <span className="w-6 text-center text-sm font-bold text-[#00D656]">{cantidad}</span>
                         <button
                           onClick={() => setCantidad(p.id, 1)}
                           disabled={cantidad >= p.stock}
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 text-white transition-colors disabled:opacity-40"
+                          className="w-7 h-7 rounded-full flex items-center justify-center bg-[#00D656] hover:bg-[#00C34D] text-white transition-colors disabled:opacity-40"
                         >
                           <Plus size={12} />
                         </button>
@@ -165,7 +165,7 @@ export default function ModalAgregarProductos({ sesion, sala, onCerrar }) {
                     ) : (
                       <button
                         onClick={() => setCantidad(p.id, 1)}
-                        className="w-7 h-7 rounded-full flex items-center justify-center bg-indigo-500 hover:bg-indigo-600 text-white transition-colors"
+                        className="w-7 h-7 rounded-full flex items-center justify-center bg-[#00D656] hover:bg-[#00C34D] text-white transition-colors"
                       >
                         <Plus size={12} />
                       </button>
@@ -183,7 +183,7 @@ export default function ModalAgregarProductos({ sesion, sala, onCerrar }) {
             <ShoppingCart size={16} />
             <span>{itemsCount} item{itemsCount !== 1 ? 's' : ''}</span>
           </div>
-          <span className="text-lg font-bold text-indigo-600">{formatCOP(totalSeleccionados)}</span>
+          <span className="text-lg font-bold text-[#00D656]">{formatCOP(totalSeleccionados)}</span>
         </div>
 
         {/* Botones */}
@@ -197,7 +197,7 @@ export default function ModalAgregarProductos({ sesion, sala, onCerrar }) {
           <button
             onClick={handleConfirmar}
             disabled={cargando || seleccionados.length === 0}
-            className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm
+            className="flex-1 py-2.5 rounded-xl bg-[#00D656] hover:bg-[#00C34D] text-white font-semibold text-sm
               transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {cargando ? (

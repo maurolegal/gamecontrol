@@ -50,10 +50,10 @@ export default function ModalAperturaCaja({ open, onClose, onAbrir, usuarioNombr
     >
       <div
         className="w-full max-w-md rounded-2xl shadow-2xl flex flex-col"
-        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border-strong)' }}
       >
         {/* Header */}
-        <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--gc-border)' }}>
           <div className="flex items-center gap-2.5">
             <span
               className="inline-flex items-center justify-center w-10 h-10 rounded-xl"
@@ -99,8 +99,8 @@ export default function ModalAperturaCaja({ open, onClose, onAbrir, usuarioNombr
                 onChange={(e) => setMonto(e.target.value)}
                 autoFocus
                 placeholder="0"
-                className="w-full pl-8 pr-3 py-3 text-[20px] font-bold text-center rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00D656]/40 transition-all"
-                style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' }}
+                className="w-full pl-8 pr-3 py-3 text-[20px] font-bold text-center rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 transition-all"
+                style={{ background: 'var(--gc-input)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' }}
               />
             </div>
             <p className="text-[10px] text-gray-500 mt-1.5 text-center">

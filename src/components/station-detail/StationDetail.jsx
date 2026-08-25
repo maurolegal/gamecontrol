@@ -189,7 +189,7 @@ export default function StationDetail({
         aria-label={`Detalle de estación ${estacionId}`}
       >
         <div
-          className="station-detail-panel pointer-events-auto w-full bg-[#0B0D14] border border-white/10 rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden station-detail-anim"
+          className="station-detail-panel pointer-events-auto w-full bg-[var(--gc-surface)] border border-white/10 rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden station-detail-anim"
           style={{ maxWidth: '600px', maxHeight: '90vh' }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -330,7 +330,7 @@ export default function StationDetail({
 
           {/* ── ACCIONES (sticky bottom) ── */}
           {tieneSesion && (
-            <div className="flex-shrink-0 border-t border-white/10 bg-[#0B0D14] px-3 py-2.5">
+            <div className="flex-shrink-0 border-t border-white/10 bg-[var(--gc-surface)] px-3 py-2.5">
               <div className="grid grid-cols-3 gap-1.5">
                 <ActionBtn icon={Clock} label="+Tiempo" color="#00D656" onClick={hTiempo} />
                 <ActionBtn icon={ShoppingCart} label="Productos" color="#F59E0B" onClick={hProducto} />

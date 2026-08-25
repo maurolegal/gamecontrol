@@ -241,7 +241,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
       {/* Panel */}
       <div
         className="relative z-10 w-full sm:max-w-5xl rounded-t-2xl sm:rounded-2xl flex flex-col max-h-[100dvh] sm:max-h-[90vh] overflow-hidden"
-        style={{ background: '#0E1015', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border-strong)' }}
         role="dialog"
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
@@ -254,7 +254,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
         {/* ── Header ── */}
         <div
           className="flex items-center justify-between px-5 py-3 shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderBottom: '1px solid var(--gc-border)' }}
         >
           <div className="flex items-center gap-2.5">
             <div
@@ -285,7 +285,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                 ════════════════════════════════════════════════════════════ */}
             <div
               className="p-4 space-y-4"
-              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', lg: { borderBottom: 'none', borderRight: '1px solid rgba(255,255,255,0.06)' } }}
+              style={{ borderBottom: '1px solid var(--gc-border)', lg: { borderBottom: 'none', borderRight: '1px solid var(--gc-border)' } }}
             >
               <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Datos de Compra</h3>
 
@@ -385,7 +385,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                         value={calcValorTotal}
                         onChange={(e) => setCalcValorTotal(e.target.value)}
                         placeholder="100000"
-                        className="w-full pl-5 pr-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-white text-xs tabular-nums focus:outline-none focus:border-blue-500/50"
+                        className="w-full pl-5 pr-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-white text-xs tabular-nums focus:outline-none focus:border-[#00D656]"
                       />
                     </div>
                   </div>
@@ -397,7 +397,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                       value={calcCantidad}
                       onChange={(e) => setCalcCantidad(e.target.value)}
                       placeholder="50"
-                      className="w-full px-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-white text-xs tabular-nums focus:outline-none focus:border-blue-500/50"
+                      className="w-full px-2 py-1.5 rounded-md bg-white/5 border border-white/10 text-white text-xs tabular-nums focus:outline-none focus:border-[#00D656]"
                     />
                   </div>
                 </div>
@@ -455,7 +455,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                 {buscadorFocus && busqueda.trim() && (
                   <div
                     className="absolute z-20 left-0 right-0 top-full mt-1 rounded-lg overflow-hidden max-h-[240px] overflow-y-auto"
-                    style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.10)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
+                    style={{ background: 'var(--gc-surface-elevated)', border: '1px solid rgba(255,255,255,0.10)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}
                   >
                     {productosFiltrados.length === 0 ? (
                       <p className="text-gray-600 text-xs text-center py-4">No se encontraron productos</p>
@@ -473,7 +473,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                           ) : (
                             <div
                               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
                             >
                               <Package size={13} className="text-gray-600" />
                             </div>
@@ -506,7 +506,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                   >
                     <div
                       className="w-12 h-12 rounded-xl flex items-center justify-center mb-2"
-                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
                     >
                       <Package size={20} className="text-gray-600" />
                     </div>
@@ -519,7 +519,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                       <div
                         key={item.producto_id}
                         className="rounded-lg p-3"
-                        style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.06)' }}
+                        style={{ background: 'var(--gc-surface-elevated)', border: '1px solid var(--gc-border)' }}
                       >
                         {/* Fila 1: nombre + stock actual + eliminar */}
                         <div className="flex items-center justify-between gap-2 mb-2.5">
@@ -635,7 +635,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
         {/* ── Footer fijo ── */}
         <div
           className="flex items-center justify-between gap-3 px-5 py-3 shrink-0"
-          style={{ background: '#0B0D12', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: '#0B0D12', borderTop: '1px solid var(--gc-border)' }}
         >
           {/* Resumen */}
           <div className="flex items-center gap-3 text-xs">

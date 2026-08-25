@@ -31,8 +31,8 @@ export default function ResumenCategorias({ gastos, categorias }) {
     <div
       className="rounded-xl p-4 space-y-3.5"
       style={{
-        background: '#111318',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--gc-surface)',
+        border: '1px solid var(--gc-border)',
       }}
     >
       {/* Header */}

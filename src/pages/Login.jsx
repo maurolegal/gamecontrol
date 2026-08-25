@@ -109,7 +109,7 @@ export default function Login() {
       style={{ fontFamily: "'Rajdhani', 'Inter', sans-serif" }}
     >
       {/* Dark base */}
-      <div className="fixed inset-0" style={{ background: '#050810', zIndex: 0 }} />
+      <div className="fixed inset-0" style={{ background: 'var(--gc-bg)', zIndex: 0 }} />
 
       {/* Gaming room background photo */}
       <div

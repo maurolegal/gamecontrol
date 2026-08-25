@@ -177,7 +177,7 @@ function PanelLateral({ sesiones, lado }) {
         className="rounded-2xl flex flex-col items-center justify-center gap-3 py-8"
         style={{
           background: 'rgba(255,255,255,0.015)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          border: '1px solid var(--gc-border)',
         }}
       >
         <span className="text-3xl opacity-20">🎮</span>
@@ -591,7 +591,7 @@ export default function EventLive() {
         className="flex-none flex items-center justify-between px-5 py-3 gap-4"
         style={{
           background: 'linear-gradient(180deg, rgba(7,5,16,0.98) 0%, rgba(7,5,16,0.85) 100%)',
-          backdropFilter: 'blur(20px)',
+          backdropFilter: 'blur(8px)',
           borderBottom: '1px solid rgba(139,92,246,0.15)',
           boxShadow: '0 0 40px rgba(139,92,246,0.08)',
         }}
@@ -623,7 +623,7 @@ export default function EventLive() {
           className="flex items-center gap-1 rounded-2xl px-5 py-2"
           style={{
             background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--gc-border)',
             backdropFilter: 'blur(10px)',
           }}
         >
@@ -651,7 +651,7 @@ export default function EventLive() {
           className="min-w-fit text-right px-4 py-2 rounded-xl"
           style={{
             background: 'rgba(0,0,0,0.4)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            border: '1px solid var(--gc-border)',
           }}
         >
           <p

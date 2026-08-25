@@ -303,8 +303,8 @@ export default function TablaVentas({
   hayFiltros = false,
 }) {
   const surfaceStyle = {
-    background: '#111318',
-    border: '1px solid rgba(255,255,255,0.07)',
+    background: 'var(--gc-surface)',
+    border: '1px solid var(--gc-border)',
   };
 
   return (
@@ -359,7 +359,7 @@ export default function TablaVentas({
                     key={v.id}
                     className="transition-colors"
                     style={{
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      borderBottom: '1px solid var(--gc-border)',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}

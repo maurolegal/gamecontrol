@@ -498,7 +498,7 @@ const StationCardInner = memo(function StationCardInner({
             <>
               <button
                 onClick={handleClickIniciar}
-                className="flex-1 h-10 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-sm transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
+                className="flex-1 h-10 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-sm transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-1 focus:ring-[#00D656]/30"
                 aria-label={`Iniciar sesión en ${estacionId}`}
                 title="Iniciar sesión"
               >
@@ -521,7 +521,7 @@ const StationCardInner = memo(function StationCardInner({
               {/* +Tiempo — verde de consola/estado ── */}
               <button
                 onClick={handleClickTiempo}
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-[#00D656]/20 text-[#00D656] transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/35 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-[#00D656]/20 text-[#00D656] transition-all hover:bg-[#00D656]/10 hover:border-[#00D656]/35 focus:outline-none focus:ring-1 focus:ring-[#00D656]/30"
                 aria-label={`Agregar tiempo a ${estacionId}`}
                 title="Agregar tiempo"
               >
@@ -617,11 +617,11 @@ const StationCardInner = memo(function StationCardInner({
       >
         <div
           className="relative pointer-events-auto w-72 max-w-[90vw] rounded-xl shadow-2xl animate-fade-in"
-          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--gc-border)' }}>
             <div className="flex items-center gap-2">
               <Gamepad2 size={16} className="text-purple-400" />
               <div>
@@ -663,7 +663,7 @@ const StationCardInner = memo(function StationCardInner({
                         src={juego.portada_url}
                         alt={juego.nombre}
                         className="w-8 h-8 rounded object-cover shrink-0"
-                        style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+                        style={{ border: '1px solid var(--gc-border)' }}
                       />
                     )}
                     {!juego.portada_url && (

@@ -14,7 +14,7 @@ export default function GraficoMetodosPago({ metodos, cargando }) {
   return (
     <div
       className="rounded-xl p-4"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <h3 className="font-semibold text-white flex items-center gap-2 text-sm mb-4">
         <Wallet size={15} className="text-[#00D656]" />

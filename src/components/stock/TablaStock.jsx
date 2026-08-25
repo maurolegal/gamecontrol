@@ -69,7 +69,7 @@ function Thumbnail({ url, nombre }) {
         src={url}
         alt={nombre}
         className="w-10 h-10 rounded-lg object-cover shrink-0"
-        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
         loading="lazy"
         onError={(e) => {
           e.currentTarget.style.display = 'none';
@@ -82,7 +82,7 @@ function Thumbnail({ url, nombre }) {
   return (
     <div
       className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
     >
       <ImageOff size={15} className="text-gray-600" />
     </div>
@@ -100,7 +100,7 @@ function ProductCard({ p, categorias, onEditar, onAjustar, onEliminar }) {
     <div
       className="rounded-xl p-3.5 transition-all"
       style={{
-        background: '#111318',
+        background: 'var(--gc-surface)',
         border: `1px solid ${estado.tone === 'danger' ? 'rgba(239,68,68,0.15)' : estado.tone === 'warning' ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.07)'}`,
       }}
     >
@@ -183,7 +183,7 @@ export default function TablaStock({ productos = [], categorias = [], onEditar, 
   const getCat = (id) => categorias.find(c => c.id === id);
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+    <div className="rounded-xl overflow-hidden" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
       {/* Header de sección */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <h3 className="font-semibold text-white flex items-center gap-2 text-sm">
@@ -237,7 +237,7 @@ export default function TablaStock({ productos = [], categorias = [], onEditar, 
                   <tr
                     key={p.id}
                     className="transition-colors"
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    style={{ borderBottom: '1px solid var(--gc-border)' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >

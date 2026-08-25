@@ -12,10 +12,10 @@ const ROL_HEADER = {
 export default function MatrizPermisos() {
   return (
     <div className="rounded-xl overflow-hidden"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       {/* ── Header ── */}
-      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--gc-border)' }}>
         <h3 className="text-[13px] font-bold text-white tracking-tight">Permisos por rol</h3>
         <p className="text-[11px] text-gray-500 mt-0.5">
           Centro de mando · control de acceso por módulo y rol

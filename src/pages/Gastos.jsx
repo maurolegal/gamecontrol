@@ -256,15 +256,15 @@ export default function Gastos() {
   return (
     <div
       className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
     >
       {/* ── HEADER compacto (Design System Command Center) ── */}
       <header
         className="relative z-40 px-4 py-2.5"
         style={{
-          background: 'rgba(10,14,25,0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--gc-header)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--gc-border)',
         }}
       >
         <div className="flex items-center justify-between gap-3">

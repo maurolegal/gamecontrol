@@ -21,7 +21,7 @@ export default function TablaProductos({ stock, cargando }) {
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
@@ -86,7 +86,7 @@ export default function TablaProductos({ stock, cargando }) {
                   <tr
                     key={p.nombre}
                     className="transition-colors"
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    style={{ borderBottom: '1px solid var(--gc-border)' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >
@@ -135,7 +135,7 @@ export default function TablaProductos({ stock, cargando }) {
               <div
                 key={p.nombre}
                 className="rounded-lg p-3"
-                style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ background: 'var(--gc-surface-elevated)', border: '1px solid var(--gc-border)' }}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="min-w-0">

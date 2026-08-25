@@ -36,7 +36,7 @@ export const ProductCard = memo(function ProductCard({
           ? 'border-white/5 opacity-40 cursor-not-allowed'
           : 'border-white/8 hover:border-[#00D656]/40 hover:-translate-y-0.5 active:scale-95'
         }
-        bg-[#0E1018]
+        bg-[var(--gc-surface)]
       `}
     >
       {/* Badge cantidad en carrito */}
@@ -47,7 +47,7 @@ export const ProductCard = memo(function ProductCard({
       )}
 
       {/* Imagen compacta */}
-      <div className="relative bg-[#0B0D14] aspect-[4/3] overflow-hidden">
+      <div className="relative bg-[var(--gc-surface)] aspect-[4/3] overflow-hidden">
         <img
           src={imagenUrl || PLACEHOLDER_IMAGE}
           alt={producto.nombre}

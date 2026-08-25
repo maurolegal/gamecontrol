@@ -340,9 +340,9 @@ export default function TVDisplay() {
       <div
         className="sticky top-0 z-20 flex items-center justify-between px-6 py-4"
         style={{
-          background: 'rgba(8,12,19,0.85)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'rgba(12,17,25,0.85)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--gc-border)',
           boxShadow: '0 4px 30px rgba(0,0,0,0.4)',
         }}
       >

@@ -128,12 +128,12 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
       >
         <div
           className="w-full md:max-w-[720px] md:rounded-2xl shadow-2xl flex flex-col h-full md:h-auto md:max-h-[90vh]"
-          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
         >
         {/* ── Header ── */}
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderBottom: '1px solid var(--gc-border)' }}
         >
           <div className="flex items-center gap-2.5">
             <tipoInfo.icon
@@ -176,7 +176,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
           </div>
 
           {/* ── Grid: Información | Asignación | Estado ── */}
-          <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden" style={{ background: 'var(--gc-surface-elevated)', border: '1px solid rgba(255,255,255,0.04)' }}>
             {/* Información */}
             <div className="px-3.5 py-3" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
               <p className={sectionTitle}>Información</p>
@@ -265,7 +265,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
           </div>
 
           {/* ── Costos acumulados ── */}
-          <div className="grid grid-cols-4 gap-0 rounded-lg overflow-hidden" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}>
+          <div className="grid grid-cols-4 gap-0 rounded-lg overflow-hidden" style={{ background: 'var(--gc-surface-elevated)', border: '1px solid rgba(255,255,255,0.04)' }}>
             <div className="px-3.5 py-2.5" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
               <p className={labelCls}>Compra</p>
               <p className={`${valueCls} mt-0.5 text-[#00D656]`}>{formatCOP(dispositivo.costo)}</p>
@@ -305,7 +305,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
                 ))}
               </div>
             ) : mantenimientos.length === 0 ? (
-              <div className="rounded-lg p-6 text-center" style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="rounded-lg p-6 text-center" style={{ background: 'var(--gc-input)', border: '1px solid rgba(255,255,255,0.04)' }}>
                 <History size={24} className="mx-auto mb-2 text-gray-600" />
                 <p className="text-gray-400">Sin mantenimientos registrados</p>
                 <p className="text-[11px] text-gray-600 mt-1">Registra el primer mantenimiento</p>
@@ -368,7 +368,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
         </div>
 
         {/* ── Footer ── */}
-        <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="shrink-0" style={{ borderTop: '1px solid var(--gc-border)' }}>
           <div className="flex items-center justify-between px-5 py-3 gap-3">
             <div className="flex items-center gap-2">
               <button
@@ -390,7 +390,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
                 }}
               >
                 {Object.entries(ESTADOS).map(([key, val]) => (
-                  <option key={key} value={key} style={{ background: '#111318', color: '#fff' }}>
+                  <option key={key} value={key} style={{ background: 'var(--gc-surface)', color: '#fff' }}>
                     {val.label}
                   </option>
                 ))}

@@ -42,8 +42,8 @@ export default function KpiGastos({ kpis }) {
     <div
       className="grid grid-cols-2 lg:grid-cols-4 rounded-xl overflow-hidden"
       style={{
-        background: '#111318',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--gc-surface)',
+        border: '1px solid var(--gc-border)',
       }}
     >
       {items.map((k, i) => {

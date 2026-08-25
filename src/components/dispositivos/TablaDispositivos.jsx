@@ -111,7 +111,7 @@ export default function TablaDispositivos({
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-[13px] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 transition-colors"
-            style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' }}
+            style={{ background: 'var(--gc-input)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' }}
           />
         </div>
 
@@ -121,7 +121,7 @@ export default function TablaDispositivos({
             value={filtroTipo}
             onChange={(e) => setFiltroTipo(e.target.value)}
             className="px-3 py-2 text-[13px] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 min-w-[140px]"
-            style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' }}
+            style={{ background: 'var(--gc-input)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' }}
           >
             {TIPOS_DISPOSITIVO.map(t => (
               <option key={t.value} value={t.value}>
@@ -134,7 +134,7 @@ export default function TablaDispositivos({
             value={filtroSala}
             onChange={(e) => setFiltroSala(e.target.value)}
             className="px-3 py-2 text-[13px] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 min-w-[140px]"
-            style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' }}
+            style={{ background: 'var(--gc-input)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' }}
           >
             <option value="todas">Todas las salas</option>
             {salas.map(s => (
@@ -146,7 +146,7 @@ export default function TablaDispositivos({
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
             className="px-3 py-2 text-[13px] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 min-w-[140px]"
-            style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' }}
+            style={{ background: 'var(--gc-input)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' }}
           >
             {ESTADOS.map(e => (
               <option key={e.value} value={e.value}>{e.label}</option>
@@ -195,7 +195,7 @@ export default function TablaDispositivos({
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-xl p-8 text-center" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="rounded-xl p-8 text-center" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           <Package size={32} className="mx-auto mb-3 text-gray-600" />
           <p className="text-gray-400">No hay dispositivos que coincidan</p>
           <p className="text-[11px] text-gray-600 mt-1">Intenta ajustar los filtros</p>
@@ -281,8 +281,8 @@ export default function TablaDispositivos({
                   key={d.id}
                   className="rounded-lg p-3 cursor-pointer transition-colors"
                   style={{
-                    background: '#111318',
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'var(--gc-surface)',
+                    border: '1px solid var(--gc-border)',
                   }}
                   onClick={() => onVerDetalle(d)}
                 >

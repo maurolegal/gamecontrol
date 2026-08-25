@@ -87,8 +87,8 @@ function GastoCard({ g, categorias, onEditar, onEliminar }) {
     <div
       className="rounded-xl p-3.5 transition-all"
       style={{
-        background: '#111318',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--gc-surface)',
+        border: '1px solid var(--gc-border)',
       }}
     >
       {/* Fila 1: monto + método */}
@@ -155,8 +155,8 @@ export default function TablaGastos({ gastos, cargando, categorias, onEditar, on
     <div
       className="rounded-xl overflow-hidden"
       style={{
-        background: '#111318',
-        border: '1px solid rgba(255,255,255,0.07)',
+        background: 'var(--gc-surface)',
+        border: '1px solid var(--gc-border)',
       }}
     >
       {/* Header de sección */}
@@ -211,7 +211,7 @@ export default function TablaGastos({ gastos, cargando, categorias, onEditar, on
                 <tr
                   key={g.id}
                   className="transition-colors"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                  style={{ borderBottom: '1px solid var(--gc-border)' }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                 >

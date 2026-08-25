@@ -143,7 +143,7 @@ export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
 
   const labelCls = 'block text-[11px] font-medium text-gray-500 mb-1.5';
   const inputCls = 'w-full px-3 py-2 text-[13px] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#00D656]/40 transition-colors';
-  const inputStyle = { background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' };
+  const inputStyle = { background: 'var(--gc-input)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' };
   const sectionTitle = 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-3';
 
   return (
@@ -154,11 +154,11 @@ export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
       />
       <div
         className={`fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg shadow-2xl transition-transform duration-300 flex flex-col ${open ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border-strong)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderBottom: '1px solid var(--gc-border)' }}
         >
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg"
@@ -321,7 +321,7 @@ export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
 
         {/* Footer */}
         <div className="px-5 py-4 flex gap-2.5"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderTop: '1px solid var(--gc-border)' }}
         >
           <button
             type="button"

@@ -23,7 +23,7 @@ const TIPOS_CONSOLA = [
 ];
 
 const inputCls =
-  'w-full px-4 py-3 rounded-xl bg-[#1A1C23] border border-white/5 text-white placeholder-gray-500 ' +
+  'w-full px-4 py-3 rounded-xl bg-[var(--gc-surface)] border border-white/5 text-white placeholder-gray-500 ' +
   'focus:outline-none focus:border-[#00D656]/30 focus:shadow-[0_0_20px_rgba(0,214,86,0.1)] transition-all text-sm';
 
 export default function ModalEditarSala({ sala, onCerrar }) {
@@ -161,7 +161,7 @@ export default function ModalEditarSala({ sala, onCerrar }) {
               <div className="flex-1">
                 <label
                   htmlFor="editarSalaIconoFile"
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1A1C23] border border-white/5 
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--gc-surface)] border border-white/5 
                     text-gray-300 text-sm cursor-pointer hover:border-[#00D656]/30 hover:text-white transition-all"
                 >
                   <Upload size={15} className="text-[#00D656]" />
@@ -205,7 +205,7 @@ export default function ModalEditarSala({ sala, onCerrar }) {
                   className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
                     tipo === t.value
                       ? 'bg-[#00D656]/15 border-[#00D656]/40 text-[#00D656]'
-                      : 'bg-[#1A1C23] border-white/5 text-gray-400 hover:border-white/15 hover:text-white'
+                      : 'bg-[var(--gc-surface)] border-white/5 text-gray-400 hover:border-white/15 hover:text-white'
                   }`}
                 >
                   <span>{t.icon}</span>
@@ -247,7 +247,7 @@ export default function ModalEditarSala({ sala, onCerrar }) {
             <button
               type="button"
               onClick={onCerrar}
-              className="flex-1 py-3 rounded-xl bg-[#1A1C23] border border-white/5 text-gray-400 text-sm font-semibold hover:text-white hover:border-white/15 transition-all"
+              className="flex-1 py-3 rounded-xl bg-[var(--gc-surface)] border border-white/5 text-gray-400 text-sm font-semibold hover:text-white hover:border-white/15 transition-all"
             >
               Cancelar
             </button>

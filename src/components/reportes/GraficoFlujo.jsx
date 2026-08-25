@@ -76,7 +76,7 @@ export default function GraficoFlujo({ datos, cargando }) {
   return (
     <div
       className="rounded-xl p-4 h-full"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-white flex items-center gap-2 text-sm">

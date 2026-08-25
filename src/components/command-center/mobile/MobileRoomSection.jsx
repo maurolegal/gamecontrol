@@ -56,7 +56,7 @@ export default function MobileRoomSection({
         className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all"
         style={{
           background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          border: '1px solid var(--gc-border)',
         }}
         aria-expanded={expanded}
       >

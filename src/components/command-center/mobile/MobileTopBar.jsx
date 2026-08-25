@@ -24,7 +24,7 @@ export default function MobileTopBar({
         paddingTop: 'env(safe-area-inset-top, 16px)',
         background: 'rgba(8, 10, 16, 0.95)',
         backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        borderBottom: '1px solid var(--gc-border)',
         position: 'sticky',
         top: 0,
       }}

@@ -109,7 +109,7 @@ export default function Salas() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] tech-grid-bg px-3 py-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="min-h-screen bg-[var(--gc-bg)] tech-grid-bg px-3 py-4 md:p-6 space-y-4 md:space-y-6">
       {/* Encabezado Premium */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="pl-14 md:pl-0">

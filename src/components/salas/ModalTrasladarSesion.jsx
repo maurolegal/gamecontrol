@@ -167,7 +167,7 @@ export default function ModalTrasladarSesion({ sesion, sala, salas = [], sesione
           <button
             type="button"
             onClick={onCerrar}
-            className="flex-1 px-4 py-3 text-gray-400 bg-[#1A1C23] border border-white/5 hover:bg-white/5 rounded-xl transition-all"
+            className="flex-1 px-4 py-3 text-gray-400 bg-[var(--gc-surface)] border border-white/5 hover:bg-white/5 rounded-xl transition-all"
             disabled={cargando}
           >
             Cancelar

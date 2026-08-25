@@ -338,7 +338,7 @@ const MobileStationCardInner = memo(function MobileStationCardInner({
           {esLibre ? (
             <button
               onClick={handleClickIniciar}
-              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-base transition-all active:scale-[0.98] hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
+              className="flex-1 h-12 flex items-center justify-center gap-2 rounded-xl bg-white/5 border border-[#00D656]/25 text-[#00D656] font-semibold text-base transition-all active:scale-[0.98] hover:bg-[#00D656]/10 hover:border-[#00D656]/40 focus:outline-none focus:ring-1 focus:ring-[#00D656]/30"
               aria-label={`Iniciar sesión en ${estacionId}`}
             >
               <Plus size={20} />
@@ -349,7 +349,7 @@ const MobileStationCardInner = memo(function MobileStationCardInner({
               {/* +Tiempo */}
               <button
                 onClick={handleClickTiempo}
-                className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 border border-[#00D656]/20 text-[#00D656] transition-all active:scale-[0.95] hover:bg-[#00D656]/10 hover:border-[#00D656]/35 focus:outline-none focus:ring-2 focus:ring-[#00D656]/30"
+                className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/5 border border-[#00D656]/20 text-[#00D656] transition-all active:scale-[0.95] hover:bg-[#00D656]/10 hover:border-[#00D656]/35 focus:outline-none focus:ring-1 focus:ring-[#00D656]/30"
                 ariaLabel={`Agregar tiempo a ${estacionId}`}
               >
                 <ClockPlus size={20} />
@@ -397,7 +397,7 @@ const MobileStationCardInner = memo(function MobileStationCardInner({
           >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeActionSheet} aria-hidden="true" />
             <div
-              className="relative w-full max-h-[70vh] bg-[#0B0D14] border-t border-white/10 rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up"
+              className="relative w-full max-h-[70vh] bg-[var(--gc-surface)] border-t border-white/10 rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">

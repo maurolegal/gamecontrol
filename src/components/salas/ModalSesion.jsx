@@ -297,7 +297,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
                   }}
                   placeholder="Buscar por nombre o teléfono..."
                   autoComplete="off"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-white/10 bg-[#1A1C23] text-white text-sm
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-white/10 bg-[var(--gc-surface)] text-white text-sm
                     placeholder-gray-600 focus:outline-none focus:border-[#00D656]/30 transition-all"
                 />
 
@@ -305,7 +305,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
                 {mostrarDropdown && clientesFiltrados.length > 0 && (
                   <div
                     ref={dropdownRef}
-                    className="absolute top-full left-0 right-0 mt-1 bg-[#1A1C23] border border-white/10
+                    className="absolute top-full left-0 right-0 mt-1 bg-[var(--gc-surface)] border border-white/10
                       rounded-xl shadow-2xl shadow-black/50 z-50 max-h-[240px] overflow-y-auto"
                   >
                     {clientesFiltrados.map((c) => (
@@ -444,7 +444,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
                   min="1"
                   step="1"
                   placeholder="—"
-                  className="w-full rounded-lg border border-white/10 bg-[#1A1C23] px-3 py-1.5 pr-9 text-white text-sm text-center
+                  className="w-full rounded-lg border border-white/10 bg-[var(--gc-surface)] px-3 py-1.5 pr-9 text-white text-sm text-center
                     placeholder-gray-600 focus:outline-none focus:border-[#00D656]/30 transition-all"
                 />
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-gray-500 font-medium">
@@ -533,7 +533,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
                 placeholder="Nombre completo"
                 autoFocus
                 required
-                className="w-full rounded-lg border border-white/10 bg-[#1A1C23] px-3 py-2.5 text-white text-sm
+                className="w-full rounded-lg border border-white/10 bg-[var(--gc-surface)] px-3 py-2.5 text-white text-sm
                   placeholder-gray-600 focus:outline-none focus:border-purple-500/40 transition-all"
               />
             </div>
@@ -547,7 +547,7 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
                 value={nuevoCliente.whatsapp}
                 onChange={(e) => setNuevoCliente({ ...nuevoCliente, whatsapp: e.target.value })}
                 placeholder="3001234567"
-                className="w-full rounded-lg border border-white/10 bg-[#1A1C23] px-3 py-2.5 text-white text-sm
+                className="w-full rounded-lg border border-white/10 bg-[var(--gc-surface)] px-3 py-2.5 text-white text-sm
                   placeholder-gray-600 focus:outline-none focus:border-purple-500/40 transition-all"
               />
             </div>
@@ -567,9 +567,9 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
               <button
                 type="submit"
                 disabled={guardandoCliente}
-                className="flex-[2] py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500
-                  hover:from-purple-600 hover:to-pink-600 text-white text-sm font-bold transition-all
-                  shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2
+                className="flex-[2] py-2.5 rounded-lg bg-[#00D656] hover:bg-[#00C34D]
+                  text-black text-sm font-bold transition-colors
+                  flex items-center justify-center gap-2
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <UserPlus size={16} />

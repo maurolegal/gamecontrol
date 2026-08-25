@@ -84,7 +84,7 @@ export default function ModalNuevaSala({ abierto, onCerrar }) {
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Ej: Sala PlayStation 1"
-              className="w-full px-4 py-3 rounded-xl bg-[#1A1C23] border border-white/5 text-white 
+              className="w-full px-4 py-3 rounded-xl bg-[var(--gc-surface)] border border-white/5 text-white 
                 placeholder-gray-500 focus:outline-none focus:border-[#00D656]/30 
                 focus:shadow-[0_0_20px_rgba(0,214,86,0.1)] transition-all"
               required
@@ -105,7 +105,7 @@ export default function ModalNuevaSala({ abierto, onCerrar }) {
                   className={`p-3 rounded-xl border transition-all ${
                     tipo === t.value
                       ? 'bg-[#00D656]/10 border-[#00D656]/40 text-[#00D656]'
-                      : 'bg-[#1A1C23] border-white/5 text-gray-400 hover:border-white/10'
+                      : 'bg-[var(--gc-surface)] border-white/5 text-gray-400 hover:border-white/10'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function ModalNuevaSala({ abierto, onCerrar }) {
                 onChange={(e) => setNumEstaciones(e.target.value)}
                 min="1"
                 max="20"
-                className="w-full px-4 py-3 rounded-xl bg-[#1A1C23] border border-white/5 text-white 
+                className="w-full px-4 py-3 rounded-xl bg-[var(--gc-surface)] border border-white/5 text-white 
                   focus:outline-none focus:border-[#00D656]/30 transition-all"
                 required
               />
@@ -147,7 +147,7 @@ export default function ModalNuevaSala({ abierto, onCerrar }) {
                 onChange={(e) => setPrefijo(e.target.value)}
                 placeholder="PS, XB, PC..."
                 maxLength="4"
-                className="w-full px-4 py-3 rounded-xl bg-[#1A1C23] border border-white/5 text-white 
+                className="w-full px-4 py-3 rounded-xl bg-[var(--gc-surface)] border border-white/5 text-white 
                   placeholder-gray-500 focus:outline-none focus:border-[#00D656]/30 transition-all uppercase"
                 required
               />
@@ -174,7 +174,7 @@ export default function ModalNuevaSala({ abierto, onCerrar }) {
             <button
               type="button"
               onClick={onCerrar}
-              className="flex-1 px-4 py-3 rounded-xl bg-[#1A1C23] border border-white/5 text-gray-400 
+              className="flex-1 px-4 py-3 rounded-xl bg-[var(--gc-surface)] border border-white/5 text-gray-400 
                 hover:text-white hover:border-white/10 transition-all font-semibold"
             >
               Cancelar

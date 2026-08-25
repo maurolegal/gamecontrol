@@ -24,7 +24,7 @@ export default function MobileBottomNav() {
         paddingBottom: 'env(safe-area-inset-bottom, 0)',
         background: 'rgba(8, 10, 16, 0.95)',
         backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
+        borderTop: '1px solid var(--gc-border)',
       }}
       aria-label="Navegación principal"
     >

@@ -35,7 +35,7 @@ export default function PermisoGrid({ permisos, onChange, disabled = false }) {
           className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg transition-colors cursor-pointer select-none"
           style={{
             background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.05)',
+            border: '1px solid var(--gc-border)',
           }}
         >
           <span className="flex items-center gap-1.5 text-[12px] text-gray-300">

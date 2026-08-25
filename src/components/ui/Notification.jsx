@@ -46,7 +46,7 @@ function ToastItem({ id, mensaje, tipo }) {
     <div
       className="flex items-start gap-3 px-4 py-3 rounded-xl shadow-2xl text-sm animate-toast"
       style={{
-        background: '#111318',
+        background: 'var(--gc-surface)',
         border: `1px solid ${s.border}`,
         backdropFilter: 'blur(20px)',
       }}

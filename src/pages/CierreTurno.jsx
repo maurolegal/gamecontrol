@@ -292,7 +292,7 @@ export default function CierreTurno() {
   if (cargando) {
     return (
       <div className="space-y-6">
-        <div className="rounded-2xl p-6 animate-pulse" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="rounded-2xl p-6 animate-pulse" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           <div className="h-4 w-56 bg-white/10 rounded mb-4" />
           <div className="h-6 w-64 bg-white/10 rounded mb-3" />
           <div className="h-10 bg-white/5 rounded-xl" />
@@ -318,7 +318,7 @@ export default function CierreTurno() {
       <div className="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#9CA3AF' }}>
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border-strong)', color: '#9CA3AF' }}>
               <Calculator size={16} />
             </span>
             <h1 className="text-xl font-bold text-white tracking-tight">Cierre de Turno</h1>
@@ -331,7 +331,7 @@ export default function CierreTurno() {
           onClick={() => window.location.reload()}
           disabled={bloqueado}
           className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-gray-400 rounded-lg transition-colors"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
         >
           <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} /> Recargar
         </button>
@@ -398,8 +398,8 @@ export default function CierreTurno() {
                     placeholder="0"
                     className="w-full px-2.5 py-2 rounded-lg text-center text-[14px] font-bold placeholder-gray-600 focus:outline-none disabled:opacity-50 transition-colors"
                     style={{
-                      background: '#0F1117',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'var(--gc-surface)',
+                      border: '1px solid var(--gc-border-strong)',
                       color: '#FFFFFF',
                     }}
                   />
@@ -516,8 +516,8 @@ export default function CierreTurno() {
                           placeholder="0"
                           className="w-full px-2.5 py-2 rounded-lg text-center text-[13px] font-bold focus:outline-none disabled:opacity-50 transition-colors"
                           style={{
-                            background: '#0F1117',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            background: 'var(--gc-surface)',
+                            border: '1px solid var(--gc-border-strong)',
                             color: '#FFFFFF',
                           }}
                         />
@@ -627,7 +627,7 @@ export default function CierreTurno() {
 
             {/* Ticket (solo después de auditoría) */}
             {auditoria && (
-              <div className="print-ticket mt-4 rounded-xl p-4 border" style={{ background: '#111318', borderColor: 'rgba(0,214,86,0.2)' }}>
+              <div className="print-ticket mt-4 rounded-xl p-4 border" style={{ background: 'var(--gc-surface)', borderColor: 'rgba(0,214,86,0.2)' }}>
                 <div className="flex items-center gap-2 mb-3">
                   <Printer size={14} className="text-[#00D656]" />
                   <h2 className="text-[12px] font-semibold text-white">Ticket de Auditoría</h2>
@@ -695,7 +695,7 @@ export default function CierreTurno() {
           disabled={bloqueado || guardando}
           placeholder="Cámaras, novedades, incidencias, etc."
           className="w-full px-3 py-2 rounded-lg text-[12px] placeholder-gray-600 focus:outline-none disabled:opacity-50 resize-none"
-          style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.08)', color: '#FFFFFF' }}
+          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border-strong)', color: '#FFFFFF' }}
         />
       </div>
     </div>

@@ -105,7 +105,7 @@ export default function Usuarios() {
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#9CA3AF' }}
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border-strong)', color: '#9CA3AF' }}
             >
               <Shield size={16} />
             </span>
@@ -119,7 +119,7 @@ export default function Usuarios() {
           <button
             onClick={cargar}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium text-gray-400 rounded-lg transition-colors"
-            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
             title="Actualizar lista"
           >
             <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} /> Actualizar

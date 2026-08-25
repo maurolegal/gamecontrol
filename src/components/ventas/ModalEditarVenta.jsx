@@ -18,7 +18,7 @@ function toLocalDatetime(iso) {
 const inputCls =
   'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ' +
   'px-3 py-2.5 text-sm text-gray-900 dark:text-white ' +
-  'focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow';
+  'focus:outline-none focus:ring-1 focus:ring-[#00D656] transition-shadow';
 
 const labelCls = 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1';
 
@@ -369,7 +369,7 @@ export default function ModalEditarVenta({ venta, salas = [], onGuardar, onCerra
               <button
                 type="button"
                 onClick={() => { setMostrarSelector(true); setBusqueda(''); }}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#00D656]/10 text-[#00D656] text-xs font-medium hover:bg-[#00D656]/20 transition-colors"
               >
                 <Plus size={12} /> Agregar
               </button>
@@ -377,14 +377,14 @@ export default function ModalEditarVenta({ venta, salas = [], onGuardar, onCerra
 
             {/* Selector de inventario */}
             {mostrarSelector && (
-              <div className="border border-indigo-200 dark:border-indigo-700 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 p-3 space-y-2">
+              <div className="border border-[#00D656]/20 rounded-xl bg-[#00D656]/5 p-3 space-y-2">
                 <input
                   autoFocus
                   type="text"
                   value={busqueda}
                   onChange={e => setBusqueda(e.target.value)}
                   placeholder="Buscar producto del inventario..."
-                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00D656]"
                 />
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {inventario
@@ -403,7 +403,7 @@ export default function ModalEditarVenta({ venta, salas = [], onGuardar, onCerra
                           });
                           setMostrarSelector(false);
                         }}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-left transition-colors"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-[#00D656]/10 text-left transition-colors"
                       >
                         <span className="text-sm text-gray-900 dark:text-white">{p.nombre}</span>
                         <span className="text-xs text-gray-500 dark:text-gray-400 ml-2 whitespace-nowrap">
@@ -448,7 +448,7 @@ export default function ModalEditarVenta({ venta, salas = [], onGuardar, onCerra
                   value={prod.cantidad}
                   onChange={e => setProductos(prev => prev.map((p, idx) => idx === i ? { ...p, cantidad: e.target.value } : p))}
                   placeholder="Cant."
-                  className="w-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-center"
+                  className="w-16 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00D656] text-center"
                 />
                 <input
                   type="number"
@@ -457,7 +457,7 @@ export default function ModalEditarVenta({ venta, salas = [], onGuardar, onCerra
                   value={prod.precio}
                   onChange={e => setProductos(prev => prev.map((p, idx) => idx === i ? { ...p, precio: e.target.value } : p))}
                   placeholder="Precio"
-                  className="w-24 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-24 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-[#00D656]"
                 />
                 <button
                   type="button"

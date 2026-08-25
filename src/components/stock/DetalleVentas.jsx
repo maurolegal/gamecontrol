@@ -81,12 +81,12 @@ export default function DetalleVentas() {
   return (
     <div
       className="rounded-xl overflow-hidden"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       {/* ── Header ── */}
       <div
         className="flex items-center justify-between px-4 py-3"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+        style={{ borderBottom: '1px solid var(--gc-border)' }}
       >
         <div className="flex items-center gap-2">
           <ShoppingCart size={15} className="text-[#00D656]" />
@@ -106,7 +106,7 @@ export default function DetalleVentas() {
       {/* ── Resumen compacto + filtros de fecha ── */}
       <div
         className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+        style={{ borderBottom: '1px solid var(--gc-border)' }}
       >
         {/* Resumen */}
         <div className="flex items-center gap-3 text-xs">
@@ -156,7 +156,7 @@ export default function DetalleVentas() {
           <thead>
             <tr
               className="text-gray-500 text-[10px] uppercase tracking-wider"
-              style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+              style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid var(--gc-border)' }}
             >
               <th className="px-4 py-2.5 text-left font-medium">Hora</th>
               <th className="px-4 py-2.5 text-left font-medium">Producto</th>
@@ -196,7 +196,7 @@ export default function DetalleVentas() {
                   <tr
                     key={v.id}
                     className="transition-colors"
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                    style={{ borderBottom: '1px solid var(--gc-border)' }}
                     onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                     onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                   >

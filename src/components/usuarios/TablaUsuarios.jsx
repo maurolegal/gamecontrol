@@ -36,9 +36,9 @@ function ModalPermisos({ usuario, onClose }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative rounded-xl shadow-2xl w-full max-w-sm overflow-hidden"
-        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border-strong)' }}
       >
-        <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid var(--gc-border)' }}>
           <div className={`w-10 h-10 rounded-full ${avatarColor(usuario.nombre)} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
             {iniciales(usuario.nombre)}
           </div>
@@ -64,7 +64,7 @@ function ModalPermisos({ usuario, onClose }) {
             );
           })}
         </div>
-        <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="px-4 py-3" style={{ borderTop: '1px solid var(--gc-border)' }}>
           <button onClick={onClose} className="w-full py-2 text-[12px] text-gray-400 rounded-lg transition-colors hover:bg-white/5">
             Cerrar
           </button>
@@ -157,7 +157,7 @@ function SkeletonRow() {
 function UserCardMobile({ u, puedeEditar, puedeEliminar, onVer, onEditar, onPwd, onToggle, onEliminar }) {
   return (
     <div className="rounded-xl p-4"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <div className="flex items-center gap-3 mb-3">
         <div className={`w-10 h-10 rounded-full shrink-0 ${avatarColor(u.nombre)} flex items-center justify-center text-white font-bold text-xs`}>
@@ -172,7 +172,7 @@ function UserCardMobile({ u, puedeEditar, puedeEliminar, onVer, onEditar, onPwd,
         <RolBadge rol={u.rol} />
         <EstadoBadge estado={u.estado} />
       </div>
-      <div className="flex items-center justify-between gap-2 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex items-center justify-between gap-2 pt-3" style={{ borderTop: '1px solid var(--gc-border)' }}>
         <span className="text-[10px] text-gray-500">
           Último acceso: <span className="text-gray-400">{tiempoTranscurrido(u.ultimo_acceso)}</span>
         </span>
@@ -234,7 +234,7 @@ export default function TablaUsuarios({ usuarios, cargando, onEditar, onCambiarP
   const paginados = filtrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const selectCls = "px-3 py-2 text-[12px] rounded-lg transition-colors focus:outline-none focus:ring-1 focus:ring-[#00D656]/40";
-  const selectStyle = { background: '#111318', border: '1px solid rgba(255,255,255,0.07)', color: '#D1D5DB' };
+  const selectStyle = { background: 'var(--gc-surface)', border: '1px solid var(--gc-border)', color: '#D1D5DB' };
 
   return (
     <>
@@ -279,7 +279,7 @@ export default function TablaUsuarios({ usuarios, cargando, onEditar, onCambiarP
 
       {/* ── Tabla desktop ── */}
       <div className="hidden md:block rounded-xl overflow-hidden"
-        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -365,7 +365,7 @@ export default function TablaUsuarios({ usuarios, cargando, onEditar, onCambiarP
         {/* Paginación */}
         {totalPags > 1 && (
           <div className="px-4 py-2.5 flex items-center justify-between text-[11px] text-gray-500"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+            style={{ borderTop: '1px solid var(--gc-border)' }}
           >
             <span>{filtrados.length} usuarios · pág. {pagina}/{totalPags}</span>
             <div className="flex gap-1">
@@ -394,7 +394,7 @@ export default function TablaUsuarios({ usuarios, cargando, onEditar, onCambiarP
       <div className="md:hidden space-y-2.5">
         {cargando
           ? [...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-xl p-4 animate-pulse" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+              <div key={i} className="rounded-xl p-4 animate-pulse" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-full bg-white/5" />
                   <div className="flex-1 space-y-1.5">

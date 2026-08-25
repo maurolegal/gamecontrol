@@ -145,7 +145,7 @@ const EstacionOcupada = memo(function EstacionOcupada({ sesion, onAgregarTiempo,
   const esLibre = sesion.modo === 'libre';
 
   return (
-    <div className="relative flex flex-col gap-2 p-3 rounded-xl bg-[#1A1C23] border border-white/5 hover:border-[#00D656]/30 transition-all group">
+    <div className="relative flex flex-col gap-2 p-3 rounded-xl bg-[var(--gc-surface)] border border-white/5 hover:border-[#00D656]/30 transition-all group">
       {/* Glow effect en hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#00D656]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl" />
       

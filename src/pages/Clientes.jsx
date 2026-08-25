@@ -353,7 +353,7 @@ export default function Clientes() {
 
   const inputCls =
     'w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-gray-200 ' +
-    'focus:outline-none focus:ring-2 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
+    'focus:outline-none focus:ring-1 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
 
   const kpiItems = [
     { icon: <Users size={15} />,      label: 'Total clientes',  valor: stats.total,                 tone: 'neutral' },
@@ -366,15 +366,15 @@ export default function Clientes() {
   return (
     <div
       className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
     >
       {/* ── HEADER compacto (Design System Command Center) ── */}
       <header
         className="relative z-40 px-4 py-2.5"
         style={{
-          background: 'rgba(10,14,25,0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--gc-header)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--gc-border)',
         }}
       >
         <div className="flex items-center justify-between gap-3">
@@ -424,7 +424,7 @@ export default function Clientes() {
         {/* ── KPI Strip ── */}
         <div
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 rounded-xl overflow-hidden"
-          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
         >
           {kpiItems.map((k, i) => {
             const colorMap = {
@@ -458,7 +458,7 @@ export default function Clientes() {
         </div>
 
         {/* ── Toolbar compacta ── */}
-        <div className="rounded-xl p-3 space-y-3" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-xl p-3 space-y-3" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           <div className="flex flex-wrap items-center gap-2">
             {/* Búsqueda */}
             <div className="flex-1 min-w-[200px] relative">
@@ -483,7 +483,7 @@ export default function Clientes() {
             </div>
 
             {/* Toggle Vista */}
-            <div className="flex items-center gap-0.5 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="flex items-center gap-0.5 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
               <button
                 onClick={() => setVistaTipo('lista')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -598,12 +598,12 @@ export default function Clientes() {
 
       {/* Lista de clientes */}
       {cargando ? (
-        <div className="rounded-xl p-12 text-center" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-xl p-12 text-center" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           <div className="w-8 h-8 border-2 border-[#00D656]/40 border-t-[#00D656] rounded-full animate-spin mx-auto mb-3"></div>
           <p className="text-gray-500 text-sm">Cargando clientes…</p>
         </div>
       ) : clientesFiltrados.length === 0 ? (
-        <div className="rounded-xl overflow-hidden" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl mb-4">
               👤
@@ -644,7 +644,7 @@ export default function Clientes() {
               <div
                 key={cliente.id}
                 className="rounded-xl p-4 transition-all"
-                style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
               >
@@ -729,7 +729,7 @@ export default function Clientes() {
         </div>
       ) : (
         /* ── Vista Lista (tabla dark) ── */
-        <div className="rounded-xl overflow-hidden" style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}>
           {/* ── Desktop / tablet: tabla ── */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm min-w-[900px]">
@@ -760,7 +760,7 @@ export default function Clientes() {
                     <tr
                       key={cliente.id}
                       className="transition-colors"
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                      style={{ borderBottom: '1px solid var(--gc-border)' }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
@@ -905,7 +905,7 @@ export default function Clientes() {
                   <div
                     key={cliente.id}
                     className="rounded-xl p-3.5 transition-all"
-                    style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}
+                    style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}
                   >
                     {/* Fila 1: avatar + nombre + badges */}
                     <div className="flex items-start gap-3 mb-3">
@@ -1035,7 +1035,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 placeholder="Nombre del cliente"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
                 required
               />
             </div>
@@ -1048,7 +1048,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="correo@ejemplo.com"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1060,7 +1060,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                 placeholder="3001234567"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1072,7 +1072,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, documento: e.target.value })}
                 placeholder="Cédula, DNI, etc."
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1083,7 +1083,7 @@ export default function Clientes() {
                 value={form.fecha_nacimiento}
                 onChange={(e) => setForm({ ...form, fecha_nacimiento: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1095,7 +1095,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
                 placeholder="Ciudad"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1107,7 +1107,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                 placeholder="Dirección completa"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1117,7 +1117,7 @@ export default function Clientes() {
                 value={form.categoria}
                 onChange={(e) => setForm({ ...form, categoria: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               >
                 {CAT_OPCIONES.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -1135,7 +1135,7 @@ export default function Clientes() {
                 min="0"
                 step="1000"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1147,7 +1147,7 @@ export default function Clientes() {
                 rows={3}
                 placeholder="Observaciones, preferencias, etc."
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 resize-none focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 resize-none focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1157,7 +1157,7 @@ export default function Clientes() {
                   type="checkbox"
                   checked={form.acepta_promociones}
                   onChange={(e) => setForm({ ...form, acepta_promociones: e.target.checked })}
-                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-2 focus:ring-[#00D656]/20"
+                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-1 focus:ring-[#00D656]/20"
                 />
                 <span className="text-sm text-gray-300">Acepta promociones</span>
               </label>
@@ -1167,7 +1167,7 @@ export default function Clientes() {
                   type="checkbox"
                   checked={form.acepta_emails}
                   onChange={(e) => setForm({ ...form, acepta_emails: e.target.checked })}
-                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-2 focus:ring-[#00D656]/20"
+                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-1 focus:ring-[#00D656]/20"
                 />
                 <span className="text-sm text-gray-300">Acepta emails</span>
               </label>
@@ -1219,7 +1219,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 placeholder="Nombre del cliente"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
                 required
               />
             </div>
@@ -1232,7 +1232,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="correo@ejemplo.com"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1244,7 +1244,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                 placeholder="3001234567"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1256,7 +1256,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, documento: e.target.value })}
                 placeholder="Cédula, DNI, etc."
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1267,7 +1267,7 @@ export default function Clientes() {
                 value={form.fecha_nacimiento}
                 onChange={(e) => setForm({ ...form, fecha_nacimiento: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1279,7 +1279,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, ciudad: e.target.value })}
                 placeholder="Ciudad"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1291,7 +1291,7 @@ export default function Clientes() {
                 onChange={(e) => setForm({ ...form, direccion: e.target.value })}
                 placeholder="Dirección completa"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1301,7 +1301,7 @@ export default function Clientes() {
                 value={form.categoria}
                 onChange={(e) => setForm({ ...form, categoria: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               >
                 {CAT_OPCIONES.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -1319,7 +1319,7 @@ export default function Clientes() {
                 min="0"
                 step="1000"
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1331,7 +1331,7 @@ export default function Clientes() {
                 rows={3}
                 placeholder="Observaciones, preferencias, etc."
                 className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#111318] text-white
-                  placeholder-gray-500 resize-none focus:outline-none focus:border-[#00D656]/50 focus:ring-2 focus:ring-[#00D656]/20"
+                  placeholder-gray-500 resize-none focus:outline-none focus:border-[#00D656]/50 focus:ring-1 focus:ring-[#00D656]/20"
               />
             </div>
 
@@ -1341,7 +1341,7 @@ export default function Clientes() {
                   type="checkbox"
                   checked={form.acepta_promociones}
                   onChange={(e) => setForm({ ...form, acepta_promociones: e.target.checked })}
-                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-2 focus:ring-[#00D656]/20"
+                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-1 focus:ring-[#00D656]/20"
                 />
                 <span className="text-sm text-gray-300">Acepta promociones</span>
               </label>
@@ -1351,7 +1351,7 @@ export default function Clientes() {
                   type="checkbox"
                   checked={form.acepta_emails}
                   onChange={(e) => setForm({ ...form, acepta_emails: e.target.checked })}
-                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-2 focus:ring-[#00D656]/20"
+                  className="w-5 h-5 rounded border-white/20 bg-white/5 text-[#00D656] focus:ring-1 focus:ring-[#00D656]/20"
                 />
                 <span className="text-sm text-gray-300">Acepta emails</span>
               </label>
@@ -1483,22 +1483,22 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
 
         {/* Estadísticas destacadas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}>
             <DollarSign size={20} className="mb-2" style={{ color: '#00D656' }} />
             <p className="text-2xl font-bold text-white tabular-nums">{formatCOP(cliente.total_gastado || 0)}</p>
             <p className="text-xs text-gray-500 mt-1">Total Gastado</p>
           </div>
-          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}>
             <Target size={20} className="mb-2" style={{ color: '#3B82F6' }} />
             <p className="text-2xl font-bold text-white tabular-nums">{cliente.total_sesiones || 0}</p>
             <p className="text-xs text-gray-500 mt-1">Sesiones</p>
           </div>
-          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}>
             <Clock size={20} className="mb-2" style={{ color: '#A855F7' }} />
             <p className="text-2xl font-bold text-white tabular-nums">{formatearHoras(cliente.total_horas_jugadas || 0)}</p>
             <p className="text-xs text-gray-500 mt-1">Horas Jugadas</p>
           </div>
-          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="p-4 rounded-xl" style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}>
             <Award size={20} className="mb-2" style={{ color: '#F59E0B' }} />
             <p className="text-2xl font-bold text-white tabular-nums">{cliente.puntos_acumulados || 0}</p>
             <p className="text-xs text-gray-500 mt-1">Puntos Lealtad</p>
@@ -1506,7 +1506,7 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
         </div>
 
         {/* Información de contacto */}
-        <div className="p-6 rounded-xl space-y-4" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="p-6 rounded-xl space-y-4" style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}>
           <h3 className="text-base font-bold text-white mb-4">Información de Contacto</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cliente.email && (
@@ -1563,7 +1563,7 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
 
         {/* Notas */}
         {cliente.notas && (
-          <div className="p-6 rounded-xl" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}>
+          <div className="p-6 rounded-xl" style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}>
             <div className="flex items-center gap-2 mb-3">
               <MessageSquare size={18} className="text-gray-400" />
               <h3 className="text-base font-bold text-white">Notas</h3>
@@ -1573,7 +1573,7 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
         )}
 
         {/* Historial de sesiones */}
-        <div className="p-6 rounded-xl" style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="p-6 rounded-xl" style={{ background: '#15171D', border: '1px solid var(--gc-border)' }}>
           <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
             <Clock size={18} style={{ color: '#A855F7' }} />
             Historial de Sesiones (últimas 10)
@@ -1589,7 +1589,7 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
           ) : (
             <div className="space-y-3">
               {historial.map((sesion) => (
-                <div key={sesion.id} className="flex items-center justify-between p-3 rounded-lg transition-all" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <div key={sesion.id} className="flex items-center justify-between p-3 rounded-lg transition-all" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}>
                   <div>
                     <p className="text-white font-semibold text-sm">{sesion.estacion || 'Estación'}</p>
                     <p className="text-xs text-gray-500">

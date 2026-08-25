@@ -62,7 +62,7 @@ export default function FormVenta({ onGuardado }) {
             placeholder="Ej: Sesión PS5, Bebida, etc."
             className="w-full rounded-xl border border-gray-300 dark:border-gray-600
               bg-white dark:bg-gray-800 px-4 py-2.5 text-sm
-              focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              focus:outline-none focus:ring-1 focus:ring-[#00D656]"
           />
         </div>
 
@@ -77,7 +77,7 @@ export default function FormVenta({ onGuardado }) {
             placeholder="Nombre del cliente"
             className="w-full rounded-xl border border-gray-300 dark:border-gray-600
               bg-white dark:bg-gray-800 px-4 py-2.5 text-sm
-              focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              focus:outline-none focus:ring-1 focus:ring-[#00D656]"
           />
         </div>
 
@@ -96,7 +96,7 @@ export default function FormVenta({ onGuardado }) {
             placeholder="0"
             className="w-full rounded-xl border border-gray-300 dark:border-gray-600
               bg-white dark:bg-gray-800 px-4 py-2.5 text-sm
-              focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              focus:outline-none focus:ring-1 focus:ring-[#00D656]"
           />
         </div>
       </div>

@@ -381,7 +381,7 @@ export default function MobileCommandCenter() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 flex items-end" onClick={() => setMobileMenuOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} aria-hidden="true" />
-          <div className="relative w-full max-h-[80vh] bg-[#0B0D14] border-t border-white/10 rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-h-[80vh] bg-[var(--gc-surface)] border-t border-white/10 rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <div className="font-bold text-white">Menú</div>
               <button onClick={() => setMobileMenuOpen(false)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white" aria-label="Cerrar">

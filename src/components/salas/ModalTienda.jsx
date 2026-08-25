@@ -464,7 +464,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
           </div>
 
           {/* ── CARRITO (30-35%) — Desktop ── */}
-          <div className="hidden lg:flex flex-col w-[340px] border-l border-white/5 bg-[#0B0D14] flex-shrink-0">
+          <div className="hidden lg:flex flex-col w-[340px] border-l border-white/5 bg-[var(--gc-surface)] flex-shrink-0">
             <CartPanel
               carrito={carrito}
               totalItems={totalItems}
@@ -502,7 +502,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
                   className="absolute inset-0 bg-black/70 backdrop-blur-sm"
                   onClick={() => setCarritoMobileAbierto(false)}
                 />
-                <div className="relative w-full max-h-[80vh] bg-[#0B0D14] rounded-t-2xl border-t border-white/10 flex flex-col">
+                <div className="relative w-full max-h-[80vh] bg-[var(--gc-surface)] rounded-t-2xl border-t border-white/10 flex flex-col">
                   <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
                     <div className="w-10 h-1 rounded-full bg-white/20" />
                   </div>
@@ -574,7 +574,7 @@ function CartPanel({
 
       {/* Footer: Total + Pago + Cobrar */}
       {carrito.length > 0 && (
-        <div className="flex-shrink-0 border-t border-white/10 px-4 py-3 space-y-2.5 bg-[#0B0D14]">
+        <div className="flex-shrink-0 border-t border-white/10 px-4 py-3 space-y-2.5 bg-[var(--gc-surface)]">
           {/* Total breakdown */}
           <div className="space-y-1">
             <div className="flex justify-between text-[10px] text-gray-500">

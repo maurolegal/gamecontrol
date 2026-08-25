@@ -102,7 +102,7 @@ const CardSesion = memo(function CardSesion({
   return (
     <div
       className="rounded-lg p-3 transition-all"
-      style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface-elevated)', border: '1px solid var(--gc-border)' }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,214,86,0.20)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; }}
     >
@@ -247,7 +247,7 @@ export default function MonitorSalasActivas({ cargando = false }) {
   return (
     <div
       className="rounded-xl p-4 overflow-hidden flex flex-col h-full"
-      style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ export default function MonitorSalasActivas({ cargando = false }) {
             <div
               key={i}
               className="animate-pulse rounded-lg p-3"
-              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
             >
               <div className="h-3 w-32 bg-white/10 rounded mb-2" />
               <div className="h-2 w-24 bg-white/10 rounded mb-2" />

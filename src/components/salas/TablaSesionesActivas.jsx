@@ -149,7 +149,7 @@ export default function TablaSesionesActivas({ sesiones = [], salas = [], onAgre
       {/* Vista tabla para desktop */}
       <div className="overflow-x-auto hidden md:block">
         <table className="w-full">
-          <thead className="bg-[#1A1C23]/50">
+          <thead className="bg-[var(--gc-surface)]/50">
             <tr>
               <th className="px-5 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Sala</th>
               <th className="px-5 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Estación</th>

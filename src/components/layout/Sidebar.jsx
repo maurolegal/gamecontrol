@@ -111,7 +111,7 @@ export default function Sidebar() {
       <button
         onClick={() => setAbierto(true)}
         className="fixed top-4 left-4 z-50 w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-lg shadow-black/30 hover:border-[#00D656]/30 active:scale-95 transition-all md:hidden"
-        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.10)' }}
+        style={{ background: 'var(--gc-sidebar)', border: '1px solid var(--gc-border-strong)' }}
         aria-label="Abrir menú"
       >
         <Menu size={20} />
@@ -133,14 +133,14 @@ export default function Sidebar() {
           ${abierto ? 'translate-x-0' : '-translate-x-full'}
           md:relative md:translate-x-0 md:shrink-0
         `}
-        style={{ background: '#0A0D14', borderRight: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ background: 'var(--gc-sidebar)', borderRight: '1px solid var(--gc-border)' }}
       >
         {/* ── Brand + close ── */}
         <div
           className="flex items-center justify-between px-4 py-3"
           style={{
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: '#000',
+            borderBottom: '1px solid var(--gc-border)',
+            background: 'var(--gc-sidebar)',
           }}
         >
           <div className="flex items-center justify-center flex-1 min-w-0">
@@ -181,17 +181,17 @@ export default function Sidebar() {
                     end={to === '/'}
                     onClick={cerrarMenu}
                     className={({ isActive }) =>
-                      `group relative flex items-center gap-2.5 pl-3 pr-3 py-2 rounded-lg text-[13px] transition-all duration-150 ${
+                      `group relative flex items-center gap-2.5 pl-3 pr-3 py-2 rounded-lg text-[13px] transition-colors duration-150 ${
                         isActive
                           ? 'text-[#00D656]'
                           : nucleo
-                            ? 'text-gray-200 font-medium hover:text-white'
-                            : 'text-gray-400 hover:text-white'
+                            ? 'text-gray-200 font-medium hover:text-white hover:bg-white/[0.04]'
+                            : 'text-gray-400 hover:text-white hover:bg-white/[0.04]'
                       }`
                     }
                     style={({ isActive }) =>
                       isActive
-                        ? { background: 'rgba(0,214,86,0.08)' }
+                        ? { background: 'rgba(0,214,86,0.12)' }
                         : { background: 'transparent' }
                     }
                   >
@@ -201,7 +201,7 @@ export default function Sidebar() {
                         {isActive && (
                           <span
                             className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full"
-                            style={{ background: '#00D656' }}
+                            style={{ background: 'var(--gc-primary)' }}
                           />
                         )}
                         <Icon
@@ -218,7 +218,7 @@ export default function Sidebar() {
           ))}
 
           {/* ── Grupo Pantallas (públicas) ── */}
-          <div className="mt-4 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--gc-border)' }}>
             <div className="px-3 pb-1.5 text-[9px] text-gray-600 uppercase tracking-widest font-bold">
               Pantallas
             </div>
@@ -230,7 +230,7 @@ export default function Sidebar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={cerrarMenu}
-                  className="group flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-gray-400 hover:text-white transition-all"
+                  className="group flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] text-gray-400 hover:text-white hover:bg-white/[0.04] transition-colors"
                 >
                   <Icon size={16} className="shrink-0 text-gray-500 group-hover:text-gray-300" />
                   <span className="truncate">{label}</span>
@@ -243,12 +243,12 @@ export default function Sidebar() {
         {/* ── User Area (separada de la navegación) ── */}
         <div
           className="px-3 py-3"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderTop: '1px solid var(--gc-border)' }}
         >
           <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)' }}>
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold text-black shrink-0"
-              style={{ background: '#00D656' }}
+              style={{ background: 'var(--gc-primary)' }}
             >
               {iniciales}
             </div>

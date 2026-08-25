@@ -587,15 +587,15 @@ export default function Ajustes() {
   return (
     <div
       className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: '#070A0F', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
+      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
     >
       {/* ── HEADER compacto ── */}
       <header
         className="relative z-40 px-4 py-2.5"
         style={{
-          background: 'rgba(10,14,25,0.95)',
-          backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          background: 'var(--gc-header)',
+          backdropFilter: 'blur(8px)',
+          borderBottom: '1px solid var(--gc-border)',
         }}
       >
         <div className="flex items-center justify-between gap-3">
@@ -617,7 +617,7 @@ export default function Ajustes() {
         {/* ── Tabs discretos ── */}
         <div
           className="flex items-center gap-1 p-1 rounded-xl w-fit"
-          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
         >
           {TABS.map((tab) => (
             <button
@@ -647,7 +647,7 @@ export default function Ajustes() {
             <form
               onSubmit={handleSubmit}
               className="rounded-xl p-5 space-y-4"
-              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Building2 size={15} className="text-gray-500" />
@@ -714,11 +714,11 @@ export default function Ajustes() {
             {salas.length === 0 ? (
               <div
                 className="rounded-xl p-12 text-center"
-                style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
               >
                 <div
                   className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
                 >
                   <Gamepad2 size={24} className="text-gray-600" />
                 </div>
@@ -737,19 +737,19 @@ export default function Ajustes() {
                       <div
                         key={sala.id}
                         className="rounded-xl overflow-hidden"
-                        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+                        style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
                       >
                         {/* Header de sala */}
                         <div
                           className="flex items-center justify-between px-4 py-3"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                          style={{ borderBottom: '1px solid var(--gc-border)' }}
                         >
                           <div className="flex items-center gap-2">
                             <Gamepad2 size={15} className="text-gray-500" />
                             <h4 className="text-sm font-bold text-white">{sala.nombre}</h4>
                             <span
                               className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded"
-                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#8B919C' }}
+                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--gc-border-strong)', color: '#8B919C' }}
                             >
                               {sala.tipo}
                             </span>
@@ -837,7 +837,7 @@ export default function Ajustes() {
                         {tarifas.t30 > 0 && tarifas.t120 > 0 && (
                           <div
                             className="flex items-center gap-2 px-4 py-2.5"
-                            style={{ background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(255,255,255,0.05)' }}
+                            style={{ background: 'rgba(255,255,255,0.02)', borderTop: '1px solid var(--gc-border)' }}
                           >
                             <span className="text-[11px] text-gray-500">
                               Ahorro con 2h vs 4×30min:
@@ -867,7 +867,7 @@ export default function Ajustes() {
             {/* ── Sección QR ── */}
             <div
               className="rounded-xl p-5 space-y-4"
-              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -974,12 +974,12 @@ export default function Ajustes() {
                   <div
                     key={medio.id}
                     className="rounded-lg p-3.5 flex items-center justify-between gap-3 group"
-                    style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+                    style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div
                         className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--gc-border)' }}
                       >
                         {medio.banco.toLowerCase().includes('nequi') || medio.banco.toLowerCase().includes('daviplata') ? (
                           <Smartphone size={16} className="text-gray-400" />
@@ -1015,7 +1015,7 @@ export default function Ajustes() {
             {/* Formulario agregar cuenta */}
             <div
               className="rounded-xl p-5 space-y-4"
-              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Plus size={15} className="text-[#00D656]" />
@@ -1110,7 +1110,7 @@ export default function Ajustes() {
             {/* ── Asignar juegos a estación ── */}
             <div
               className="rounded-xl p-5 space-y-4"
-              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Gamepad2 size={15} className="text-[#8B5CF6]" />
@@ -1224,10 +1224,10 @@ export default function Ajustes() {
                                   else next.add(juego.id);
                                   return next;
                                 })}
-                                className="w-4 h-4 rounded border-white/20 text-[#00D656] focus:ring-2 focus:ring-[#00D656]/50"
+                                className="w-4 h-4 rounded border-white/20 text-[#00D656] focus:ring-1 focus:ring-[#00D656]/50"
                               />
                               {juego.portada_url && (
-                                <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover shrink-0" style={{ border: '1px solid rgba(255,255,255,0.05)' }} />
+                                <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover shrink-0" style={{ border: '1px solid var(--gc-border)' }} />
                               )}
                               {!juego.portada_url && (
                                 <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
@@ -1273,7 +1273,7 @@ export default function Ajustes() {
             {/* ── Catálogo de juegos ── */}
             <div
               className="rounded-xl p-5 space-y-4"
-              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -1370,7 +1370,7 @@ export default function Ajustes() {
                       {/* Portada con upload al hover */}
                       <div className="relative shrink-0">
                         {juego.portada_url ? (
-                          <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover" style={{ border: '1px solid rgba(255,255,255,0.05)' }} />
+                          <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover" style={{ border: '1px solid var(--gc-border)' }} />
                         ) : (
                           <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
                             <Gamepad2 size={12} className="text-[#8B5CF6]" />
