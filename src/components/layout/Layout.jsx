@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
+import Topbar from './Topbar';
 import Notification from '../ui/Notification';
 import ModalAperturaCaja from '../caja/ModalAperturaCaja';
 import { useAuth } from '../../hooks/useAuth';
 import { useCaja } from '../../hooks/useCaja';
 
 // ===================================================================
-// LAYOUT PRINCIPAL
-// Sidebar fijo + área de contenido scrollable
+// APP SHELL — Layout global único para toda la aplicación
+// Sidebar fijo + Topbar fijo + Main scrollable
 // + Modal de Apertura de Caja al iniciar sesión
 // ===================================================================
 
@@ -34,17 +35,22 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div
-      className="flex h-screen overflow-hidden"
-      style={{ background: 'var(--gc-bg)' }}
-    >
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--gc-bg)' }}>
+      {/* Sidebar fijo: top:0, bottom:0, left:0, width: var(--gc-sidebar-width) */}
       <Sidebar />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-3 pt-18 md:pt-6 md:p-6">
-          {children}
-        </div>
-      </main>
+      {/* Columna principal: inicia después del sidebar */}
+      <div className="flex flex-col flex-1 min-w-0" style={{ marginLeft: 'var(--gc-sidebar-width)' }}>
+        {/* Topbar fijo: height: var(--gc-shell-header-height), top:0, right:0, left: sidebar-width */}
+        <Topbar />
+
+        {/* Main Content: scrollable, padding-top = header height */}
+        <main className="flex-1 overflow-y-auto" style={{ paddingTop: 'var(--gc-shell-header-height)' }}>
+          <div className="p-4 md:p-6">
+            {children}
+          </div>
+        </main>
+      </div>
 
       {/* Notificaciones toast globales */}
       <Notification />

@@ -585,36 +585,14 @@ export default function Ajustes() {
   ];
 
   return (
-    <div
-      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
-    >
-      {/* ── HEADER compacto ── */}
-      <header
-        className="relative z-40 px-4 py-2.5"
-        style={{
-          background: 'var(--gc-header)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid var(--gc-border)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="shrink-0">
-            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
-            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Configuración</p>
-          </div>
-        </div>
-      </header>
+    <>
+      {/* Título + subtítulo (no card) */}
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Configuración</h2>
+        <p className="text-xs text-gray-500 mt-0.5">Gestiona las reglas operativas de GameControl</p>
+      </div>
 
-      {/* ── CONTENIDO ── */}
-      <main className="flex-1 px-4 py-4 space-y-4 pb-28">
-        {/* Título + subtítulo (no card) */}
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Configuración</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Gestiona las reglas operativas de GameControl</p>
-        </div>
-
-        {/* ── Tabs discretos ── */}
+      {/* ── Tabs discretos ── */}
         <div
           className="flex items-center gap-1 p-1 rounded-xl w-fit"
           style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
@@ -1413,7 +1391,6 @@ export default function Ajustes() {
             </div>
           </div>
         )}
-      </main>
 
       {/* ── Footer sticky — solo visible en tarifas con cambios ── */}
       {seccionActiva === 'tarifas' && salas.length > 0 && (
@@ -1444,6 +1421,5 @@ export default function Ajustes() {
           </div>
         </div>
       )}
-    </div>
-  );
+  </>);
 }

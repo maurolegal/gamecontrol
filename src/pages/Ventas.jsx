@@ -535,53 +535,17 @@ export default function Ventas() {
   ];
 
   return (
-    <div
-      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
-    >
-      {/* ── HEADER compacto (Design System Command Center) ── */}
-      <header
-        className="relative z-40 px-4 py-2.5"
-        style={{
-          background: 'var(--gc-header)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid var(--gc-border)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          {/* Brand */}
-          <div className="shrink-0">
-            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
-            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Ventas</p>
-          </div>
+    <>
+      {/* ── Título de página ── */}
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Ventas</h2>
+        <p className="text-xs text-gray-500 mt-0.5">Control y seguimiento de ventas</p>
+      </div>
 
-          {/* Controles */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={cargar}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
-              aria-label="Actualizar ventas"
-              title="Actualizar ventas"
-            >
-              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
-              <span className="hidden sm:inline">Actualizar</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* ── KPI Strip ── */}
+      <KpiStrip items={kpis} />
 
-      {/* ── CONTENIDO ── */}
-      <main className="flex-1 px-4 py-4 space-y-4">
-        {/* Título de página (jerarquía clara, compacto) */}
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Ventas</h2>
-          <p className="text-xs text-gray-500 mt-0.5">Control y seguimiento de ventas</p>
-        </div>
-
-        {/* ── KPI Strip ── */}
-        <KpiStrip items={kpis} />
-
-        {/* ── Toolbar de filtros (compacta, no card gigante) ── */}
+      {/* ── Toolbar de filtros (compacta, no card gigante) ── */}
         <div
           className="rounded-xl p-3 space-y-3"
           style={{
@@ -717,7 +681,6 @@ export default function Ventas() {
           onLimpiar={limpiar}
           hayFiltros={periodo !== 'hoy' || !!filtroSala || !!filtroMetodo || !!busqueda}
         />
-      </main>
 
       {/* ── Modales ── */}
       {detalle && (
@@ -744,6 +707,5 @@ export default function Ventas() {
           onCerrar={() => setDevolver(null)}
         />
       )}
-    </div>
-  );
+  </>);
 }

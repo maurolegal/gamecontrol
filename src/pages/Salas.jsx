@@ -109,54 +109,17 @@ export default function Salas() {
   }
 
   return (
-    <div
-      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
-    >
-      {/* ── HEADER compacto (Design System) ── */}
-      <header
-        className="relative z-40 px-4 py-2.5"
-        style={{
-          background: 'var(--gc-header)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid var(--gc-border)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          {/* Brand */}
-          <div className="shrink-0 pl-11 md:pl-0">
-            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
-            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Salas</p>
-          </div>
+    <>
+      {/* Título de página */}
+      <div className="mb-4 md:mb-6">
+        <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Salas Gaming</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          <span className="text-[#00D656] font-semibold">{estacionesLibres}</span> estaciones libres ·
+          <span className="text-red-400 font-semibold ml-1">{estacionesOcupadas}</span> en uso
+        </p>
+      </div>
 
-          {/* Controles */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={cargarSalas}
-              disabled={cargando}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all disabled:opacity-50"
-              aria-label="Actualizar"
-              title="Actualizar"
-            >
-              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
-              <span className="hidden sm:inline">Actualizar</span>
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ── CONTENIDO ── */}
-      <main className="flex-1 px-4 py-4 space-y-4 md:space-y-6">
-        {/* Título de página */}
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Salas Gaming</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            <span className="text-[#00D656] font-semibold">{estacionesLibres}</span> estaciones libres ·
-            <span className="text-red-400 font-semibold ml-1">{estacionesOcupadas}</span> en uso
-          </p>
-        </div>
-
-        {/* ── KPI Strip ── */}
+      {/* ── KPI Strip ── */}
         <div
           className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 rounded-xl overflow-hidden"
           style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
@@ -382,6 +345,5 @@ export default function Salas() {
         abierto={modalNuevaSalaAbierto}
         onCerrar={() => setModalNuevaSalaAbierto(false)}
       />
-    </div>
-  );
+  </>);
 }

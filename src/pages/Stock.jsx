@@ -115,92 +115,18 @@ export default function Stock() {
     'focus:outline-none focus:ring-1 focus:ring-[#00D656]/50 focus:border-[#00D656]/50 transition-colors';
 
   return (
-    <div
-      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)]"
-      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
-    >
-      {/* ── HEADER compacto (Design System Command Center) ── */}
-      <header
-        className="relative z-40 px-4 py-2.5"
-        style={{
-          background: 'var(--gc-header)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid var(--gc-border)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          {/* Brand */}
-          <div className="shrink-0">
-            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
-            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Stock</p>
-          </div>
+    <>
+      {/* Título de página + stats compactas */}
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Stock</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          <span className="text-gray-300 font-semibold tabular-nums">{kpis.total}</span> productos ·{' '}
+          <span className="text-amber-400 font-semibold tabular-nums">{kpis.stockBajo}</span> stock bajo ·{' '}
+          <span className="text-red-400 font-semibold tabular-nums">{kpis.agotados}</span> agotados
+        </p>
+      </div>
 
-          {/* Controles */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {puedeGestionarProductos && (
-              <button
-                onClick={() => setModalMercancia(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
-                aria-label="Ingresar mercancía"
-                title="Ingresar mercancía"
-              >
-                <Truck size={13} />
-                <span className="hidden sm:inline">Ingresar</span>
-              </button>
-            )}
-            {puedeGestionarProductos && puedeGestionarCategorias && (
-              <button
-                onClick={() => setModalCategorias(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
-                aria-label="Gestionar categorías"
-                title="Gestionar categorías"
-              >
-                <Tag size={13} />
-                <span className="hidden sm:inline">Categorías</span>
-              </button>
-            )}
-            {puedeGestionarProductos && (
-              <button
-                onClick={() => setModalProducto({ abierto: true, producto: null })}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all"
-                style={{
-                  background: 'rgba(0,214,86,0.12)',
-                  border: '1px solid rgba(0,214,86,0.30)',
-                  color: '#00D656',
-                }}
-                aria-label="Nuevo producto"
-                title="Nuevo producto"
-              >
-                <Plus size={13} />
-                <span className="hidden sm:inline">Nuevo producto</span>
-              </button>
-            )}
-            <button
-              onClick={cargar}
-              disabled={cargando}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all disabled:opacity-50"
-              aria-label="Actualizar"
-              title="Actualizar"
-            >
-              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ── CONTENIDO ── */}
-      <main className="flex-1 px-4 py-4 space-y-4">
-        {/* Título de página + stats compactas */}
-        <div>
-          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Stock</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            <span className="text-gray-300 font-semibold tabular-nums">{kpis.total}</span> productos ·{' '}
-            <span className="text-amber-400 font-semibold tabular-nums">{kpis.stockBajo}</span> stock bajo ·{' '}
-            <span className="text-red-400 font-semibold tabular-nums">{kpis.agotados}</span> agotados
-          </p>
-        </div>
-
-        {/* ── KPI Strip ── */}
+      {/* ── KPI Strip ── */}
         <div
           className="grid grid-cols-2 lg:grid-cols-4 rounded-xl overflow-hidden"
           style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
@@ -352,8 +278,6 @@ export default function Stock() {
         ) : (
           <MovimientosStock />
         )}
-      </main>
-
       {/* Modals */}
       <ModalProducto
         abierto={modalProducto.abierto}
@@ -380,6 +304,5 @@ export default function Stock() {
         onCerrar={() => setModalMercancia(false)}
         onGuardado={cargar}
       />
-    </div>
-  );
+  </>);
 }

@@ -25,6 +25,10 @@
     --gc-danger: #EF4B5F;
     --gc-info: #4D8DFF;
 
+    /* ═══ APP SHELL TOKENS ═══ */
+    --gc-sidebar-width: 256px;
+    --gc-shell-header-height: 64px;
+
     /* Legacy aliases (compatibilidad) */
     --bg-dark-primary: var(--gc-bg);
     --bg-dark-secondary: var(--gc-sidebar);

@@ -180,78 +180,46 @@ export default function Dashboard() {
       : 'Sin datos de ayer';
 
   return (
-    <div
-      className="flex flex-col -m-3 md:-m-6 min-h-[calc(100vh-0px)] space-y-4"
-      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter','Segoe UI',system-ui,sans-serif" }}
-    >
-      {/* ── HEADER compacto ── */}
-      <header
-        className="relative z-40 px-4 py-2.5"
-        style={{
-          background: 'var(--gc-header)',
-          backdropFilter: 'blur(8px)',
-          borderBottom: '1px solid var(--gc-border)',
-        }}
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div className="shrink-0">
-            <h1 className="font-black text-white text-sm leading-tight tracking-tight">GameControl</h1>
-            <p className="text-[9px] text-gray-500 uppercase tracking-widest leading-tight">Dashboard</p>
-          </div>
+    <>
+      {/* ── Título de página + fecha ── */}
+      <div className="flex items-end justify-between gap-3 flex-wrap mb-4">
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Panel de Control</h2>
+          <p className="text-[11px] text-gray-500 mt-0.5 capitalize">
+            {new Date().toLocaleDateString('es-CO', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })}
+          </p>
+        </div>
+      </div>
 
-          <div className="flex items-center gap-2">
-            {/* ── Ingresos activos (sesiones en juego) ── */}
-            {ingresosActivos > 0 && (
-              <div
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-                style={{
-                  background: 'rgba(0,214,86,0.08)',
-                  border: '1px solid rgba(0,214,86,0.20)',
-                }}
-                title={`Ingresos potenciales de ${sesionesActivas.length} sesión(es) activa(s)`}
-              >
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D656] opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00D656]" />
-                </span>
-                <div className="leading-tight">
-                  <p className="text-[8px] uppercase tracking-wider text-[#00D656]/70 font-medium">En juego</p>
-                  <p className="text-[12px] font-bold text-[#00D656] tabular-nums">{formatCOP(ingresosActivos)}</p>
-                </div>
-              </div>
-            )}
-            <HeaderWidgets />
-            <button
-              onClick={refetch}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 text-gray-300 hover:text-[#00D656] text-xs font-medium transition-all"
-              aria-label="Actualizar"
-              title="Actualizar"
-            >
-              <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} />
-              <span className="hidden sm:inline">Actualizar</span>
-            </button>
+      {/* ── Ingresos activos (sesiones en juego) ── */}
+      {ingresosActivos > 0 && (
+        <div className="mb-4">
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+            style={{
+              background: 'rgba(0,214,86,0.08)',
+              border: '1px solid rgba(0,214,86,0.20)',
+            }}
+            title={`Ingresos potenciales de ${sesionesActivas.length} sesión(es) activa(s)`}
+          >
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D656] opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00D656]" />
+            </span>
+            <div className="leading-tight">
+              <p className="text-[8px] uppercase tracking-wider text-[#00D656]/70 font-medium">En juego</p>
+              <p className="text-[12px] font-bold text-[#00D656] tabular-nums">{formatCOP(ingresosActivos)}</p>
+            </div>
           </div>
         </div>
-      </header>
-
-      {/* ── CONTENIDO ── */}
-      <main className="flex-1 px-4 pb-24 space-y-4">
-        {/* Título de página + fecha */}
-        <div className="flex items-end justify-between gap-3 flex-wrap">
-          <div>
-            <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Panel de Control</h2>
-            <p className="text-[11px] text-gray-500 mt-0.5 capitalize">
-              {new Date().toLocaleDateString('es-CO', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-              })}
-            </p>
-          </div>
-        </div>
+      )}
 
       {/* ── KPI Cards ──────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
         {/* 1. Ingresos del día (solo ventas cerradas, igual que /ventas) */}
         <KpiCard
           titulo="Ingresos del Día"
@@ -403,7 +371,5 @@ export default function Dashboard() {
         productos={productos}
         kpis={kpis}
       />
-      </main>
-    </div>
-  );
+  </>);
 }
