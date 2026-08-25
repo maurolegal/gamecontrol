@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS public.mantenimientos (
   tipo            TEXT NOT NULL,                  -- preventivo, correctivo, limpieza
   descripcion     TEXT,
   costo           NUMERIC(12,2) DEFAULT 0,
+  metodo_pago     TEXT DEFAULT 'efectivo',         -- efectivo, transferencia, tarjeta, cheque
   proveedor       TEXT,
   tecnico         TEXT,
   proximo_mantenimiento DATE,

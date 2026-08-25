@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { X, Settings, Calendar, Shield, Truck, CreditCard, Wrench, DollarSign, Clock, History, Plus, Package, Trash2, Tv, Monitor, Gamepad2, Smartphone } from 'lucide-react';
+import ModalCrearMantenimiento from './ModalCrearMantenimiento';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
 
@@ -12,6 +13,20 @@ const ESTADOS = {
   mantenimiento: { label: 'Mantenimiento', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.2)' },
   reparacion: { label: 'Reparación', color: '#EF4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)' },
   baja: { label: 'Baja', color: '#6B7280', bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.06)' },
+};
+
+const METODOS_PAGO_LABEL = {
+  efectivo: 'Efectivo',
+  transferencia: 'Transferencia',
+  tarjeta: 'Tarjeta',
+  cheque: 'Cheque',
+};
+
+const METODOS_PAGO_COLOR = {
+  efectivo: '#00D656',
+  transferencia: '#8B5CF6',
+  tarjeta: '#3B82F6',
+  cheque: '#F59E0B',
 };
 
 const TIPOS = {
@@ -36,6 +51,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
   const [mantenimientos, setMantenimientos] = useState([]);
   const [cargandoMant, setCargandoMant] = useState(true);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
+  const [modalMantenimientoOpen, setModalMantenimientoOpen] = useState(false);
 
   // Cargar mantenimientos
   useEffect(() => {
@@ -102,14 +118,15 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
   const metaCls = 'text-[11px] text-gray-500';
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm"
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
+    <>
       <div
-        className="w-full md:max-w-[720px] md:rounded-2xl shadow-2xl flex flex-col h-full md:h-auto md:max-h-[90vh]"
-        style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.06)' }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm"
+        onClick={e => e.target === e.currentTarget && onClose()}
       >
+        <div
+          className="w-full md:max-w-[720px] md:rounded-2xl shadow-2xl flex flex-col h-full md:h-auto md:max-h-[90vh]"
+          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.06)' }}
+        >
         {/* ── Header ── */}
         <div
           className="flex items-center justify-between px-5 py-3.5 shrink-0"
@@ -270,7 +287,7 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
               <p className={sectionTitle}>Historial de mantenimiento</p>
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => { /* Abrir modal nuevo mantenimiento */ }}
+                  onClick={() => setModalMantenimientoOpen(true)}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-[#00D656] hover:bg-[#00D656]/10 transition-colors min-h-[36px]"
                 >
                   <Plus size={12} /> Registrar
@@ -293,37 +310,53 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
             ) : (
               <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.04)' }}>
                 <div
-                  className="grid grid-cols-[1fr_80px_1fr_100px] px-3 py-2 text-[9px] uppercase tracking-wider text-gray-500 font-medium"
+                  className="grid grid-cols-[1fr_70px_1fr_90px_90px] px-3 py-2 text-[9px] uppercase tracking-wider text-gray-500 font-medium"
                   style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                 >
                   <span>Fecha</span>
                   <span className="text-center">Tipo</span>
                   <span>Descripción</span>
+                  <span className="text-center">Pago</span>
                   <span className="text-right">Costo</span>
                 </div>
                 <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.03)' }}>
-                  {mantenimientos.map((m, i) => (
-                    <div
-                      key={m.id}
-                      className="grid grid-cols-[1fr_80px_1fr_100px] px-3 py-2.5 items-center"
-                      style={{ borderBottom: i < mantenimientos.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}
-                    >
-                      <span className="text-[11px] text-gray-400">{formatFecha(m.fecha)}</span>
-                      <span className="text-center">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium"
-                          style={{
-                            background: m.tipo === 'preventivo' ? 'rgba(0,214,86,0.15)' : m.tipo === 'correctivo' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
-                            color: m.tipo === 'preventivo' ? '#00D656' : m.tipo === 'correctivo' ? '#EF4444' : '#F59E0B',
-                            border: m.tipo === 'preventivo' ? '1px solid rgba(0,214,86,0.2)' : m.tipo === 'correctivo' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(245,158,11,0.2)',
-                          }}
-                        >
-                          {m.tipo === 'preventivo' ? '🛡️' : m.tipo === 'correctivo' ? '🔧' : '🧹'} {m.tipo}
+                  {mantenimientos.map((m, i) => {
+                    const pagoColor = METODOS_PAGO_COLOR[m.metodo_pago] || '#9CA3AF';
+                    const pagoLabel = METODOS_PAGO_LABEL[m.metodo_pago] || m.metodo_pago || '—';
+                    return (
+                      <div
+                        key={m.id}
+                        className="grid grid-cols-[1fr_70px_1fr_90px_90px] px-3 py-2.5 items-center"
+                        style={{ borderBottom: i < mantenimientos.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}
+                      >
+                        <span className="text-[11px] text-gray-400">{formatFecha(m.fecha)}</span>
+                        <span className="text-center">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium"
+                            style={{
+                              background: m.tipo === 'preventivo' ? 'rgba(0,214,86,0.15)' : m.tipo === 'correctivo' ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)',
+                              color: m.tipo === 'preventivo' ? '#00D656' : m.tipo === 'correctivo' ? '#EF4444' : '#F59E0B',
+                              border: m.tipo === 'preventivo' ? '1px solid rgba(0,214,86,0.2)' : m.tipo === 'correctivo' ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(245,158,11,0.2)',
+                            }}
+                          >
+                            {m.tipo === 'preventivo' ? '🛡️' : m.tipo === 'correctivo' ? '🔧' : '🧹'} {m.tipo}
+                          </span>
                         </span>
-                      </span>
-                      <span className="text-[12px] text-gray-300 truncate">{m.descripcion || '—'}</span>
-                      <span className="text-[12px] font-medium text-right text-[#F59E0B] tabular-nums">{formatCOP(m.costo)}</span>
-                    </div>
-                  ))}
+                        <span className="text-[12px] text-gray-300 truncate">{m.descripcion || '—'}</span>
+                        <span className="text-center">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium"
+                            style={{
+                              background: `rgba(${pagoColor === '#00D656' ? '0,214,86' : pagoColor === '#8B5CF6' ? '139,92,246' : pagoColor === '#3B82F6' ? '59,130,246' : '245,158,11'},0.12)`,
+                              color: pagoColor,
+                              border: `1px solid rgba(${pagoColor === '#00D656' ? '0,214,86' : pagoColor === '#8B5CF6' ? '139,92,246' : pagoColor === '#3B82F6' ? '59,130,246' : '245,158,11'},0.2)`,
+                            }}
+                          >
+                            {pagoLabel}
+                          </span>
+                        </span>
+                        <span className="text-[12px] font-medium text-right text-[#F59E0B] tabular-nums">{formatCOP(m.costo)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -370,5 +403,22 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
         </div>
       </div>
     </div>
+
+      <ModalCrearMantenimiento
+        open={modalMantenimientoOpen}
+        onClose={() => setModalMantenimientoOpen(false)}
+        onCreado={() => {
+          if (dispositivo?.id) {
+            supabase
+              .from('mantenimientos')
+              .select('*')
+              .eq('dispositivo_id', dispositivo.id)
+              .order('fecha', { ascending: false })
+              .then(({ data }) => setMantenimientos(data ?? []));
+          }
+        }}
+        dispositivo={dispositivo}
+      />
+    </>
   );
 }

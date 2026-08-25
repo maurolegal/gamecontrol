@@ -10,6 +10,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import KpiDispositivos        from '../components/dispositivos/KpiDispositivos';
 import TablaDispositivos      from '../components/dispositivos/TablaDispositivos';
 import ModalDetalleDispositivo from '../components/dispositivos/ModalDetalleDispositivo';
+import ModalCrearDispositivo  from '../components/dispositivos/ModalCrearDispositivo';
 
 export default function Dispositivos() {
   const { exito, error: notifError } = useNotifications();
@@ -17,6 +18,7 @@ export default function Dispositivos() {
   const [dispositivos,  setDispositivos]  = useState([]);
   const [cargando,  setCargando]  = useState(true);
   const [detalleDispositivo, setDetalleDispositivo] = useState(null);
+  const [modalCrearOpen, setModalCrearOpen] = useState(false);
 
   // ── Cargar dispositivos ─────────────────────────────────────────────
   const cargar = useCallback(async () => {
@@ -80,7 +82,7 @@ export default function Dispositivos() {
             <RefreshCw size={13} className={cargando ? 'animate-spin' : ''} /> Actualizar
           </button>
           <button
-            onClick={() => setDetalleDispositivo({ nuevo: true })}
+            onClick={() => setModalCrearOpen(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-semibold text-white rounded-lg transition-all"
             style={{ background: '#00D656', boxShadow: '0 0 12px rgba(0,214,86,0.25)' }}
             title="Registrar nuevo dispositivo"
@@ -98,7 +100,6 @@ export default function Dispositivos() {
         dispositivos={dispositivos}
         cargando={cargando}
         onVerDetalle={setDetalleDispositivo}
-        onCrear={() => setDetalleDispositivo({ nuevo: true })}
         onEditar={setDetalleDispositivo}
         onEliminar={() => {}}
       />
@@ -106,11 +107,18 @@ export default function Dispositivos() {
       {/* ── Mantenimiento reciente (opcional) ── */}
       {/* Sección opcional - se puede agregar después */}
 
-      {/* ── Modal Detalle ── */}
+      {/* ── Modal Detalle (ver/editar existente) ── */}
       <ModalDetalleDispositivo
         dispositivo={detalleDispositivo}
         onClose={() => setDetalleDispositivo(null)}
         onActualizado={cargar}
+      />
+
+      {/* ── Modal Crear (nuevo dispositivo) ── */}
+      <ModalCrearDispositivo
+        open={modalCrearOpen}
+        onClose={() => setModalCrearOpen(false)}
+        onCreado={cargar}
       />
 
     </div>

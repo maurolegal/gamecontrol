@@ -343,6 +343,13 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- efectivo_contado NUMERIC(12,2) DEFAULT 0
 -- efectivo_esperado NUMERIC(12,2) DEFAULT 0
 -- efectivo_descuadre NUMERIC(12,2) DEFAULT 0  -- CHECK = efectivo_contado - efectivo_esperado
+-- ventas_efectivo NUMERIC(12,2) DEFAULT 0      -- Ventas en efectivo del turno
+-- ventas_transferencia NUMERIC(12,2) DEFAULT 0 -- Ventas por transferencia
+-- ventas_tarjeta NUMERIC(12,2) DEFAULT 0       -- Ventas por tarjeta
+-- ventas_digital NUMERIC(12,2) DEFAULT 0       -- Ventas digital/QR
+-- gastos_efectivo NUMERIC(12,2) DEFAULT 0      -- Gastos en efectivo
+-- ventas_total NUMERIC(12,2) DEFAULT 0         -- Total ventas (todos medios)
+-- gastos_total NUMERIC(12,2) DEFAULT 0         -- Total gastos (todos medios)
 -- inventario_esperado_valor NUMERIC(12,2) DEFAULT 0
 -- inventario_contado_valor NUMERIC(12,2) DEFAULT 0
 -- inventario_descuadre_valor NUMERIC(12,2) DEFAULT 0 -- CHECK = contado - esperado

@@ -3,7 +3,7 @@
 // ===================================================================
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Search, Filter, ChevronDown, RefreshCw, Plus, Settings, Truck, Monitor, Gamepad2, Smartphone, Package } from 'lucide-react';
+import { Search, Filter, ChevronDown, RefreshCw, Plus, Settings, Truck, Monitor, Gamepad2, Smartphone, Package, Tv } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
 
