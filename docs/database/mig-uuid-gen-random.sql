@@ -15,24 +15,21 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 2. Actualizar DEFAULT de todas las tablas que usan uuid_generate_v4()
--- Salas
-ALTER TABLE salas ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Sesiones
-ALTER TABLE sesiones ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Ventas
-ALTER TABLE ventas ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Gastos
-ALTER TABLE gastos ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Productos
-ALTER TABLE productos ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Cierres de turno
-ALTER TABLE cierres_turno ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Caja
-ALTER TABLE caja ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Clientes
-ALTER TABLE clientes ALTER COLUMN id SET DEFAULT gen_random_uuid();
--- Dispositivos
-ALTER TABLE dispositivos ALTER COLUMN id SET DEFAULT gen_random_uuid();
+-- Solo se aplica si la tabla existe (evita error si una tabla no existe)
+DO $$
+DECLARE
+  t TEXT;
+  tablas TEXT[] := ARRAY['salas','sesiones','ventas','gastos','productos','cierres_turno','caja','clientes','dispositivos'];
+BEGIN
+  FOREACH t IN ARRAY tablas LOOP
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = t) THEN
+      EXECUTE format('ALTER TABLE %I ALTER COLUMN id SET DEFAULT gen_random_uuid()', t);
+      RAISE NOTICE 'DEFAULT actualizado en tabla: %', t;
+    ELSE
+      RAISE NOTICE 'Tabla % no existe, se omite', t;
+    END IF;
+  END LOOP;
+END $$;
 
 -- 3. Recrear la función crear_usuario usando gen_random_uuid() en lugar de uuid_generate_v4()
 CREATE OR REPLACE FUNCTION crear_usuario(
