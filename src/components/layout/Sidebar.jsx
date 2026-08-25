@@ -112,8 +112,8 @@ export default function Sidebar() {
           src="/gamecontrol-horizontal.png"
           alt="GameControl"
           style={{
-            maxWidth: '180px',
-            maxHeight: '40px',
+            width: '255px',
+            height: '60px',
             objectFit: 'contain',
           }}
         />
