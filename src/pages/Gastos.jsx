@@ -12,7 +12,6 @@ import * as db from '../lib/databaseService';
 import { useNotifications }    from '../hooks/useNotifications';
 import { useConfirm }          from '../components/ui/ConfirmProvider';
 import { useCategoriasGastos } from '../hooks/useCategoriasGastos';
-import { useAuth }             from '../hooks/useAuth';
 
 import KpiGastos        from '../components/gastos/KpiGastos';
 import FiltrosGastos    from '../components/gastos/FiltrosGastos';
@@ -153,7 +152,6 @@ export default function Gastos() {
   const { exito, error: notifError } = useNotifications();
   const { confirm, alert: alertMsg } = useConfirm();
   const { categorias, guardar: guardarCategorias } = useCategoriasGastos();
-  const { usuario } = useAuth();
 
   const [gastos,      setGastos]      = useState([]);
   const [cargando,    setCargando]    = useState(false);
@@ -297,15 +295,6 @@ export default function Gastos() {
               <Settings size={13} />
               <span className="hidden sm:inline">Categorías</span>
             </button>
-
-            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs font-medium">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#00D656]/20 to-green-600/20 flex items-center justify-center text-[10px] font-bold text-[#00D656] border border-[#00D656]/30">
-                {usuario?.nombre?.[0]?.toUpperCase() || usuario?.email?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <span className="hidden md:inline max-w-[120px] truncate">
-                {usuario?.nombre || usuario?.email || 'Usuario'}
-              </span>
-            </div>
           </div>
         </div>
       </header>
