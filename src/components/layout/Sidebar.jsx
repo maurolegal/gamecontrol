@@ -137,10 +137,20 @@ export default function Sidebar() {
       >
         {/* ── Brand + close ── */}
         <div
-          className="flex items-center justify-between px-4 py-3"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#000' }}
+          className="flex items-center justify-between px-4 py-3 relative overflow-hidden"
+          style={{
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            background: 'linear-gradient(135deg, #000000 0%, #0A0D14 50%, #001a0a 100%)',
+          }}
         >
-          <div className="flex items-center justify-center flex-1 min-w-0">
+          {/* Glow verde sutil de fondo */}
+          <div
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at bottom, rgba(0,214,86,0.15) 0%, transparent 70%)',
+            }}
+          />
+          <div className="flex items-center justify-center flex-1 min-w-0 relative z-10">
             <img
               src="/GAMECONTROL-LOGO.png"
               alt="GameControl"
@@ -149,12 +159,13 @@ export default function Sidebar() {
                 width: 'auto',
                 objectFit: 'contain',
                 maxWidth: '180px',
+                filter: 'drop-shadow(0 0 8px rgba(0,214,86,0.4))',
               }}
             />
           </div>
           <button
             onClick={cerrarMenu}
-            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center md:hidden shrink-0 ml-2"
+            className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center md:hidden shrink-0 ml-2 relative z-10"
             aria-label="Cerrar menú"
           >
             <X size={16} className="text-gray-400" />
