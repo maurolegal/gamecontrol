@@ -80,7 +80,7 @@ export default function Ajustes() {
   // ── Juegos ──
   const [catalogoJuegos, setCatalogoJuegos] = useState([]);
   const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
-  const [nuevoJuego, setNuevoJuego] = useState({ nombre: '', plataforma: '' });
+  const [nuevoJuego, setNuevoJuego] = useState({ nombre: '', plataforma: '', portada_url: '' });
   const [guardandoJuego, setGuardandoJuego] = useState(false);
   // Asignación por estación
   const [juegoSalaId, setJuegoSalaId] = useState('');
@@ -90,6 +90,8 @@ export default function Ajustes() {
   const [cargandoAsignacion, setCargandoAsignacion] = useState(false);
   const [guardandoAsignacion, setGuardandoAsignacion] = useState(false);
   const [busquedaJuego, setBusquedaJuego] = useState('');
+  const [subiendoPortada, setSubiendoPortada] = useState(false);
+  const [juegoEditandoPortada, setJuegoEditandoPortada] = useState(null); // id del juego al que se le sube portada
 
   // Detectar si vienen desde Salas para abrir tarifas
   useEffect(() => {
@@ -353,13 +355,14 @@ export default function Ajustes() {
         .insert({
           nombre: nuevoJuego.nombre.trim(),
           plataforma: nuevoJuego.plataforma.trim() || null,
+          portada_url: nuevoJuego.portada_url || null,
           estado: 'activo',
         })
         .select('id, nombre, plataforma, portada_url, estado')
         .single();
       if (error) throw error;
       setCatalogoJuegos(prev => [...prev, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-      setNuevoJuego({ nombre: '', plataforma: '' });
+      setNuevoJuego({ nombre: '', plataforma: '', portada_url: '' });
       exito(`Juego "${data.nombre}" agregado al catálogo`);
     } catch (err) {
       if (err.code === '23505') {
@@ -391,6 +394,99 @@ export default function Ajustes() {
     } catch (err) {
       notifError('Error: ' + err.message);
     }
+  };
+
+  // ── Subir portada de juego a Cloudinary (optimizada) ──
+  const CLOUDINARY_JUEGOS = {
+    cloudName: 'dftbhxwaa',
+    uploadPreset: 'gamehub',
+    folder: 'juegos-portadas',
+  };
+
+  // Convierte la URL de Cloudinary a versión optimizada (f_auto, q_auto, w_300)
+  function optimizarUrlCloudinary(url) {
+    if (!url || !url.includes('res.cloudinary.com')) return url;
+    // Insertar transformaciones después de /upload/
+    return url.replace('/upload/', '/upload/f_auto,q_auto,w_300,h_400,c_fill,g_face/');
+  }
+
+  const handleSubirPortadaJuego = async (e, juegoId) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      notifError('La imagen no puede superar 5MB');
+      return;
+    }
+    setJuegoEditandoPortada(juegoId);
+    setSubiendoPortada(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', CLOUDINARY_JUEGOS.uploadPreset);
+      fd.append('folder', CLOUDINARY_JUEGOS.folder);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_JUEGOS.cloudName}/image/upload`,
+        { method: 'POST', body: fd },
+      );
+      if (!res.ok) throw new Error('Error subiendo imagen');
+      const data = await res.json();
+      // URL optimizada: f_auto (formato WebP/AVIF automático), q_auto (calidad óptima), w_300 (tamaño razonable)
+      const urlOptimizada = optimizarUrlCloudinary(data.secure_url);
+
+      // Actualizar en DB
+      const { error } = await supabase
+        .from('juegos')
+        .update({ portada_url: urlOptimizada, fecha_actualizacion: new Date().toISOString() })
+        .eq('id', juegoId);
+      if (error) throw error;
+
+      // Actualizar estado local
+      setCatalogoJuegos(prev => prev.map(j =>
+        j.id === juegoId ? { ...j, portada_url: urlOptimizada } : j
+      ));
+      exito('Portada actualizada');
+    } catch (err) {
+      notifError('Error al subir portada: ' + err.message);
+    } finally {
+      setSubiendoPortada(false);
+      setJuegoEditandoPortada(null);
+      e.target.value = ''; // reset input
+    }
+  };
+
+  // ── Subir portada al crear juego nuevo ──
+  const handleSubirPortadaNuevo = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      notifError('La imagen no puede superar 5MB');
+      return;
+    }
+    setSubiendoPortada(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', CLOUDINARY_JUEGOS.uploadPreset);
+      fd.append('folder', CLOUDINARY_JUEGOS.folder);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_JUEGOS.cloudName}/image/upload`,
+        { method: 'POST', body: fd },
+      );
+      if (!res.ok) throw new Error('Error subiendo imagen');
+      const data = await res.json();
+      const urlOptimizada = optimizarUrlCloudinary(data.secure_url);
+      setNuevoJuego(prev => ({ ...prev, portada_url: urlOptimizada }));
+      exito('Portada lista');
+    } catch (err) {
+      notifError('Error al subir portada: ' + err.message);
+    } finally {
+      setSubiendoPortada(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleQuitarPortadaNuevo = () => {
+    setNuevoJuego(prev => ({ ...prev, portada_url: '' }));
   };
 
   // ── Estaciones disponibles para la sala seleccionada ──
@@ -1187,31 +1283,73 @@ export default function Ajustes() {
               </div>
 
               {/* Formulario agregar juego */}
-              <form onSubmit={handleAgregarJuego} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2.5">
-                <input
-                  type="text"
-                  value={nuevoJuego.nombre}
-                  onChange={(e) => setNuevoJuego(prev => ({ ...prev, nombre: e.target.value }))}
-                  placeholder="Nombre del juego *"
-                  className={inputCls}
-                  required
-                />
-                <input
-                  type="text"
-                  value={nuevoJuego.plataforma}
-                  onChange={(e) => setNuevoJuego(prev => ({ ...prev, plataforma: e.target.value }))}
-                  placeholder="Plataforma (PS5, Xbox, PC…)"
-                  className={inputCls}
-                />
-                <button
-                  type="submit"
-                  disabled={guardandoJuego}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-40"
-                  style={{ background: '#00D656', color: '#000' }}
-                >
-                  {guardandoJuego ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
-                  Agregar
-                </button>
+              <form onSubmit={handleAgregarJuego} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2.5">
+                  <input
+                    type="text"
+                    value={nuevoJuego.nombre}
+                    onChange={(e) => setNuevoJuego(prev => ({ ...prev, nombre: e.target.value }))}
+                    placeholder="Nombre del juego *"
+                    className={inputCls}
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={nuevoJuego.plataforma}
+                    onChange={(e) => setNuevoJuego(prev => ({ ...prev, plataforma: e.target.value }))}
+                    placeholder="Plataforma (PS5, Xbox, PC…)"
+                    className={inputCls}
+                  />
+                  <button
+                    type="submit"
+                    disabled={guardandoJuego}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-40"
+                    style={{ background: '#00D656', color: '#000' }}
+                  >
+                    {guardandoJuego ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                    Agregar
+                  </button>
+                </div>
+
+                {/* Upload portada del juego nuevo */}
+                <div className="flex items-center gap-3">
+                  {nuevoJuego.portada_url ? (
+                    <div className="relative shrink-0">
+                      <img src={nuevoJuego.portada_url} alt="Portada" className="w-12 h-16 rounded object-cover" style={{ border: '1px solid rgba(255,255,255,0.1)' }} />
+                      <button
+                        type="button"
+                        onClick={handleQuitarPortadaNuevo}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all hover:bg-white/5 shrink-0"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)' }}
+                    >
+                      {subiendoPortada ? (
+                        <Loader2 size={14} className="text-gray-400 animate-spin" />
+                      ) : (
+                        <Upload size={14} className="text-gray-500" />
+                      )}
+                      <span className="text-[11px] text-gray-400">
+                        {subiendoPortada ? 'Subiendo…' : 'Subir portada'}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        onChange={handleSubirPortadaNuevo}
+                        disabled={subiendoPortada}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                  <p className="text-[10px] text-gray-600">
+                    Opcional · PNG/JPG/WebP · Se optimiza automáticamente a WebP 300x400px
+                  </p>
+                </div>
               </form>
 
               {/* Lista del catálogo */}
@@ -1233,14 +1371,35 @@ export default function Ajustes() {
                       className="flex items-center gap-3 px-3 py-2 rounded-lg group"
                       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}
                     >
-                      {juego.portada_url && (
-                        <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover shrink-0" style={{ border: '1px solid rgba(255,255,255,0.05)' }} />
-                      )}
-                      {!juego.portada_url && (
-                        <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                          <Gamepad2 size={12} className="text-[#8B5CF6]" />
-                        </div>
-                      )}
+                      {/* Portada con upload al hover */}
+                      <div className="relative shrink-0">
+                        {juego.portada_url ? (
+                          <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover" style={{ border: '1px solid rgba(255,255,255,0.05)' }} />
+                        ) : (
+                          <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                            <Gamepad2 size={12} className="text-[#8B5CF6]" />
+                          </div>
+                        )}
+                        {/* Botón upload overlay */}
+                        <label
+                          className="absolute inset-0 rounded flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ background: 'rgba(0,0,0,0.7)' }}
+                          title="Subir/cambiar portada"
+                        >
+                          {subiendoPortada && juegoEditandoPortada === juego.id ? (
+                            <Loader2 size={12} className="text-white animate-spin" />
+                          ) : (
+                            <Upload size={12} className="text-white" />
+                          )}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/jpg,image/webp"
+                            onChange={(e) => handleSubirPortadaJuego(e, juego.id)}
+                            disabled={subiendoPortada}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
                         <p className="text-[10px] text-gray-500">{juego.plataforma || '—'}</p>
