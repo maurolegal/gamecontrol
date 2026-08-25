@@ -16,7 +16,7 @@ export function useUsuarios() {
     const { data, error } = await supabase
       .from('usuarios')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('fecha_creacion', { ascending: false });
     if (error) {
       notifError('Error cargando usuarios: ' + error.message);
     } else {
@@ -44,13 +44,13 @@ export function useUsuarios() {
         options: { data: { nombre, rol } },
       });
       if (signUpErr) throw new Error(authErr.message);
-      return crearEnTabla(signUpData.user?.id, nombre, email, rol, permisos);
+      return crearEnTabla(signUpData.user?.id, nombre, email, password, rol, permisos);
     }
 
-    return crearEnTabla(authData.user?.id, nombre, email, rol, permisos);
+    return crearEnTabla(authData.user?.id, nombre, email, password, rol, permisos);
   }, []);
 
-  async function crearEnTabla(id, nombre, email, rol, permisos) {
+  async function crearEnTabla(id, nombre, email, password, rol, permisos) {
     if (!id) throw new Error('No se pudo obtener el ID del usuario de Auth');
 
     const { error: dbErr } = await supabase
@@ -59,6 +59,7 @@ export function useUsuarios() {
         id,
         nombre,
         email: email.toLowerCase(),
+        password_hash: password, // NOT NULL en el schema, Auth maneja la validación real
         rol,
         permisos: permisos || {},
         estado: 'activo',
