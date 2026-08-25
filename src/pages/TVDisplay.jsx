@@ -5,6 +5,7 @@
 // ===================================================================
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
+import { User, Gamepad2, Joystick } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useSalas } from '../hooks/useSalas';
 import useGlobalTick from '../hooks/useGlobalTick';
@@ -239,8 +240,9 @@ const TarjetaEstacion = memo(function TarjetaEstacion({ sesion }) {
         </p>
 
         {/* Cliente */}
-        <p className="text-sm text-gray-300 font-medium truncate">
-          👤 {sesion.cliente || 'Anónimo'}
+        <p className="text-sm text-gray-300 font-medium truncate flex items-center gap-1.5">
+          <User size={14} className="text-gray-500 shrink-0" />
+          {sesion.cliente || 'Anónimo'}
         </p>
 
         {/* Timer circular */}
@@ -349,13 +351,13 @@ export default function TVDisplay() {
         {/* Logo / branding */}
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
             style={{
               background: 'linear-gradient(135deg, #00D656, #00a042)',
               boxShadow: '0 0 20px rgba(0,214,86,0.4)',
             }}
           >
-            🎮
+            <Gamepad2 size={22} className="text-black" />
           </div>
           <div>
             <p className="text-white font-black text-lg leading-none tracking-tight">
@@ -411,10 +413,10 @@ export default function TVDisplay() {
         ) : sesionesEnriched.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 gap-6">
             <div
-              className="w-24 h-24 rounded-3xl flex items-center justify-center text-5xl"
+              className="w-24 h-24 rounded-3xl flex items-center justify-center"
               style={{ background: 'rgba(0,214,86,0.08)', border: '2px solid rgba(0,214,86,0.15)' }}
             >
-              🎮
+              <Gamepad2 size={48} className="text-[#00D656]" />
             </div>
             <div className="text-center">
               <p className="text-3xl font-black text-white">Sin estaciones activas</p>
@@ -423,13 +425,14 @@ export default function TVDisplay() {
               </p>
             </div>
             <div
-              className="px-6 py-3 rounded-xl text-[#00D656] font-bold text-lg"
+              className="px-6 py-3 rounded-xl text-[#00D656] font-bold text-lg flex items-center gap-2"
               style={{
                 background: 'rgba(0,214,86,0.08)',
                 border: '2px solid rgba(0,214,86,0.2)',
               }}
             >
-              ¡Ven a jugar! 🕹
+              <Joystick size={20} />
+              ¡Ven a jugar!
             </div>
           </div>
         ) : (
