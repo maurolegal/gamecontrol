@@ -4,9 +4,10 @@
 // ===================================================================
 
 import { useRef, useEffect, useCallback, memo, useState } from 'react';
-import { Plus, ShoppingCart, MoreHorizontal, Truck, RotateCcw, ClockPlus, AlertTriangle, CircleCheckBig } from 'lucide-react';
+import { Plus, ShoppingCart, MoreHorizontal, Truck, RotateCcw, ClockPlus, AlertTriangle, CircleCheckBig, Gamepad2, X, Loader2 } from 'lucide-react';
 import useGlobalTick from '../../hooks/useGlobalTick';
 import { usePermisos } from '../../hooks/usePermisos';
+import { supabase } from '../../lib/supabaseClient';
 import { useDerivedAlerts, ALERT_COLORS, ALERT_LABELS, ALERT_STATES } from '../../hooks/useDerivedAlerts';
 
 // ── formatCOP inline ────────────────────────────────────────────────
@@ -134,6 +135,60 @@ const StationCardInner = memo(function StationCardInner({
 }) {
   const now = useGlobalTick();
   const { esAdmin } = usePermisos();
+
+  // ── Juegos popover ──
+  const [juegosOpen, setJuegosOpen] = useState(false);
+  const [juegosData, setJuegosData] = useState(null);
+  const [cargandoJuegos, setCargandoJuegos] = useState(false);
+
+  const fetchJuegos = useCallback(async () => {
+    if (!estacionId || !sala?.id) return;
+    setCargandoJuegos(true);
+    try {
+      // Buscar dispositivo por sala + estacion
+      const { data: dispositivo } = await supabase
+        .from('dispositivos')
+        .select('id, nombre')
+        .eq('sala_id', sala.id)
+        .eq('estacion', estacionId)
+        .maybeSingle();
+
+      if (dispositivo?.id) {
+        const { data: dj } = await supabase
+          .from('dispositivo_juegos')
+          .select('juego_id, juegos(nombre, plataforma, portada_url)')
+          .eq('dispositivo_id', dispositivo.id);
+        setJuegosData({
+          dispositivoNombre: dispositivo.nombre,
+          juegos: (dj ?? []).map(d => d.juegos).filter(Boolean),
+        });
+      } else {
+        setJuegosData({ dispositivoNombre: null, juegos: [] });
+      }
+    } catch (_) {
+      setJuegosData({ dispositivoNombre: null, juegos: [] });
+    } finally {
+      setCargandoJuegos(false);
+    }
+  }, [estacionId, sala?.id]);
+
+  const toggleJuegos = useCallback((e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    setJuegosOpen(prev => !prev);
+    if (!juegosOpen) fetchJuegos();
+  }, [juegosOpen, fetchJuegos]);
+
+  // Cerrar popover al hacer click fuera
+  useEffect(() => {
+    if (!juegosOpen) return;
+    const onClickOutside = (e) => {
+      // El popover está en un portal, así que solo cerramos con ESC o click en el botón
+    };
+    const onEscape = (e) => { if (e.key === 'Escape') setJuegosOpen(false); };
+    document.addEventListener('keydown', onEscape);
+    return () => document.removeEventListener('keydown', onEscape);
+  }, [juegosOpen]);
 
   // ── Menú contextual: click-only (no hover) ────────────────────────
   const [menuOpen, setMenuOpen] = useState(false);
@@ -287,6 +342,7 @@ const StationCardInner = memo(function StationCardInner({
   const iconoUrl = sala?.icono_url || sala?.imagen_url || sala?.imagen;
 
   return (
+    <>
     <div
       id={`estacion-${estacionId}`}
       className={`relative group station-card ${focused ? 'station-focused' : ''}`}
@@ -470,6 +526,16 @@ const StationCardInner = memo(function StationCardInner({
                 <ShoppingCart size={16} />
               </button>
 
+              {/* Juegos — púrpura ── */}
+              <button
+                onClick={toggleJuegos}
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/5 border border-purple-500/20 text-purple-400 transition-all hover:bg-purple-500/10 hover:border-purple-500/35 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                aria-label={`Ver juegos de ${estacionId}`}
+                title="Juegos instalados"
+              >
+                <Gamepad2 size={16} />
+              </button>
+
               {/* Finalizar — rojo ── */}
               <button
                 onClick={handleClickFinalizar}
@@ -530,6 +596,89 @@ const StationCardInner = memo(function StationCardInner({
         </div>
       </div>
     </div>
+
+    {/* ── POPOVER JUEGOS ── */}
+    {juegosOpen && (
+      <div
+        className="fixed inset-0 z-[100] flex items-start justify-start p-4 pointer-events-none"
+        onClick={() => setJuegosOpen(false)}
+      >
+        <div
+          className="relative pointer-events-auto w-72 max-w-[90vw] rounded-xl shadow-2xl animate-fade-in"
+          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.06)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-2">
+              <Gamepad2 size={16} className="text-purple-400" />
+              <div>
+                <p className="text-[13px] font-bold text-white">{estacionId}</p>
+                <p className="text-[10px] text-gray-500">{juegosData?.dispositivoNombre ? `Dispositivo: ${juegosData.dispositivoNombre}` : 'Sin dispositivo asignado'}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setJuegosOpen(false)}
+              className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+              aria-label="Cerrar"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-3 max-h-64 overflow-y-auto">
+            {cargandoJuegos ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 size={20} className="text-purple-400 animate-spin" />
+              </div>
+            ) : juegosData?.juegos?.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <Gamepad2 size={24} className="mx-auto mb-2 text-gray-600" />
+                <p className="text-[12px]">Sin juegos configurados</p>
+                <p className="text-[10px] mt-1">Gestiona desde <span className="text-purple-400">Dispositivos</span></p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {juegosData.juegos.map((juego) => (
+                  <div
+                    key={juego.id}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}
+                  >
+                    {juego.portada_url && (
+                      <img
+                        src={juego.portada_url}
+                        alt={juego.nombre}
+                        className="w-8 h-8 rounded object-cover shrink-0"
+                        style={{ border: '1px solid rgba(255,255,255,0.05)' }}
+                      />
+                    )}
+                    {!juego.portada_url && (
+                      <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                        <Gamepad2 size={12} className="text-[#8B5CF6]" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
+                      <p className="text-[9px] text-gray-500">{juego.plataforma || '—'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-3 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+            <p className="text-[10px] text-gray-500 text-center">
+              {juegosData?.juegos?.length || 0} juego{juegosData?.juegos?.length !== 1 ? 's' : ''} instalado{juegosData?.juegos?.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }, arePropsEqualStationCard);
 

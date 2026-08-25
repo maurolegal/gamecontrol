@@ -393,5 +393,94 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- vista_sesiones_completa, vista_productos_stock_bajo, vista_ingresos_diarios
 
 -- ===================================================================
+-- NUEVO: JUEGOS + DISPOSITIVO_JUEGOS (Sprint 0.5 - Catálogo de juegos)
+-- ===================================================================
+
+-- ───────────────────────────────────────────────────────────────────
+-- TABLA: juegos (catálogo maestro)
+-- ───────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.juegos (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nombre          TEXT NOT NULL UNIQUE,
+  plataforma      TEXT,                          -- PS5, Xbox Series X, PC, etc.
+  portada_url     TEXT,                          -- Imagen (Cloudinary/URL)
+  descripcion     TEXT,
+  estado          TEXT NOT NULL DEFAULT 'activo', -- activo, inactivo
+  creado_por      UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
+  fecha_creacion  TIMESTAMPTZ DEFAULT now(),
+  fecha_actualizacion TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_juegos_plataforma ON public.juegos(plataforma);
+CREATE INDEX IF NOT EXISTS idx_juegos_estado ON public.juegos(estado);
+
+ALTER TABLE public.juegos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "juegos_select_all" ON public.juegos
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "juegos_insert_admin_supervisor" ON public.juegos
+  FOR INSERT TO authenticated
+  WITH CHECK (public.obtener_rol_actual() IN ('administrador','supervisor'));
+
+CREATE POLICY "juegos_update_admin_supervisor" ON public.juegos
+  FOR UPDATE TO authenticated
+  USING (public.obtener_rol_actual() IN ('administrador','supervisor'))
+  WITH CHECK (public.obtener_rol_actual() IN ('administrador','supervisor'));
+
+-- ───────────────────────────────────────────────────────────────────
+-- TABLA: dispositivo_juegos (many-to-many)
+-- ───────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.dispositivo_juegos (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dispositivo_id  UUID NOT NULL REFERENCES public.dispositivos(id) ON DELETE CASCADE,
+  juego_id        UUID NOT NULL REFERENCES public.juegos(id) ON DELETE CASCADE,
+  creado_por      UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
+  fecha_creacion  TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (dispositivo_id, juego_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dispositivo_juegos_dispositivo ON public.dispositivo_juegos(dispositivo_id);
+CREATE INDEX IF NOT EXISTS idx_dispositivo_juegos_juego ON public.dispositivo_juegos(juego_id);
+
+ALTER TABLE public.dispositivo_juegos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "dispositivo_juegos_select_all" ON public.dispositivo_juegos
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "dispositivo_juegos_insert_admin_supervisor" ON public.dispositivo_juegos
+  FOR INSERT TO authenticated
+  WITH CHECK (public.obtener_rol_actual() IN ('administrador','supervisor'));
+
+CREATE POLICY "dispositivo_juegos_update_admin_supervisor" ON public.dispositivo_juegos
+  FOR UPDATE TO authenticated
+  USING (public.obtener_rol_actual() IN ('administrador','supervisor'))
+  WITH CHECK (public.obtener_rol_actual() IN ('administrador','supervisor'));
+
+CREATE POLICY "dispositivo_juegos_delete_admin_supervisor" ON public.dispositivo_juegos
+  FOR DELETE TO authenticated
+  USING (public.obtener_rol_actual() IN ('administrador','supervisor'));
+
+-- ───────────────────────────────────────────────────────────────────
+-- VISTA: juegos por dispositivo
+-- ───────────────────────────────────────────────────────────────────
+CREATE OR REPLACE VIEW public.v_dispositivo_juegos AS
+SELECT
+  d.id as dispositivo_id,
+  d.codigo_interno,
+  d.nombre as dispositivo_nombre,
+  d.tipo,
+  d.sala_id,
+  d.estacion,
+  j.id as juego_id,
+  j.nombre as juego_nombre,
+  j.plataforma,
+  j.portada_url
+FROM public.dispositivos d
+LEFT JOIN public.dispositivo_juegos dj ON dj.dispositivo_id = d.id
+LEFT JOIN public.juegos j ON j.id = dj.juego_id
+WHERE d.estado != 'baja' AND (j.estado = 'activo' OR j.estado IS NULL);
+
+-- ===================================================================
 -- FIN DEL ESQUEMA DE REFERENCIA
 -- ===================================================================
