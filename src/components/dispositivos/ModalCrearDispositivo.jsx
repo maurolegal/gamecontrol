@@ -46,10 +46,10 @@ export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
   const [salas, setSalas] = useState([]);
   const [guardando, setGuardando] = useState(false);
 
-  // Cargar salas al abrir
+  // Cargar salas activas al abrir
   useEffect(() => {
     if (open) {
-      supabase.from('salas').select('id, nombre').eq('activa', true)
+      supabase.from('salas').select('id, nombre, num_estaciones, equipamiento').eq('activa', true)
         .then(({ data }) => setSalas(data ?? []))
         .catch(() => setSalas([]));
       // Reset form
@@ -71,6 +71,27 @@ export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
       });
     }
   }, [open]);
+
+  // Generar estaciones reales de la sala seleccionada
+  const salaSeleccionada = salas.find(s => s.id === form.sala_id);
+  const prefijoSala = salaSeleccionada?.equipamiento?.prefijo || 'EST';
+  const numEstacionesSala = salaSeleccionada?.num_estaciones ?? 0;
+  const estacionesDisponibles = Array.from({ length: numEstacionesSala }, (_, i) => `${prefijoSala}${i + 1}`);
+
+  // Al cambiar de sala, resetear estación si no existe en la nueva sala
+  const handleSalaChange = (e) => {
+    const salaId = e.target.value;
+    const sala = salas.find(s => s.id === salaId);
+    const prefijo = sala?.equipamiento?.prefijo || 'EST';
+    const num = sala?.num_estaciones ?? 0;
+    const estaciones = Array.from({ length: num }, (_, i) => `${prefijo}${i + 1}`);
+    // Si la estación actual no existe en la nueva sala, limpiarla
+    setForm(prev => ({
+      ...prev,
+      sala_id: salaId,
+      estacion: estaciones.includes(prev.estacion) ? prev.estacion : '',
+    }));
+  };
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
@@ -251,7 +272,7 @@ export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Sala</label>
-                <select name="sala_id" value={form.sala_id} onChange={handleChange} className={inputCls} style={inputStyle}>
+                <select name="sala_id" value={form.sala_id} onChange={handleSalaChange} className={inputCls} style={inputStyle}>
                   <option value="">Sin asignar</option>
                   {salas.map(s => (
                     <option key={s.id} value={s.id}>{s.nombre}</option>
@@ -260,7 +281,25 @@ export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
               </div>
               <div>
                 <label className={labelCls}>Estación</label>
-                <input name="estacion" value={form.estacion} onChange={handleChange} placeholder="PS1, PS2, XB1..." className={inputCls} style={inputStyle} />
+                <select
+                  name="estacion"
+                  value={form.estacion}
+                  onChange={handleChange}
+                  className={inputCls}
+                  style={inputStyle}
+                  disabled={!form.sala_id || estacionesDisponibles.length === 0}
+                >
+                  <option value="">
+                    {form.sala_id
+                      ? estacionesDisponibles.length === 0
+                        ? 'Sin estaciones'
+                        : 'Seleccionar…'
+                      : 'Primero selecciona una sala'}
+                  </option>
+                  {estacionesDisponibles.map(est => (
+                    <option key={est} value={est}>{est}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </section>
