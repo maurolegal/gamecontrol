@@ -598,24 +598,11 @@ export default function EventLive() {
       >
         {/* Logo */}
         <div className="flex items-center gap-3 min-w-fit">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-xl font-black"
-            style={{
-              background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-              boxShadow: '0 0 20px rgba(124,58,237,0.5)',
-            }}
-          >
-            ⚡
-          </div>
-          <div>
-            <p className="text-white font-black text-base leading-none tracking-tight">
-              NEMESIS
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-              <p className="text-red-400 text-xs font-bold uppercase tracking-wider">Event Live</p>
-            </div>
-          </div>
+          <img
+            src="/gamecontrol-horizontal.png"
+            alt="GameControl"
+            style={{ height: '60px', width: '180px', objectFit: 'contain' }}
+          />
         </div>
 
         {/* Stats centrales */}
