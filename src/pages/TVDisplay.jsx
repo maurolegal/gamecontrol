@@ -353,7 +353,7 @@ export default function TVDisplay() {
           <img
             src="/gamecontrol-horizontal.png"
             alt="GameControl"
-            style={{ height: '44px', width: 'auto', objectFit: 'contain' }}
+            style={{ height: '60px', width: '180px', objectFit: 'contain' }}
           />
         </div>
 
