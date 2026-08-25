@@ -7,6 +7,12 @@
 // ===================================================================
 
 import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
+import {
+  User, Gamepad2, Zap, Trophy,
+  Monitor, Radio, CheckCircle2, ExternalLink, ArrowLeft,
+  ChevronLeft, ChevronRight, Castle, Film, Package, Tv,
+  Mountain, Bird, Apple, Fish,
+} from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useSalas } from '../hooks/useSalas';
 import useGlobalTick from '../hooks/useGlobalTick';
@@ -159,8 +165,9 @@ const TarjetaLateral = memo(function TarjetaLateral({ sesion }) {
       <CircleTimer sesion={sesion} size={88} />
 
       {/* Cliente */}
-      <p className="text-xs font-medium truncate w-full text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        👤 {sesion.cliente || 'Anónimo'}
+      <p className="text-xs font-medium truncate w-full text-center flex items-center justify-center gap-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <User size={12} className="shrink-0 opacity-60" />
+        {sesion.cliente || 'Anónimo'}
       </p>
     </div>
   );
@@ -180,7 +187,7 @@ function PanelLateral({ sesiones, lado }) {
           border: '1px solid var(--gc-border)',
         }}
       >
-        <span className="text-3xl opacity-20">🎮</span>
+        <Gamepad2 size={28} className="opacity-20" />
         <p className="text-xs uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.2)' }}>
           Sin sesiones
         </p>
@@ -193,8 +200,8 @@ function PanelLateral({ sesiones, lado }) {
       {/* Label del panel */}
       <div className="flex items-center gap-2">
         <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
-        <span className="text-xs uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          {lado === 'left' ? '◀ Estaciones' : 'Estaciones ▶'}
+        <span className="text-xs uppercase tracking-widest font-bold flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          {lado === 'left' ? <><ChevronLeft size={12} /> Estaciones</> : <>Estaciones <ChevronRight size={12} /></>}
         </span>
         <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
       </div>
@@ -208,13 +215,13 @@ function PanelLateral({ sesiones, lado }) {
 // ── Ticker de promos ──────────────────────────────────────────────────
 
 const PROMOS_DEFAULT = [
-  '🔥 Combo gamer $6.000 — bebida + snack',
-  '⚡ Recarga +30 min a precio especial',
-  '🍟 Snacks disponibles — pregunta en caja',
-  '⚽ Partido en vivo + promos exclusivas',
-  '🎮 Torneo semanal — ¡Inscríbete ya!',
-  '🏆 Membresía mensual — descuentos todo el mes',
-  '🕹 Trae a un amigo y obtén 15 min gratis',
+  'Combo gamer $6.000 — bebida + snack',
+  'Recarga +30 min a precio especial',
+  'Snacks disponibles — pregunta en caja',
+  'Partido en vivo + promos exclusivas',
+  'Torneo semanal — ¡Inscríbete ya!',
+  'Membresía mensual — descuentos todo el mes',
+  'Trae a un amigo y obtén 15 min gratis',
 ];
 
 function TickerPromos({ promos = PROMOS_DEFAULT }) {
@@ -263,17 +270,17 @@ function TickerPromos({ promos = PROMOS_DEFAULT }) {
 
 // Servicios que bloquean iframe por CSP — se abren en ventana nueva
 const BLOCKED_SERVICES = [
-  { pattern: /disneyplus\.com/i,   name: 'Disney+',      icon: '🏰' },
-  { pattern: /netflix\.com/i,      name: 'Netflix',       icon: '🎬' },
-  { pattern: /primevideo\.com/i,   name: 'Prime Video',   icon: '📦' },
-  { pattern: /hbomax\.com/i,       name: 'Max (HBO)',     icon: '📺' },
-  { pattern: /max\.com/i,          name: 'Max',           icon: '📺' },
-  { pattern: /paramountplus\.com/i,name: 'Paramount+',    icon: '⛰️' },
-  { pattern: /peacocktv\.com/i,    name: 'Peacock',       icon: '🦚' },
-  { pattern: /apple\.com\/tv/i,    name: 'Apple TV+',     icon: '🍎' },
-  { pattern: /crunchyroll\.com/i,  name: 'Crunchyroll',   icon: '🍥' },
-  { pattern: /espn\.com/i,         name: 'ESPN',          icon: '🏆' },
-  { pattern: /win\.tv/i,           name: 'Win Sports',    icon: '⚽' },
+  { pattern: /disneyplus\.com/i,   name: 'Disney+',      icon: Castle },
+  { pattern: /netflix\.com/i,      name: 'Netflix',       icon: Film },
+  { pattern: /primevideo\.com/i,   name: 'Prime Video',   icon: Package },
+  { pattern: /hbomax\.com/i,       name: 'Max (HBO)',     icon: Tv },
+  { pattern: /max\.com/i,          name: 'Max',           icon: Tv },
+  { pattern: /paramountplus\.com/i,name: 'Paramount+',    icon: Mountain },
+  { pattern: /peacocktv\.com/i,    name: 'Peacock',       icon: Bird },
+  { pattern: /apple\.com\/tv/i,    name: 'Apple TV+',     icon: Apple },
+  { pattern: /crunchyroll\.com/i,  name: 'Crunchyroll',   icon: Fish },
+  { pattern: /espn\.com/i,         name: 'ESPN',          icon: Trophy },
+  { pattern: /win\.tv/i,           name: 'Win Sports',    icon: Trophy },
 ];
 
 function detectBlocked(rawUrl) {
@@ -350,7 +357,7 @@ function AreaVideo({ streamUrl }) {
               backdropFilter: 'blur(8px)',
             }}
           >
-            📡 Cambiar stream
+            <Radio size={14} /> Cambiar stream
           </button>
         </>
       ) : externalService ? (
@@ -361,7 +368,12 @@ function AreaVideo({ streamUrl }) {
             background: 'radial-gradient(ellipse at center, rgba(139,92,246,0.1) 0%, transparent 70%)',
           }}
         >
-          <div className="text-5xl">{externalService.icon}</div>
+          <div className="text-5xl">
+            {(() => {
+              const Icon = externalService.icon;
+              return <Icon size={48} className="text-purple-400" />;
+            })()}
+          </div>
           <div>
             <p className="text-white font-black text-2xl mb-1">{externalService.name}</p>
             <p className="text-white/35 text-sm leading-relaxed">
@@ -396,7 +408,7 @@ function AreaVideo({ streamUrl }) {
               onMouseOver={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139,92,246,0.55), rgba(59,130,246,0.55))'}
               onMouseOut={e => e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139,92,246,0.35), rgba(59,130,246,0.35))'}
             >
-              🖥️ Abrir en ventana (75% pantalla)
+              <Monitor size={16} /> Abrir en ventana (75% pantalla)
             </button>
 
             {/* Pantalla completa */}
@@ -411,14 +423,14 @@ function AreaVideo({ streamUrl }) {
               onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
               onMouseOut={e => e.currentTarget.style.background = 'rgba(255,255,255,0.04)'}
             >
-              ↗ Abrir en pestaña nueva
+              <ExternalLink size={14} /> Abrir en pestaña nueva
             </button>
 
             <button
               onClick={() => { setExternalService(null); setEditando(true); }}
               className="text-xs text-white/25 hover:text-white/55 transition-colors pt-1"
             >
-              ← Cambiar stream
+              <ArrowLeft size={12} /> Cambiar stream
             </button>
           </div>
 
@@ -427,8 +439,8 @@ function AreaVideo({ streamUrl }) {
             className="rounded-xl px-4 py-3 text-left w-full max-w-sm"
             style={{ background: 'rgba(0,214,86,0.05)', border: '1px solid rgba(0,214,86,0.12)' }}
           >
-            <p className="text-xs font-bold mb-1" style={{ color: 'rgba(0,214,86,0.7)' }}>
-              ✅ Servicios que sí se embeben aquí:
+            <p className="text-xs font-bold mb-1 flex items-center gap-1" style={{ color: 'rgba(0,214,86,0.7)' }}>
+              <CheckCircle2 size={12} /> Servicios que sí se embeben aquí:
             </p>
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
               YouTube · Twitch · y cualquier reproductor con iframe habilitado
@@ -471,7 +483,7 @@ function AreaVideo({ streamUrl }) {
             onMouseOver={e => e.currentTarget.style.background = 'rgba(139,92,246,0.25)'}
             onMouseOut={e => e.currentTarget.style.background = 'rgba(139,92,246,0.15)'}
           >
-            📡 Cargar Stream
+            <Radio size={16} /> Cargar Stream
           </button>
         </div>
       )}
@@ -491,7 +503,9 @@ function AreaVideo({ streamUrl }) {
             }}
           >
             <div>
-              <p className="text-white font-black text-lg">📡 Stream en vivo</p>
+              <p className="text-white font-black text-lg flex items-center gap-2">
+                <Radio size={18} className="text-purple-400" /> Stream en vivo
+              </p>
               <p className="text-gray-500 text-sm mt-1">YouTube y Twitch se embeben · Disney+, Netflix y otros abren en pestaña nueva</p>
             </div>
             <input
@@ -690,8 +704,8 @@ export default function EventLive() {
                 border: '1px solid rgba(139,92,246,0.2)',
               }}
             >
-              <span className="text-purple-400 text-xs font-medium">
-                ⚡ GameControl · Transmisión de evento
+              <span className="text-purple-400 text-xs font-medium flex items-center gap-1">
+                <Zap size={12} /> GameControl · Transmisión de evento
               </span>
             </div>
           </div>
