@@ -39,6 +39,11 @@ CREATE POLICY "juegos_update_admin_supervisor" ON public.juegos
   USING (public.obtener_rol_actual() IN ('administrador','supervisor'))
   WITH CHECK (public.obtener_rol_actual() IN ('administrador','supervisor'));
 
+-- DELETE: admin y supervisor
+CREATE POLICY "juegos_delete_admin_supervisor" ON public.juegos
+  FOR DELETE TO authenticated
+  USING (public.obtener_rol_actual() IN ('administrador','supervisor'));
+
 -- ───────────────────────────────────────────────────────────────────
 -- TABLA: dispositivo_juegos (many-to-many)
 -- ───────────────────────────────────────────────────────────────────

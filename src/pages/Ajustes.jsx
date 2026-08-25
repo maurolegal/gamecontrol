@@ -380,8 +380,15 @@ export default function Ajustes() {
     const ok = await confirm(`¿Eliminar "${juegoNombre}" del catálogo?\n\nSe quitará de todas las estaciones asignadas.`, { tipo: 'danger', confirmText: 'Eliminar' });
     if (!ok) return;
     try {
-      const { error } = await supabase.from('juegos').delete().eq('id', juegoId);
+      const { error, count } = await supabase
+        .from('juegos')
+        .delete({ count: 'exact' })
+        .eq('id', juegoId);
       if (error) throw error;
+      if (count === 0) {
+        notifError('No se pudo eliminar (sin permisos o el juego no existe). Ejecuta la policy DELETE en la base de datos.');
+        return;
+      }
       setCatalogoJuegos(prev => prev.filter(j => j.id !== juegoId));
       // Si estaba instalado en la estación seleccionada, quitarlo del set
       setJuegosInstalados(prev => {
