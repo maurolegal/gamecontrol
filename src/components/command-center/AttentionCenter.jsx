@@ -74,7 +74,12 @@ export default function AttentionCenter({
               <div style={styles.itemInfo}>
                 <div style={styles.itemMain}>
                   <span style={{ ...styles.estacion, color: alerta.color }}>{alerta.estacion}</span>
-                  <span style={styles.label}>{alerta.label}</span>
+                  <span style={{
+                    ...styles.label,
+                    background: `${alerta.color}20`,
+                    border: `1px solid ${alerta.color}40`,
+                    color: alerta.color,
+                  }}>{alerta.label}</span>
                 </div>
                 <div style={styles.itemSub}>
                   <span style={styles.cliente}>{alerta.cliente}</span>
