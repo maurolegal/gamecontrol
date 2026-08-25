@@ -700,8 +700,13 @@ export default function Dashboard() {
           Derecha: Inventario + Dispositivos + Turno
           ═══════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
-        {/* Columna izquierda — Atención Prioritaria */}
-        <div className="xl:col-span-4">
+        {/* Columna izquierda — Turno Actual + Atención Prioritaria */}
+        <div className="xl:col-span-4 space-y-3">
+          <TurnoActual
+            turno={turnoActual}
+            usuario={usuario}
+            navigate={navigate}
+          />
           <AtencionPrioritaria
             kpis={kpis}
             dispositivos={dispositivos}
@@ -726,7 +731,7 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Columna derecha — Inventario + Dispositivos + Turno */}
+        {/* Columna derecha — Inventario + Dispositivos */}
         <div className="xl:col-span-4 space-y-3">
           <InventarioCritico
             productos={productosAlerta}
@@ -736,11 +741,6 @@ export default function Dashboard() {
           <EstadoDispositivos
             dispositivos={dispositivos}
             cargando={cargando}
-            navigate={navigate}
-          />
-          <TurnoActual
-            turno={turnoActual}
-            usuario={usuario}
             navigate={navigate}
           />
         </div>
