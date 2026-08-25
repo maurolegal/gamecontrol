@@ -251,7 +251,7 @@ export default function Login() {
               <img
                 src="/GAMECONTROL-LOGO.png"
                 alt="GameControl Logo"
-                style={{ width: 130, height: 130, objectFit: 'contain' }}
+                style={{ width: 180, height: 180, objectFit: 'contain' }}
               />
             </motion.div>
 
