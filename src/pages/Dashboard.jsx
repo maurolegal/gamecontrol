@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   RefreshCw,
   TrendingUp,
-  TrendingDown,
   PackageX,
 } from 'lucide-react';
 
@@ -22,7 +21,7 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useAuth } from '../hooks/useAuth';
 import useGameStore from '../store/useGameStore';
 import { supabase } from '../lib/supabaseClient';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 
 function formatCOP(v) {
   return new Intl.NumberFormat('es-CO', {
@@ -123,6 +122,7 @@ export default function Dashboard() {
   // Cargar salas y productos directamente aquí (sin depender del store global)
   const [salas, setSalas] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [sesionesActivas, setSesionesActivas] = useState([]);
 
   useEffect(() => {
     supabase.from('salas').select('id, nombre, tipo, estado, equipamiento').eq('activa', true)
@@ -133,6 +133,38 @@ export default function Dashboard() {
       .then(({ data }) => setProductos(data ?? []))
       .catch(() => {});
   }, []);
+
+  // Cargar sesiones activas para calcular ingresos en juego
+  useEffect(() => {
+    let cancelled = false;
+
+    async function cargarSesiones() {
+      const { data } = await supabase
+        .from('sesiones')
+        .select('id, tarifa_base, costo_adicional, total_general, estado, fecha_inicio, notas, productos')
+        .eq('estado', 'activa');
+      if (!cancelled) setSesionesActivas(data ?? []);
+    }
+
+    cargarSesiones();
+    const id = setInterval(cargarSesiones, 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
+
+  // Ingresos activos = suma de lo que llevan generado las sesiones en juego
+  // tarifa_base + costo_adicional + productos consumidos
+  // (total_general solo se setea al finalizar; para activas hay que calcularlo)
+  const ingresosActivos = useMemo(() => {
+    return sesionesActivas.reduce((sum, s) => {
+      const tarifaBase = Number(s.tarifa_base ?? 0);
+      const costoExtra = Number(s.costo_adicional ?? 0);
+      const productosSum = (s.productos || []).reduce(
+        (p, prod) => p + (Number(prod.subtotal) || (Number(prod.cantidad) * Number(prod.precio)) || 0),
+        0
+      );
+      return sum + tarifaBase + costoExtra + productosSum;
+    }, 0);
+  }, [sesionesActivas]);
 
   // Tendencia ingresos vs ayer
   const tendenciaIngresos =
@@ -168,6 +200,26 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* ── Ingresos activos (sesiones en juego) ── */}
+            {ingresosActivos > 0 && (
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+                style={{
+                  background: 'rgba(0,214,86,0.08)',
+                  border: '1px solid rgba(0,214,86,0.20)',
+                }}
+                title={`Ingresos potenciales de ${sesionesActivas.length} sesión(es) activa(s)`}
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D656] opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00D656]" />
+                </span>
+                <div className="leading-tight">
+                  <p className="text-[8px] uppercase tracking-wider text-[#00D656]/70 font-medium">En juego</p>
+                  <p className="text-[12px] font-bold text-[#00D656] tabular-nums">{formatCOP(ingresosActivos)}</p>
+                </div>
+              </div>
+            )}
             <HeaderWidgets />
             <button
               onClick={refetch}
@@ -200,7 +252,7 @@ export default function Dashboard() {
 
       {/* ── KPI Cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        {/* 1. Ingresos del día */}
+        {/* 1. Ingresos del día (solo ventas cerradas, igual que /ventas) */}
         <KpiCard
           titulo="Ingresos del Día"
           valor={
@@ -236,21 +288,23 @@ export default function Dashboard() {
           cargando={cargando}
         />
 
-        {/* 3. Sesiones por vencer */}
+        {/* 3. Sesiones vencidas (se pasaron de tiempo y no se han cerrado) */}
         <KpiCard
-          titulo="Sesiones Críticas"
-          valor={kpis.sesionesPorVencer}
+          titulo="Sesiones Vencidas"
+          valor={kpis.sesionesVencidas}
           subtitulo={
-            kpis.sesionesPorVencer > 0
-              ? 'Menos de 5 min restantes'
-              : 'Sin urgencias'
+            kpis.sesionesVencidas > 0
+              ? 'Tiempo excedido · cerrar cuenta'
+              : kpis.sesionesPorVencer > 0
+                ? `${kpis.sesionesPorVencer} por vencer (< 5 min)`
+                : 'Sin urgencias'
           }
-          tendencia={kpis.sesionesPorVencer > 0 ? 'down' : 'neutral'}
+          tendencia={kpis.sesionesVencidas > 0 ? 'down' : 'neutral'}
           Icon={Clock}
-          accentColor={kpis.sesionesPorVencer > 0 ? 'text-yellow-400' : 'text-gray-400'}
-          bgColor={kpis.sesionesPorVencer > 0 ? 'bg-yellow-400/10' : 'bg-white/5'}
+          accentColor={kpis.sesionesVencidas > 0 ? 'text-red-400' : kpis.sesionesPorVencer > 0 ? 'text-yellow-400' : 'text-gray-400'}
+          bgColor={kpis.sesionesVencidas > 0 ? 'bg-red-500/10' : kpis.sesionesPorVencer > 0 ? 'bg-yellow-400/10' : 'bg-white/5'}
           cargando={cargando}
-          alerta={kpis.sesionesPorVencer > 0}
+          alerta={kpis.sesionesVencidas > 0}
         />
 
         {/* 4. Alertas de stock */}
@@ -271,7 +325,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* ── Gráfico + Live Monitor — 70/30 ──────────────────────── */}
+      {/* ── Gráfico + Productos stock crítico — 70/30 ──────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-10 gap-4">
         {/* Gráfico ocupa 7/10 */}
         <div className="xl:col-span-7">
@@ -296,94 +350,52 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Monitor de Salas Activas — 3/10 */}
+        {/* Productos con stock crítico — 3/10 */}
         <div className="xl:col-span-3">
-          <MonitorSalasActivas cargando={cargando} />
+          {productosAlerta.length > 0 ? (
+            <div
+              className="rounded-xl p-4 h-full"
+              style={{ background: '#111318', border: '1px solid rgba(239,68,68,0.20)' }}
+            >
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <AlertTriangle size={14} className="text-red-400" />
+                Productos con stock crítico
+                <span className="text-[10px] font-normal text-gray-500 ml-1">· {productosAlerta.length} alerta{productosAlerta.length !== 1 ? 's' : ''}</span>
+              </h3>
+              <div className="flex xl:flex-col gap-2 overflow-x-auto xl:overflow-x-hidden xl:overflow-y-auto pb-1 max-h-[280px]">
+                {productosAlerta.map((p) => (
+                  <div
+                    key={p.id}
+                    className="shrink-0 rounded-lg px-3 py-2.5 min-w-[140px] xl:min-w-0"
+                    style={{
+                      background: 'rgba(239,68,68,0.06)',
+                      border: '1px solid rgba(239,68,68,0.18)',
+                    }}
+                  >
+                    <p className="text-xs font-semibold text-white truncate" title={p.nombre}>{p.nombre}</p>
+                    <p className="text-[11px] text-red-400 font-bold mt-0.5 tabular-nums">
+                      Stock: {p.stock ?? 0} / Min: {p.stock_minimo ?? p.stockMinimo ?? 0}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div
+              className="rounded-xl p-4 h-full flex items-center justify-center min-h-40"
+              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <div className="text-center text-gray-600">
+                <PackageX size={24} className="mx-auto mb-2 opacity-30" />
+                <p className="text-xs">Sin alertas de stock</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Resumen financiero — franja compacta (solo no-vendedor) ─────── */}
-      {canViewAdmin && (
-        <div
-          className="grid grid-cols-3 rounded-xl overflow-hidden"
-          style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
-        >
-          {[
-            {
-              label: 'Ingresos hoy',
-              value: formatCOP(kpis.ingresosHoy),
-              Icon: TrendingUp,
-              color: '#00D656',
-              destacado: false,
-            },
-            {
-              label: 'Gastos hoy',
-              value: formatCOP(kpis.gastosHoy),
-              Icon: TrendingDown,
-              color: '#EF4444',
-              destacado: false,
-            },
-            {
-              label: 'Neto del día',
-              value: formatCOP(kpis.ingresosHoy - kpis.gastosHoy),
-              Icon: DollarSign,
-              color: kpis.ingresosHoy - kpis.gastosHoy >= 0 ? '#00D656' : '#EF4444',
-              destacado: true,
-            },
-          ].map(({ label, value, Icon, color, destacado }, i) => (
-            <div
-              key={label}
-              className="px-4 py-3 flex items-center gap-3"
-              style={{
-                borderRight: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                background: destacado ? 'rgba(255,255,255,0.02)' : 'transparent',
-              }}
-            >
-              <Icon size={16} style={{ color }} className="shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-[9px] uppercase tracking-wider text-gray-500 leading-tight">{label}</p>
-                <p
-                  className={`kpi-number tabular-nums leading-tight truncate ${destacado ? 'text-lg font-bold' : 'text-base font-semibold'}`}
-                  style={{ color }}
-                >
-                  {value}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── Productos en alerta de stock ──────────────────────── */}
-      {productosAlerta.length > 0 && (
-        <div
-          className="rounded-xl p-4"
-          style={{ background: '#111318', border: '1px solid rgba(239,68,68,0.20)' }}
-        >
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <AlertTriangle size={14} className="text-red-400" />
-            Productos con stock crítico
-            <span className="text-[10px] font-normal text-gray-500 ml-1">· {productosAlerta.length} alerta{productosAlerta.length !== 1 ? 's' : ''}</span>
-          </h3>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {productosAlerta.map((p) => (
-              <div
-                key={p.id}
-                className="shrink-0 rounded-lg px-3 py-2.5 min-w-[140px]"
-                style={{
-                  background: 'rgba(239,68,68,0.06)',
-                  border: '1px solid rgba(239,68,68,0.18)',
-                }}
-              >
-                <p className="text-xs font-semibold text-white truncate" title={p.nombre}>{p.nombre}</p>
-                <p className="text-[11px] text-red-400 font-bold mt-0.5 tabular-nums">
-                  Stock: {p.stock ?? 0} / Min: {p.stock_minimo ?? p.stockMinimo ?? 0}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* ── Monitor de Salas Activas ──────────────────────── */}
+      <MonitorSalasActivas cargando={cargando} />
 
       {/* ── Acciones Rápidas (FAB) ─────────────────────────────── */}
       <AccionesRapidas

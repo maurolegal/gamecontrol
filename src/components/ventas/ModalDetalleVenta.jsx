@@ -1,13 +1,14 @@
 // ===================================================================
-// MODAL DETALLE DE VENTA – v2 Pro
+// MODAL DETALLE DE VENTA – v3 GameControl Design System
 // Muestra el desglose completo: tiempo, productos, totales, factura
+// Visual alineado a Command Center / StationDetail / Finalizar Sesión
 // ===================================================================
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import {
   X, Printer, Gamepad2, Clock, Package,
-  CreditCard, MapPin, User, Calendar, Ban,
+  MapPin, User, Calendar, Ban,
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -44,12 +45,21 @@ function fmtDuracion(min) {
 }
 
 const METODOS_LABEL = {
-  efectivo: '💵 Efectivo',
-  tarjeta: '💳 Tarjeta',
-  transferencia: '🏦 Transferencia',
-  digital: '📱 QR/Digital',
-  parcial: '🔀 Pago Parcial',
-  anulado: '🚫 Anulado',
+  efectivo: 'Efectivo',
+  tarjeta: 'Tarjeta',
+  transferencia: 'Transferencia',
+  digital: 'QR/Digital',
+  parcial: 'Pago Parcial',
+  anulado: 'Anulado',
+};
+
+const METODOS_COLOR = {
+  efectivo: '#00D656',
+  tarjeta: '#3B82F6',
+  transferencia: '#8B5CF6',
+  digital: '#06B6D4',
+  parcial: '#F59E0B',
+  anulado: '#EF4444',
 };
 
 // ── Función de impresión ────────────────────────────────────────────
@@ -98,21 +108,21 @@ function imprimirFactura(venta, sesion, nombreSala) {
     <style>
       *{margin:0;padding:0;box-sizing:border-box}
       body{font-family:Arial,sans-serif;line-height:1.5;color:#333;padding:24px;background:#fff}
-      .header{text-align:center;padding:20px 0 24px;border-bottom:3px solid #4f46e5;margin-bottom:24px}
-      .header h1{color:#4f46e5;font-size:26px;margin-bottom:4px}
+      .header{text-align:center;padding:20px 0 24px;border-bottom:3px solid #00D656;margin-bottom:24px}
+      .header h1{color:#00D656;font-size:26px;margin-bottom:4px}
       .header p{color:#666;font-size:14px}
       .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
-      .card{padding:14px;background:#f9fafb;border-radius:10px;border-left:4px solid #4f46e5}
-      .card h3{font-size:11px;color:#4f46e5;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+      .card{padding:14px;background:#f9fafb;border-radius:10px;border-left:4px solid #00D656}
+      .card h3{font-size:11px;color:#00D656;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
       .card p{font-size:13px;margin:3px 0;color:#555}
       .card .val{font-weight:700;font-size:14px;color:#111}
       table{width:100%;border-collapse:collapse;margin-bottom:16px}
-      thead th{background:#4f46e5;color:#fff;padding:10px 12px;text-align:left;font-size:12px;text-transform:uppercase}
+      thead th{background:#00D656;color:#fff;padding:10px 12px;text-align:left;font-size:12px;text-transform:uppercase}
       tbody td{padding:9px 12px;border-bottom:1px solid #e5e7eb;font-size:13px}
       tbody tr:nth-child(even){background:#f9fafb}
       .right{text-align:right} .center{text-align:center}
       .total-row td{background:#f0fdf4;font-weight:700;font-size:15px;padding:12px}
-      .footer{margin-top:32px;text-align:center;padding-top:16px;border-top:2px solid #4f46e5;color:#888;font-size:12px}
+      .footer{margin-top:32px;text-align:center;padding-top:16px;border-top:2px solid #00D656;color:#888;font-size:12px}
       @media print{body{padding:0}}
     </style>
   </head><body>
@@ -164,18 +174,6 @@ function imprimirFactura(venta, sesion, nombreSala) {
   win.document.close();
 }
 
-// ── Sección de info ────────────────────────────────────────────────
-function InfoRow({ label, value, mono }) {
-  return (
-    <div className="flex justify-between items-center py-1.5 border-b border-gray-50 dark:border-gray-800 last:border-0">
-      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
-      <span className={`text-sm font-medium text-gray-900 dark:text-white ${mono ? 'font-mono text-xs' : ''}`}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
 // ── Modal ──────────────────────────────────────────────────────────
 export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
   const [sesion, setSesion] = useState(null);
@@ -204,109 +202,122 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
   const pctProductos = total > 0 ? (stProductos / total) * 100 : 0;
 
   const metodoLabel = METODOS_LABEL[venta.metodo_pago] ?? (venta.metodo_pago ?? '—');
+  const metodoColor = METODOS_COLOR[venta.metodo_pago] ?? '#A0AEC0';
+
+  const sectionTitle = 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider';
+  const labelCls = 'text-[9px] uppercase tracking-wider text-gray-600 font-medium';
+  const valueCls = 'text-[13px] font-semibold text-white';
+  const metaCls = 'text-[11px] text-gray-500';
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm"
       onClick={e => e.target === e.currentTarget && onCerrar()}
     >
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
-
+      <div
+        className="w-full md:max-w-[680px] md:rounded-2xl shadow-2xl flex flex-col h-full md:h-auto md:max-h-[88vh]"
+        style={{
+          background: '#111318',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between px-5 py-4 bg-indigo-600 rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/20 rounded-xl">
-              <Gamepad2 size={18} className="text-white" />
-            </div>
+        <div
+          className="flex items-center justify-between px-5 py-3.5 shrink-0"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <span
+              className="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0"
+              style={{ background: 'rgba(0,214,86,0.1)', border: '1px solid rgba(0,214,86,0.2)', color: '#00D656' }}
+            >
+              <Gamepad2 size={16} />
+            </span>
             <div>
-              <h3 className="font-bold text-white">Detalle de Sesión</h3>
-              <p className="text-indigo-200 text-xs mt-0.5">
+              <h3 className="text-[15px] font-bold text-white leading-tight">Detalle de Sesión</h3>
+              <p className="text-[10px] text-gray-500 font-mono mt-0.5">
                 #{(venta.sesion_id ?? venta.id ?? '').slice(-8).toUpperCase()}
               </p>
             </div>
           </div>
-          <button onClick={onCerrar} className="p-1.5 text-white/60 hover:text-white transition-colors">
-            <X size={20} />
+          <button
+            onClick={onCerrar}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+            aria-label="Cerrar"
+          >
+            <X size={18} />
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
+        {/* ── Body scrollable ── */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
           {/* ── Banner anulada ── */}
           {venta.estado === 'anulada' && (() => {
             const match = (venta.notas ?? '').match(/\[ANULADA\]\s*(.+)/);
             const motivo = match ? match[1].trim() : null;
             return (
-              <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-                <Ban size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+              <div
+                className="flex items-start gap-2.5 rounded-lg p-3"
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.20)' }}
+              >
+                <Ban size={15} className="text-red-400 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-bold text-red-700 dark:text-red-400">Sesión Anulada</p>
-                  {motivo && (
-                    <p className="text-sm text-red-600 dark:text-red-300 mt-0.5">{motivo}</p>
-                  )}
+                  <p className="text-[13px] font-bold text-red-400">Sesión Anulada</p>
+                  {motivo && <p className="text-[12px] text-red-400/80 mt-0.5">{motivo}</p>}
                 </div>
               </div>
             );
           })()}
 
-          {/* ── Info cards ── */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {/* ── Resumen: Cliente · Ubicación · Operador ── */}
+          <div
+            className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden"
+            style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}
+          >
             {/* Cliente */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <div className="flex items-center gap-1.5 mb-3">
-                <User size={13} className="text-indigo-500" />
-                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Cliente
-                </h4>
-              </div>
-              <p className="font-bold text-gray-900 dark:text-white text-base">{venta.cliente || '—'}</p>
-              <div className="mt-2">
-                <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400">
-                  {metodoLabel}
-                </span>
+            <div className="px-3.5 py-3" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+              <p className={labelCls}>Cliente</p>
+              <p className={`${valueCls} mt-1 truncate`} title={venta.cliente || '—'}>
+                {venta.cliente || '—'}
+              </p>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full"
+                  style={{ background: metodoColor }}
+                />
+                <span className="text-[10px] text-gray-400 font-medium">{metodoLabel}</span>
               </div>
             </div>
 
-            {/* Sesión */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <div className="flex items-center gap-1.5 mb-3">
-                <MapPin size={13} className="text-indigo-500" />
-                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Ubicación
-                </h4>
-              </div>
-              <p className="font-bold text-gray-900 dark:text-white text-base">
+            {/* Ubicación */}
+            <div className="px-3.5 py-3" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+              <p className={labelCls}>Ubicación</p>
+              <p className={`${valueCls} mt-1 truncate`} title={nombreSala(venta.sala_id)}>
                 {nombreSala(venta.sala_id)}
               </p>
               {venta.estacion && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{venta.estacion}</p>
+                <p className={`${metaCls} mt-0.5 truncate`}>{venta.estacion}</p>
               )}
-              <div className="flex items-center gap-1 mt-2">
-                <Calendar size={11} className="text-gray-400" />
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+              <div className="flex items-center gap-1 mt-1">
+                <Calendar size={10} className="text-gray-600" />
+                <span className="text-[10px] text-gray-500">
                   {formatFecha(venta.fecha_cierre ?? venta.fecha_inicio)}
                 </span>
               </div>
             </div>
 
-            {/* Operador (trazabilidad) */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-              <div className="flex items-center gap-1.5 mb-3">
-                <User size={13} className="text-indigo-500" />
-                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Operador
-                </h4>
-              </div>
-              <p className="font-bold text-gray-900 dark:text-white text-base">
+            {/* Operador */}
+            <div className="px-3.5 py-3">
+              <p className={labelCls}>Operador</p>
+              <p className={`${valueCls} mt-1 truncate`}>
                 {venta.usuario?.nombre || '—'}
               </p>
               {venta.usuario?.rol && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 capitalize">
-                  {venta.usuario.rol}
-                </p>
+                <p className={`${metaCls} mt-0.5 capitalize`}>{venta.usuario.rol}</p>
               )}
               {venta.cancelador?.nombre && (
-                <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                <p className="text-[10px] text-red-400 mt-0.5 truncate">
                   Anulada por: {venta.cancelador.nombre}
                 </p>
               )}
@@ -314,30 +325,26 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
           </div>
 
           {/* ── Cronología ── */}
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
-            <div className="flex items-center gap-1.5 mb-3">
-              <Clock size={13} className="text-indigo-500" />
-              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                Cronología
-              </h4>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
-                <p className="text-xs text-gray-400 mb-1">INICIO</p>
-                <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+          <div>
+            <p className={`${sectionTitle} mb-2.5`}>Cronología</p>
+            <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden"
+              style={{ background: '#15171D', border: '1px solid rgba(255,255,255,0.04)' }}
+            >
+              <div className="px-3.5 py-2.5" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+                <p className={labelCls}>Inicio</p>
+                <p className="text-[13px] font-semibold text-[#00D656] tabular-nums mt-0.5">
                   {formatHora(venta.fecha_inicio)}
                 </p>
               </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
-                <p className="text-xs text-gray-400 mb-1">CIERRE</p>
-                <p className="font-bold text-red-500 dark:text-red-400 text-sm">
+              <div className="px-3.5 py-2.5" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+                <p className={labelCls}>Cierre</p>
+                <p className="text-[13px] font-semibold text-red-400 tabular-nums mt-0.5">
                   {venta.fecha_cierre ? formatHora(venta.fecha_cierre) : '—'}
                 </p>
               </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
-                <p className="text-xs text-gray-400 mb-1">DURACIÓN</p>
-                <p className="font-bold text-indigo-600 dark:text-indigo-400 text-sm">
+              <div className="px-3.5 py-2.5">
+                <p className={labelCls}>Duración</p>
+                <p className="text-[13px] font-semibold text-white tabular-nums mt-0.5">
                   {fmtDuracion(durMin)}
                 </p>
               </div>
@@ -345,24 +352,24 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
 
             {/* Barra distribución costos */}
             {total > 0 && (stTiempo > 0 || stProductos > 0) && (
-              <div className="mt-4">
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">Distribución del total</p>
-                <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+              <div className="mt-3">
+                <p className="text-[10px] text-gray-500 mb-1.5">Distribución del total</p>
+                <div className="flex h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
                   {pctTiempo > 0 && (
-                    <div className="bg-indigo-500 transition-all" style={{ width: `${pctTiempo}%` }} />
+                    <div style={{ width: `${pctTiempo}%`, background: '#00D656', transition: 'width 0.3s' }} />
                   )}
                   {pctProductos > 0 && (
-                    <div className="bg-amber-400 transition-all" style={{ width: `${pctProductos}%` }} />
+                    <div style={{ width: `${pctProductos}%`, background: '#F59E0B', transition: 'width 0.3s' }} />
                   )}
                 </div>
-                <div className="flex justify-between mt-1.5 text-xs text-gray-400">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
+                <div className="flex justify-between mt-1.5">
+                  <span className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                    <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#00D656' }} />
                     Tiempo ({formatCOP(stTiempo)})
                   </span>
                   {stProductos > 0 && (
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                    <span className="flex items-center gap-1.5 text-[10px] text-gray-400">
+                      <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#F59E0B' }} />
                       Productos ({formatCOP(stProductos)})
                     </span>
                   )}
@@ -371,126 +378,118 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
             )}
           </div>
 
-          {/* ── Tabla de desglose ── */}
-          <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 dark:bg-gray-800 px-4 py-2.5 flex items-center gap-1.5">
-              <Package size={13} className="text-gray-500" />
-              <h4 className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                Detalle de consumo
-              </h4>
-            </div>
+          {/* ── Detalle de consumo ── */}
+          <div>
+            <p className={`${sectionTitle} mb-2`}>Detalle de consumo</p>
+            <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.04)' }}>
+              {/* Header tabla */}
+              <div
+                className="grid grid-cols-[1fr_50px_100px] px-3.5 py-2"
+                style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+              >
+                <span className="text-[9px] uppercase tracking-wider text-gray-500 font-medium">Concepto</span>
+                <span className="text-[9px] uppercase tracking-wider text-gray-500 font-medium text-center">Cant.</span>
+                <span className="text-[9px] uppercase tracking-wider text-gray-500 font-medium text-right">Subtotal</span>
+              </div>
 
-            <table className="w-full text-sm">
-              <thead className="text-xs text-gray-400 dark:text-gray-500">
-                <tr>
-                  <th className="px-4 py-2 text-left">Concepto</th>
-                  <th className="px-4 py-2 text-center">Cant.</th>
-                  <th className="px-4 py-2 text-right">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+              {/* Tiempo base */}
+              <div
+                className="grid grid-cols-[1fr_50px_100px] px-3.5 py-2.5 items-center"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Gamepad2 size={13} className="text-[#00D656] shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-white truncate">Alquiler tiempo base</p>
+                    <p className="text-[10px] text-gray-500">{durMin > 0 ? fmtDuracion(durMin) : 'Sesión'}</p>
+                  </div>
+                </div>
+                <span className="text-[11px] text-gray-500 text-center">1</span>
+                <span className="text-[13px] font-medium text-white text-right tabular-nums">{formatCOP(stTiempo)}</span>
+              </div>
 
-                {/* Tiempo base */}
-                <tr>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                        <Gamepad2 size={13} className="text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white">Alquiler tiempo base</p>
-                        <p className="text-xs text-gray-400">{durMin > 0 ? fmtDuracion(durMin) : 'Sesión'}</p>
-                      </div>
+              {/* Tiempos adicionales */}
+              {tiempos.length > 0 && (
+                <div
+                  className="grid grid-cols-[1fr_50px_100px] px-3.5 py-2.5 items-center"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Clock size={13} className="text-[#00D656] shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-white truncate">Tiempos adicionales</p>
+                      <p className="text-[10px] text-gray-500">{tiempos.map(t => `+${t.minutos}m`).join(' · ')}</p>
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-400 text-xs">1</td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
-                    {formatCOP(stTiempo)}
-                  </td>
-                </tr>
+                  </div>
+                  <span className="text-[11px] text-gray-500 text-center">{tiempos.length}</span>
+                  <span className="text-[13px] font-medium text-white text-right tabular-nums">
+                    {formatCOP(tiempos.reduce((s, t) => s + (t.costo || 0), 0))}
+                  </span>
+                </div>
+              )}
 
-                {/* Tiempos adicionales */}
-                {tiempos.length > 0 && (
-                  <tr>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                          <Clock size={13} className="text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">Tiempos adicionales</p>
-                          <p className="text-xs text-gray-400">
-                            {tiempos.map(t => `+${t.minutos}m`).join(' · ')}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-400 text-xs">{tiempos.length}</td>
-                    <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
-                      {formatCOP(tiempos.reduce((s, t) => s + (t.costo || 0), 0))}
-                    </td>
-                  </tr>
-                )}
+              {/* Productos */}
+              {productos.map((p, i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[1fr_50px_100px] px-3.5 py-2.5 items-center"
+                  style={{ borderBottom: i < productos.length - 1 || descuento > 0 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Package size={13} className="text-amber-400 shrink-0" />
+                    <p className="text-[13px] font-medium text-white truncate">{p.nombre}</p>
+                  </div>
+                  <span className="text-[11px] text-gray-500 text-center">×{p.cantidad}</span>
+                  <span className="text-[13px] text-gray-300 text-right tabular-nums">
+                    {formatCOP(p.subtotal ?? p.precio * p.cantidad)}
+                  </span>
+                </div>
+              ))}
 
-                {/* Productos */}
-                {productos.map((p, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
-                          <Package size={13} className="text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <p className="font-medium text-gray-900 dark:text-white">{p.nombre}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-400 text-xs">×{p.cantidad}</td>
-                    <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-300">
-                      {formatCOP(p.subtotal ?? p.precio * p.cantidad)}
-                    </td>
-                  </tr>
-                ))}
-
-                {/* Descuento */}
-                {descuento > 0 && (
-                  <tr>
-                    <td className="px-4 py-3 text-red-500 font-medium" colSpan={2}>Descuento</td>
-                    <td className="px-4 py-3 text-right text-red-500 font-medium">
-                      -{formatCOP(descuento)}
-                    </td>
-                  </tr>
-                )}
-
-                {/* TOTAL */}
-                <tr className="bg-indigo-50 dark:bg-indigo-900/20">
-                  <td className="px-4 py-3 font-bold text-indigo-700 dark:text-indigo-300" colSpan={2}>
-                    TOTAL PAGADO
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-xl text-indigo-700 dark:text-indigo-300">
-                    {formatCOP(total)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+              {/* Descuento */}
+              {descuento > 0 && (
+                <div
+                  className="grid grid-cols-[1fr_50px_100px] px-3.5 py-2.5 items-center"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+                >
+                  <span className="text-[13px] font-medium text-red-400">Descuento</span>
+                  <span />
+                  <span className="text-[13px] font-medium text-red-400 text-right tabular-nums">-{formatCOP(descuento)}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Desglose pago parcial ── */}
           {venta.metodo_pago === 'parcial' && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-              <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-3">
-                Desglose pago parcial
-              </h4>
-              <div className="space-y-1">
+            <div>
+              <p className={`${sectionTitle} mb-2`}>Desglose pago parcial</p>
+              <div className="rounded-lg p-3 space-y-1.5"
+                style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)' }}
+              >
                 {(venta.monto_efectivo ?? 0) > 0 && (
-                  <InfoRow label="Efectivo" value={formatCOP(venta.monto_efectivo)} />
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-gray-400">Efectivo</span>
+                    <span className="text-white font-medium tabular-nums">{formatCOP(venta.monto_efectivo)}</span>
+                  </div>
                 )}
                 {(venta.monto_transferencia ?? 0) > 0 && (
-                  <InfoRow label="Transferencia" value={formatCOP(venta.monto_transferencia)} />
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-gray-400">Transferencia</span>
+                    <span className="text-white font-medium tabular-nums">{formatCOP(venta.monto_transferencia)}</span>
+                  </div>
                 )}
                 {(venta.monto_tarjeta ?? 0) > 0 && (
-                  <InfoRow label="Tarjeta" value={formatCOP(venta.monto_tarjeta)} />
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-gray-400">Tarjeta</span>
+                    <span className="text-white font-medium tabular-nums">{formatCOP(venta.monto_tarjeta)}</span>
+                  </div>
                 )}
                 {(venta.monto_digital ?? 0) > 0 && (
-                  <InfoRow label="QR/Digital" value={formatCOP(venta.monto_digital)} />
+                  <div className="flex justify-between text-[12px]">
+                    <span className="text-gray-400">QR/Digital</span>
+                    <span className="text-white font-medium tabular-nums">{formatCOP(venta.monto_digital)}</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -501,36 +500,55 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
             !venta.notas.startsWith('[TIEMPO_LIBRE]') &&
             !venta.notas.includes('[PAGO_PARCIAL]') &&
             venta.estado !== 'anulada' && (
-              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
-                <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-400 mb-1">Notas</p>
-                <p className="text-sm text-yellow-900 dark:text-yellow-200">{venta.notas}</p>
+              <div className="rounded-lg p-3"
+                style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}
+              >
+                <p className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider mb-1">Notas</p>
+                <p className="text-[12px] text-gray-300">{venta.notas}</p>
               </div>
             )}
         </div>
 
-        {/* ── Footer ── */}
-        <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-gray-800">
-          {venta.estado !== 'anulada' && (
-            <button
-              onClick={() => imprimirFactura(venta, sesion, nombreSala)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700
-                         text-white text-sm font-semibold transition-colors"
-            >
-              <Printer size={16} /> Imprimir factura
-            </button>
-          )}
-          {venta.estado === 'anulada' && (
-            <span className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-sm font-semibold">
-              <Ban size={16} /> Sesión anulada
-            </span>
-          )}
-          <button
-            onClick={onCerrar}
-            className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700
-                       text-gray-700 dark:text-gray-300 text-sm font-semibold transition-colors"
+        {/* ── Total + Footer ── */}
+        <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* Total */}
+          <div
+            className="flex items-center justify-between px-5 py-3"
+            style={{ background: '#15171D' }}
           >
-            Cerrar
-          </button>
+            <span className="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Total pagado</span>
+            <span className="text-2xl font-bold text-[#00D656] tabular-nums">{formatCOP(total)}</span>
+          </div>
+
+          {/* Acciones */}
+          <div className="flex items-center justify-between px-5 py-3 gap-3">
+            {venta.estado !== 'anulada' ? (
+              <button
+                onClick={() => imprimirFactura(venta, sesion, nombreSala)}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold transition-all min-h-[44px]"
+                style={{
+                  background: 'rgba(0,214,86,0.10)',
+                  border: '1px solid rgba(0,214,86,0.25)',
+                  color: '#00D656',
+                }}
+              >
+                <Printer size={15} /> Imprimir factura
+              </button>
+            ) : (
+              <span
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold min-h-[44px]"
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.20)', color: '#EF4444' }}
+              >
+                <Ban size={15} /> Sesión anulada
+              </span>
+            )}
+            <button
+              onClick={onCerrar}
+              className="px-4 py-2 rounded-lg text-[13px] font-medium text-gray-400 hover:text-white transition-colors min-h-[44px] hover:bg-white/5"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>

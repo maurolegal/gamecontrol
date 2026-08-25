@@ -14,20 +14,21 @@ export const MODULOS = [
   { key: 'recetas',          label: 'Recetas',           emoji: '🍳' },
   { key: 'auditoria_cierres', label: 'Auditoría Cierres', emoji: '🛡️' },
   { key: 'usuarios',         label: 'Usuarios',          emoji: '👥' },
+  { key: 'dispositivos',     label: 'Dispositivos',      emoji: '🖥️' },
   { key: 'ajustes',          label: 'Ajustes',           emoji: '⚙️'  },
 ];
 
 export const PERMISOS_ROL = {
-  administrador: { dashboard: true,  salas: true,  ventas: true,  gastos: true,  stock: true,  cierre_turno: true,  clientes: true,  reportes: true,  recetas: true,  auditoria_cierres: true,  usuarios: true,  ajustes: true  },
-  supervisor:    { dashboard: true,  salas: true,  ventas: true,  gastos: true,  stock: true,  cierre_turno: true,  clientes: true,  reportes: true,  recetas: true,  auditoria_cierres: true,  usuarios: false, ajustes: false },
-  operador:      { dashboard: true,  salas: true,  ventas: true,  gastos: false, stock: true,  cierre_turno: true,  clientes: true,  reportes: false, recetas: false, auditoria_cierres: false, usuarios: false, ajustes: false },
-  vendedor:      { dashboard: true,  salas: false, ventas: true,  gastos: false, stock: false, cierre_turno: true,  clientes: false, reportes: false, recetas: false, auditoria_cierres: false, usuarios: false, ajustes: false },
+  administrador: { dashboard: true,  salas: true,  ventas: true,  gastos: true,  stock: true,  cierre_turno: true,  clientes: true,  reportes: true,  recetas: true,  auditoria_cierres: true,  usuarios: true,  dispositivos: true,  ajustes: true  },
+  supervisor:    { dashboard: true,  salas: true,  ventas: true,  gastos: true,  stock: true,  cierre_turno: true,  clientes: true,  reportes: true,  recetas: true,  auditoria_cierres: true,  usuarios: false, dispositivos: true,  ajustes: false },
+  operador:      { dashboard: true,  salas: true,  ventas: true,  gastos: false, stock: true,  cierre_turno: true,  clientes: true,  reportes: false, recetas: false, auditoria_cierres: false, usuarios: false, dispositivos: true,  ajustes: false },
+  vendedor:      { dashboard: true,  salas: false, ventas: true,  gastos: false, stock: false, cierre_turno: true,  clientes: false, reportes: false, recetas: false, auditoria_cierres: false, usuarios: false, dispositivos: false, ajustes: false },
 };
 
 export const PERMISOS_DEFAULT = {
   dashboard: true, salas: false, ventas: false, gastos: false,
   stock: false, cierre_turno: true, clientes: false, reportes: false,
-  recetas: false, auditoria_cierres: false, usuarios: false, ajustes: false,
+  recetas: false, auditoria_cierres: false, usuarios: false, dispositivos: false, ajustes: false,
 };
 
 export const ROL_STYLE = {

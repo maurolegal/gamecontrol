@@ -80,6 +80,7 @@ export function useDashboard() {
     totalEstaciones: 0,
     sesionesActivas: 0,
     sesionesPorVencer: 0,
+    sesionesVencidas: 0,
     alertasStock: 0,
     gastosHoy: 0,
   });
@@ -235,6 +236,7 @@ export function useDashboard() {
         totalEstaciones,
         sesionesActivas: sesionesVivas.length,
         sesionesPorVencer: porVencer.length,
+        sesionesVencidas: vencidas.length,
         alertasStock: criticos.length,
         gastosHoy,
       });

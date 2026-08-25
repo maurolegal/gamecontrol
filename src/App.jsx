@@ -13,6 +13,7 @@ import Gastos     from './pages/Gastos';
 import Stock      from './pages/Stock';
 import Reportes   from './pages/Reportes';
 import Usuarios   from './pages/Usuarios';
+import Dispositivos   from './pages/Dispositivos';
 import Recetas    from './pages/Recetas';
 import Ajustes    from './pages/Ajustes';
 import Clientes   from './pages/Clientes';
@@ -58,8 +59,9 @@ export default function App() {
                   <Route path="/cierre-turno" element={<ProtectedRoute modulo="cierre_turno"><CierreTurno /></ProtectedRoute>} />
                   <Route path="/auditoria-cierres" element={<ProtectedRoute modulo="auditoria_cierres"><AuditoriaCierres /></ProtectedRoute>} />
                   <Route path="/reportes"  element={<ProtectedRoute modulo="reportes"><Reportes /></ProtectedRoute>} />
-                  <Route path="/usuarios"  element={<ProtectedRoute modulo="usuarios"><Usuarios /></ProtectedRoute>} />
-                  <Route path="/recetas"   element={<ProtectedRoute modulo="recetas"><Recetas /></ProtectedRoute>} />
+                  <Route path="/usuarios"      element={<ProtectedRoute modulo="usuarios"><Usuarios /></ProtectedRoute>} />
+                  <Route path="/dispositivos"  element={<ProtectedRoute modulo="dispositivos"><Dispositivos /></ProtectedRoute>} />
+                  <Route path="/recetas"       element={<ProtectedRoute modulo="recetas"><Recetas /></ProtectedRoute>} />
                   <Route path="/ajustes"   element={<ProtectedRoute modulo="ajustes"><Ajustes /></ProtectedRoute>} />
                 </Routes>
               </Layout>

@@ -81,8 +81,17 @@ export default function CommandCenterHeader({
     // Consumo activo = total de productos en sesiones activas
     const consumoActivo = sesionesActivas.reduce((acc, s) => acc + (s.productos?.length || 0), 0);
     
-    // Ingresos activos = totalGeneral de sesiones activas (ya calculado en backend)
-    const ingresosActivos = sesionesActivas.reduce((acc, s) => acc + (s.totalGeneral || 0), 0);
+    // Ingresos activos = tarifa_base + costoAdicional + productos consumidos
+    // (total_general solo se setea al finalizar; para activas hay que calcularlo)
+    const ingresosActivos = sesionesActivas.reduce((acc, s) => {
+      const tarifaBase = Number(s.tarifa_base ?? s.tarifa ?? 0);
+      const costoExtra = Number(s.costoAdicional ?? s.costo_adicional ?? 0);
+      const productosSum = (s.productos || []).reduce(
+        (p, prod) => p + (Number(prod.subtotal) || (Number(prod.cantidad) * Number(prod.precio)) || 0),
+        0
+      );
+      return acc + tarifaBase + costoExtra + productosSum;
+    }, 0);
 
     return {
       totalEstaciones: estacionesTotales,

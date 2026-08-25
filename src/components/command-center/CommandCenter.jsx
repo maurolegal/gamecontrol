@@ -9,7 +9,7 @@ import { Pencil } from 'lucide-react';
 import { useSalas } from '../../hooks/useSalas';
 import { usePermisos } from '../../hooks/usePermisos';
 import { useAuth } from '../../hooks/useAuth';
-import useGlobalTick from '../../hooks/useGlobalTick';
+import useGlobalTick from '../../hooks/useGlobalTick'; // eslint-disable-line no-unused-vars
 import { useAlertaSonoraVencidas } from '../../hooks/useAlertaSonoraVencidas';
 import StationCard from './StationCard';
 import CommandCenterHeader from './CommandCenterHeader';
@@ -229,34 +229,25 @@ export default function CommandCenter() {
     return estaciones;
   }, [salasFiltradas, estacionesConSesion]);
 
-  // ── Agrupar estaciones por SALA, ordenar dentro por prioridad ────────
-  const now = useGlobalTick();
+  // ── Agrupar estaciones por SALA, mantener orden fijo por número ────────
   const salasConEstaciones = useMemo(() => {
     const resultado = [];
     for (const sala of salasFiltradas) {
       const estacionesSala = todasEstaciones.filter(e => e.sala.id === sala.id);
-      const activas = [];
-      const libres = [];
+      // Mantener orden original por número de estación (no reordenar al activar)
+      let countActivas = 0;
+      let countLibres = 0;
       for (const est of estacionesSala) {
         if (est.sesion && !est.sesion.finalizada && est.sesion.estado !== 'cancelada') {
-          activas.push(est);
+          countActivas++;
         } else {
-          libres.push(est);
+          countLibres++;
         }
       }
-      // Ordenar activas por prioridad: excedida > crítica > vencida > por vencer > normal
-      activas.sort((a, b) => {
-        const prioA = calcularPrioridad(a.sesion, now);
-        const prioB = calcularPrioridad(b.sesion, now);
-        if (prioA !== prioB) return prioA - prioB;
-        return 0;
-      });
-      // Libres mantienen orden original (por número de estación)
-      const ordenadas = [...activas, ...libres];
-      resultado.push({ sala, estaciones: ordenadas, countActivas: activas.length, countLibres: libres.length });
+      resultado.push({ sala, estaciones: estacionesSala, countActivas, countLibres });
     }
     return resultado;
-  }, [todasEstaciones, salasFiltradas, now]);
+  }, [todasEstaciones, salasFiltradas]);
 
   // ── Estación seleccionada para StationDetail ──────────────────────
   const estacionSeleccionada = useMemo(() => {

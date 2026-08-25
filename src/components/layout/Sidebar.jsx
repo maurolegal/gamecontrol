@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   Tv,
   Radio,
+  Cpu,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermisos } from '../../hooks/usePermisos';
@@ -51,6 +52,7 @@ const GRUPOS = [
       { to: '/clientes',          label: 'Clientes',          Icon: UserCheck,   modulo: 'clientes' },
       { to: '/reportes',          label: 'Reportes',          Icon: BarChart2,   modulo: 'reportes' },
       { to: '/auditoria-cierres', label: 'Auditoría Cierres', Icon: ShieldAlert, modulo: 'auditoria_cierres' },
+      { to: '/dispositivos',      label: 'Dispositivos',      Icon: Cpu,         modulo: 'dispositivos' },
       { to: '/usuarios',          label: 'Usuarios',          Icon: Users,       modulo: 'usuarios' },
     ],
   },

@@ -36,6 +36,7 @@ export function usePermisos() {
   const puedeVerReportes = !!permisosMod.reportes;
   const puedeVerGastos = !!permisosMod.gastos;
   const puedeVerUsuarios = !!permisosMod.usuarios;
+  const puedeVerDispositivos = !!permisosMod.dispositivos;
   const puedeVerAjustes = !!permisosMod.ajustes;
 
   // Función genérica para verificar acceso a cualquier módulo
@@ -64,6 +65,7 @@ export function usePermisos() {
     puedeVerReportes,
     puedeVerGastos,
     puedeVerUsuarios,
+    puedeVerDispositivos,
     puedeVerAjustes,
     puedeAccederModulo,
   };
