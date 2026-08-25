@@ -25,55 +25,45 @@ export function useCaja() {
 
     setCargando(true);
     try {
-      // Buscar el último cierre del usuario
-      // Usar solo columnas que sabemos que existen (sin fondo_inicial)
+      // Traer el último registro del usuario (cualquier tipo)
       const { data, error } = await supabase
         .from('cierres_turno')
-        .select('id, turno_hasta, observaciones')
+        .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen')
         .eq('usuario_id', usuario.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
       if (error) throw error;
 
-      const ultimoCierre = data?.[0];
+      const ultimoRegistro = data?.[0];
 
-      if (!ultimoCierre) {
-        // No hay ningún cierre previo → necesita abrir caja
+      if (!ultimoRegistro) {
+        // No hay ningún registro previo → necesita abrir caja
         setCajaAbierta(false);
         setFondoInicial(0);
         setTurnoInicio(null);
-      } else {
-        // Buscar apertura de caja más reciente (registro con [APERTURA_CAJA])
-        const { data: aperturaData, error: aperturaError } = await supabase
-          .from('cierres_turno')
-          .select('id, turno_desde, observaciones')
-          .eq('usuario_id', usuario.id)
-          .like('observaciones', '%APERTURA_CAJA%')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (aperturaError) throw aperturaError;
-
-        if (aperturaData?.[0] && ultimoCierre.turno_hasta) {
-          const aperturaDate = new Date(aperturaData[0].turno_desde);
-          const cierreDate = new Date(ultimoCierre.turno_hasta);
-          if (aperturaDate > cierreDate) {
-            // La apertura es más reciente que el último cierre → caja abierta
-            setCajaAbierta(true);
-            setFondoInicial(0); // Se cargará desde la apertura si la columna existe
-            setTurnoInicio(aperturaData[0].turno_desde);
-          } else {
-            setCajaAbierta(false);
-            setFondoInicial(0);
-            setTurnoInicio(null);
-          }
-        } else {
-          // No hay apertura → caja cerrada
-          setCajaAbierta(false);
-          setFondoInicial(0);
-          setTurnoInicio(null);
+      } else if (ultimoRegistro.observaciones?.includes('[APERTURA_CAJA]')) {
+        // El último registro es una apertura → caja abierta
+        // Extraer fondo inicial de observaciones o ticket_resumen
+        let fondo = 0;
+        try {
+          const match = ultimoRegistro.observaciones.match(/Fondo inicial:\s*([\d.]+)/);
+          if (match) fondo = parseFloat(match[1]);
+        } catch (_) {}
+        if (!fondo && ultimoRegistro.ticket_resumen) {
+          try {
+            const ticket = JSON.parse(ultimoRegistro.ticket_resumen);
+            fondo = ticket.fondo_inicial || 0;
+          } catch (_) {}
         }
+        setCajaAbierta(true);
+        setFondoInicial(fondo);
+        setTurnoInicio(ultimoRegistro.turno_desde);
+      } else {
+        // El último registro es un cierre → caja cerrada
+        setCajaAbierta(false);
+        setFondoInicial(0);
+        setTurnoInicio(null);
       }
     } catch (err) {
       console.error('Error verificando caja:', err);
@@ -98,7 +88,7 @@ export function useCaja() {
         usuario_nombre: usuario?.user_metadata?.nombre ?? usuario.email ?? null,
         rol_usuario: usuario?.user_metadata?.rol ?? null,
         turno_desde: ahora,
-        turno_hasta: ahora,
+        turno_hasta: ahora, // NOT NULL en DB; la lógica usa observaciones para detectar apertura
         efectivo_contado: 0,
         efectivo_esperado: 0,
         efectivo_descuadre: 0,

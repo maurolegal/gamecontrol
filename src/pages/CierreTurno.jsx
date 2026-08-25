@@ -138,10 +138,10 @@ export default function CierreTurno() {
         const initConteos = Object.fromEntries(lista.map((p) => [p.id, '']));
         setConteosInventario(initConteos);
 
-        // 2) Último cierre para saber turno_desde + fondo inicial de apertura
+        // 2) Último registro del usuario (apertura o cierre)
         const cierreRes = await supabase
           .from('cierres_turno')
-          .select('turno_hasta, observaciones')
+          .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen')
           .eq('usuario_id', usuario.id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -151,22 +151,20 @@ export default function CierreTurno() {
         let desde;
         let fondoInicial = 0;
 
-        // Buscar la apertura de caja más reciente (registro con [APERTURA_CAJA])
-        const { data: aperturaData } = await supabase
-          .from('cierres_turno')
-          .select('turno_desde, observaciones')
-          .eq('usuario_id', usuario.id)
-          .like('observaciones', '%APERTURA_CAJA%')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (aperturaData?.[0]) {
-          // El turno inicia desde la apertura de caja
-          desde = new Date(aperturaData[0].turno_desde);
-          // Extraer fondo inicial del texto de observaciones
-          const match = (aperturaData[0].observaciones ?? '').match(/Fondo inicial:\s*(\d+)/);
+        if (ultimo?.observaciones?.includes('[APERTURA_CAJA]')) {
+          // El último registro es una apertura → el turno inicia desde ahí
+          desde = new Date(ultimo.turno_desde);
+          // Extraer fondo inicial
+          const match = (ultimo.observaciones ?? '').match(/Fondo inicial:\s*([\d.]+)/);
           fondoInicial = match ? numero(match[1]) : 0;
+          if (!fondoInicial && ultimo.ticket_resumen) {
+            try {
+              const ticket = JSON.parse(ultimo.ticket_resumen);
+              fondoInicial = numero(ticket.fondo_inicial) || 0;
+            } catch (_) {}
+          }
         } else if (ultimo?.turno_hasta) {
+          // El último registro es un cierre → el turno inicia desde el cierre
           desde = new Date(ultimo.turno_hasta);
         } else {
           desde = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
