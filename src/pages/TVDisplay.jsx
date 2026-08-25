@@ -350,21 +350,11 @@ export default function TVDisplay() {
       >
         {/* Logo / branding */}
         <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, #00D656, #00a042)',
-              boxShadow: '0 0 20px rgba(0,214,86,0.4)',
-            }}
-          >
-            <Gamepad2 size={22} className="text-black" />
-          </div>
-          <div>
-            <p className="text-white font-black text-lg leading-none tracking-tight">
-              GameControl
-            </p>
-            <p className="text-gray-500 text-xs mt-0.5">Vista en vivo</p>
-          </div>
+          <img
+            src="/gamecontrol-horizontal.png"
+            alt="GameControl"
+            style={{ height: '44px', width: 'auto', objectFit: 'contain' }}
+          />
         </div>
 
         {/* Stats rápidos */}
