@@ -1,5 +1,5 @@
 import { TrendingUp } from 'lucide-react';
-import { formatCOP } from '../../pages/Reportes';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ── SVG line chart (no external dependencies) ────────────────────────
 

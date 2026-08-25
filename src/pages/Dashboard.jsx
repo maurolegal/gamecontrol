@@ -22,14 +22,7 @@ import { useAuth } from '../hooks/useAuth';
 import useGameStore from '../store/useGameStore';
 import { supabase } from '../lib/supabaseClient';
 import { useEffect, useState, useMemo } from 'react';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
+import { formatCOP } from '../lib/formatCurrency';
 
 export default function Dashboard() {
   const { rol, canViewAdmin, esOperador } = useAuth();

@@ -29,15 +29,9 @@ import ModalTiempoCumplido from '../salas/ModalTiempoCumplido';
 import MovimientoDeHoyCC from './MovimientoDeHoyCC';
 
 // ── formatCOP inline ────────────────────────────────────────────────
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 import { ICONOS_TIPO, COLORES_SALA } from './constants';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ── Prioridad de ordenamiento para EN JUEGO (Sprint 0.4-H) ──────────
 // 1 = excedida, 2 = crítica, 3 = vencida, 4 = por vencer, 5 = normal

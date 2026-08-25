@@ -9,14 +9,7 @@ import Modal from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
 import { useSalas } from '../../hooks/useSalas';
 import { useNotifications } from '../../hooks/useNotifications';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 /**
  * @param {{

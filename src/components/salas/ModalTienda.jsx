@@ -21,6 +21,7 @@ import { useSalas } from '../../hooks/useSalas';
 import { registrarVentaPos, generarIdempotencyKey, USE_RPC_V3 } from '../../lib/posService';
 import { agregarProductosSesion, generarIdempotencyKey as generarSessionKey, USE_SESSION_RPC_V4 } from '../../lib/sessionService';
 import { getUsuarioIdSimple } from '../../lib/authHelpers';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // Sub-componentes memoizados (Sprint 0.4-E)
 import {
@@ -31,12 +32,6 @@ import {
   EmptyProducts,
   EmptyCart,
 } from './ModalTiendaParts';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 /**
  * Modal Tienda - POS

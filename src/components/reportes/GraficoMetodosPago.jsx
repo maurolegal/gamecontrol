@@ -1,5 +1,5 @@
 import { Wallet } from 'lucide-react';
-import { formatCOP } from '../../pages/Reportes';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const METODOS = [
   { key: 'efectivo',      label: 'Efectivo',      color: '#3B82F6' },

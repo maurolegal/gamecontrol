@@ -4,14 +4,7 @@
 // ===================================================================
 
 import { Zap, Users, Gamepad2, DollarSign, Bell, AlertTriangle } from 'lucide-react';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../../../lib/formatCurrency';
 
 const KPI_ITEMS = [
   { key: 'estaciones', label: 'ESTACIONES', icon: Gamepad2, color: '#fff', getValue: (k) => k.totalEstaciones },

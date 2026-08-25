@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { X, Cpu, Save, Calendar, Truck, Shield, DollarSign, Plus, Gamepad2, Monitor, Smartphone, Tv, Package } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const TIPOS = [
   { value: 'consola', label: 'Consola', icon: Gamepad2 },
@@ -20,10 +21,6 @@ const ESTADOS = [
   { value: 'mantenimiento', label: 'Mantenimiento' },
   { value: 'reparacion', label: 'Reparación' },
 ];
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
-}
 
 export default function ModalCrearDispositivo({ open, onClose, onCreado }) {
   const { exito, error: notifError } = useNotifications();

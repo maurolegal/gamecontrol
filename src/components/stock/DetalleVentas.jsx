@@ -6,10 +6,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ShoppingCart, Calendar, RefreshCw, Package } from 'lucide-react';
 import * as db from '../../lib/databaseService';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 function obtenerFechaLocal() {
   const d = new Date();

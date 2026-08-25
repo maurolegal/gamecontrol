@@ -5,6 +5,7 @@
 
 import { useEffect, useRef } from 'react';
 import { TrendingUp } from 'lucide-react';
+import { formatCOP } from '../../lib/formatCurrency';
 import {
   Chart,
   LineController,
@@ -27,12 +28,6 @@ Chart.register(
   Tooltip,
   Legend
 );
-
-function formatCOP(v) {
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}k`;
-  return `$${v}`;
-}
 
 const PERIOD_LABELS = { hoy: 'Hoy', semana: '7 días', mes: '30 días' };
 

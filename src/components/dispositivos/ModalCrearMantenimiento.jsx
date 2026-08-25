@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { X, Save, Calendar, Wrench, DollarSign, Shield, Sparkles, Truck, CreditCard, Plus, Wallet, Banknote, Smartphone } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const TIPOS_MANTENIMIENTO = [
   { value: 'preventivo', label: 'Preventivo', icon: Shield, color: '#00D656', desc: 'Mantenimiento programado, limpieza, revisión' },
@@ -19,10 +20,6 @@ const METODOS_PAGO = [
   { value: 'tarjeta',       label: 'Tarjeta',       icon: CreditCard, color: '#3B82F6' },
   { value: 'cheque',        label: 'Cheque',        icon: Wallet,    color: '#F59E0B' },
 ];
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
-}
 
 export default function ModalCrearMantenimiento({ open, onClose, onCreado, dispositivo }) {
   const { exito, error: notifError } = useNotifications();

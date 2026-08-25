@@ -19,10 +19,7 @@ import useGameStore from '../store/useGameStore';
 import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../components/ui/ConfirmProvider';
 import { usePermisos }      from '../hooks/usePermisos';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
-}
+import { formatCOP } from '../lib/formatCurrency';
 
 export default function Stock() {
   const { productos, setProductos } = useGameStore();

@@ -7,6 +7,7 @@
 
 import { memo } from 'react';
 import { Play, Plus, Package, Clock } from 'lucide-react';
+import { formatCOP } from '../../lib/formatCurrency';
 
 function formatearHoraCorta(isoString) {
   if (!isoString) return '';
@@ -67,15 +68,6 @@ function construirEventos(sesion) {
   });
 
   return eventos;
-}
-
-function formatCOP(valor) {
-  if (!valor) return '';
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor);
 }
 
 function StationDetailHistorialInner({ sesion }) {

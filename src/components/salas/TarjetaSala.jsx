@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, memo } from 'react';
 import { Play, Clock, ShoppingCart, Square, ArrowLeftRight, Pencil } from 'lucide-react';
 import ConsolaBadge from '../gaming/ConsolaBadge';
 import useGlobalTick from '../../hooks/useGlobalTick';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // Iconos por tipo de consola
 const ICONO_TIPO = {
@@ -16,14 +17,6 @@ const ICONO_TIPO = {
   xbox: '🎮',
   nintendo: '🕹',
 };
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 /** Reproduce un beep usando Web Audio API */
 function beep(freq = 900, dur = 300, vol = 0.25) {

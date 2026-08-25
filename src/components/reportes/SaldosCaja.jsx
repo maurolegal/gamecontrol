@@ -1,5 +1,5 @@
 import { Banknote, Wallet, CreditCard, Smartphone, DollarSign } from 'lucide-react';
-import { formatCOP } from '../../pages/Reportes';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const METODOS = [
   { key: 'efectivo',      label: 'Efectivo',           Icon: Banknote,    color: '#3B82F6' },

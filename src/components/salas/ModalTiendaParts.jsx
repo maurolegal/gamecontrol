@@ -8,12 +8,7 @@
 
 import { memo } from 'react';
 import { Plus, Minus, Trash2, Check, Package } from 'lucide-react';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 const PLACEHOLDER_IMAGE = 'https://res.cloudinary.com/dtygv4kfq/image/upload/v1770084000/placeholder_product.png';
 

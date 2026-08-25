@@ -14,6 +14,7 @@ import TablaVentas      from '../components/ventas/TablaVentas';
 import ModalDetalleVenta from '../components/ventas/ModalDetalleVenta';
 import ModalEditarVenta  from '../components/ventas/ModalEditarVenta';
 import ModalDevolverVenta from '../components/ventas/ModalDevolverVenta';
+import { formatCOP } from '../lib/formatCurrency';
 
 import {
   DollarSign, ShoppingBag, TrendingUp, Users,
@@ -21,11 +22,7 @@ import {
 } from 'lucide-react';
 
 // ── Utilidades ─────────────────────────────────────────────────────
-export function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
+export 
 
 const TIMEZONE_BOGOTA = 'America/Bogota';
 

@@ -2,14 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import Modal from '../ui/Modal';
 import { AlertTriangle, CheckCircle2, Package, Info, AlertCircle } from 'lucide-react';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(Number(valor ?? 0));
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 function formatFechaHora(iso) {
   if (!iso) return '—';

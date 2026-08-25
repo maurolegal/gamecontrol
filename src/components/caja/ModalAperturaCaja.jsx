@@ -5,14 +5,9 @@
 
 import { useState } from 'react';
 import { Banknote, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const DENOMINACIONES_RAPIDAS = [50000, 100000, 200000, 300000, 500000];
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
 
 export default function ModalAperturaCaja({ open, onClose, onAbrir, usuarioNombre }) {
   const [monto, setMonto] = useState('');

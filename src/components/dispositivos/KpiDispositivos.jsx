@@ -1,3 +1,4 @@
+import { formatCOP } from '../../lib/formatCurrency';
 // ===================================================================
 // KPI DISPOSITIVOS – Strip compacto
 // ===================================================================
@@ -15,11 +16,7 @@ export default function KpiDispositivos({ kpis, cargando }) {
     );
   }
 
-  function formatCOP(v) {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-    }).format(v ?? 0);
-  }
+  
 
   const items = [
     { label: 'TOTAL', value: kpis.total, icon: '🖥️', color: '#A0AEC0', bg: 'rgba(160,174,192,0.1)' },

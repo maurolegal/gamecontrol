@@ -1,5 +1,6 @@
 import { Edit2, Trash2, History } from 'lucide-react';
-import { formatCOP, formatFecha } from '../../pages/Gastos';
+import { formatCOP } from '../../lib/formatCurrency';
+import { formatFecha } from '../../pages/Gastos';
 
 // ===================================================================
 // HISTORIAL DE GASTOS — Design System GameControl (Command Center aligned)

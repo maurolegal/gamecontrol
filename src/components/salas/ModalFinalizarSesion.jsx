@@ -17,6 +17,7 @@ import { useSalas } from '../../hooks/useSalas';
 import { useNotifications } from '../../hooks/useNotifications';
 import * as db from '../../lib/databaseService';
 import { finalizarSesion as finalizarSesionRPC, USE_FINALIZAR_SESION_RPC } from '../../lib/sessionService';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // Sub-componentes memoizados (Sprint 0.4-D)
 import {
@@ -28,12 +29,6 @@ import {
   ModalFooter,
   AnularPanel,
 } from './ModalFinalizarSesionParts';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 function calcularDuracionMin(fechaInicio) {
   if (!fechaInicio) return 0;

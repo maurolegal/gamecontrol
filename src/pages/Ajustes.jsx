@@ -12,17 +12,16 @@ import { useConfirm } from '../components/ui/ConfirmProvider';
 import { useSalas } from '../hooks/useSalas';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
 import { supabase } from '../lib/supabaseClient';
+import { COUNTRY_LIST, getCountry, getSuggestedRegional } from '../lib/countries';
+import { CURRENCY_LIST, getCurrency } from '../lib/currencies';
+import { formatCurrency } from '../lib/formatCurrency';
+import { useRegionalConfig } from '../hooks/useRegionalConfig';
+import { formatCOP } from '../lib/formatCurrency';
 import {
   Settings, Building2, DollarSign, Save, TrendingDown, Award,
   Gamepad2, Lightbulb, Wallet, Trash2, Plus, Smartphone, CreditCard, QrCode, Upload, X,
-  Check, Loader2, Search,
+  Check, Loader2, Search, Globe,
 } from 'lucide-react';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 function calcularMetricas(t30, t60, t90, t120) {
   const precioPorMin30 = t30 > 0 ? t30 / 30 : 0;
@@ -579,6 +578,7 @@ export default function Ajustes() {
 
   const TABS = [
     { id: 'general',    label: 'General',       icon: <Building2 size={14} /> },
+    { id: 'regional',   label: 'Regional',      icon: <Globe size={14} /> },
     { id: 'tarifas',    label: 'Tarifas',       icon: <DollarSign size={14} />, count: salas.length },
     { id: 'medios-pago', label: 'Medios de Pago', icon: <Wallet size={14} />, count: mediosPago.length },
     { id: 'juegos',     label: 'Juegos',        icon: <Gamepad2 size={14} />, count: catalogoJuegos.length },
@@ -667,6 +667,38 @@ export default function Ajustes() {
               </button>
             </form>
           </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECCIÓN: REGIONAL Y MONEDA
+            ═══════════════════════════════════════════════════════════════ */}
+        {seccionActiva === 'regional' && (
+          <RegionalMonedaSection
+            configuracion={configuracion}
+            onSave={async (datosRegionales) => {
+              try {
+                setCargando(true);
+                const nuevaConfig = { ...configuracion, ...datosRegionales };
+                const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
+                if (existente?.[0]?.id) {
+                  await db.update('configuracion', existente[0].id, {
+                    datos: nuevaConfig, updated_at: new Date().toISOString(),
+                  });
+                } else {
+                  await db.insert('configuracion', {
+                    id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(),
+                  });
+                }
+                setConfiguracion(nuevaConfig);
+                exito('Configuración regional guardada');
+              } catch (err) {
+                notifError(err.message);
+              } finally {
+                setCargando(false);
+              }
+            }}
+            cargando={cargando}
+          />
         )}
 
         {/* ═══════════════════════════════════════════════════════════════
@@ -1422,4 +1454,188 @@ export default function Ajustes() {
         </div>
       )}
   </>);
+}
+
+// ===================================================================
+// SECCIÓN: REGIONAL Y MONEDA
+// Configura país, moneda, locale, timezone y formato de fecha
+// ===================================================================
+
+function RegionalMonedaSection({ configuracion, onSave, cargando }) {
+  const [form, setForm] = useState({
+    country_code: configuracion?.country_code || 'CO',
+    currency_code: configuracion?.currency_code || 'COP',
+    locale: configuracion?.locale || 'es-CO',
+    timezone: configuracion?.timezone || 'America/Bogota',
+    date_format: configuracion?.date_format || 'DD/MM/YYYY',
+  });
+  const [sugerencia, setSugerencia] = useState(null);
+
+  // Cuando cambia el país, generar sugerencia (sin sobrescribir)
+  function handlePaisChange(countryCode) {
+    const sug = getSuggestedRegional(countryCode);
+    setForm(prev => ({
+      ...prev,
+      country_code: countryCode,
+    }));
+    // Solo sugerir si los campos actuales coinciden con el default anterior
+    setSugerencia(sug);
+  }
+
+  function aplicarSugerencia() {
+    if (!sugerencia) return;
+    setForm(prev => ({
+      ...prev,
+      currency_code: sugerencia.currency_code,
+      locale: sugerencia.locale,
+      timezone: sugerencia.timezone,
+      date_format: sugerencia.date_format,
+    }));
+    setSugerencia(null);
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    onSave(form);
+  }
+
+  // Preview de formato
+  const previewMoneda = formatCurrency(5000, form.currency_code, form.locale);
+
+  const inputCls =
+    'w-full px-3 py-2.5 rounded-lg text-sm text-white outline-none transition-all ' +
+    'focus:border-[#00D656]/30 focus:shadow-[0_0_20px_rgba(0,214,86,0.08)]';
+  const inputStyle = {
+    background: 'var(--gc-surface)',
+    border: '1px solid var(--gc-border)',
+  };
+
+  return (
+    <div className="max-w-xl">
+      <form
+        onSubmit={handleSubmit}
+        className="rounded-xl p-5 space-y-4"
+        style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
+      >
+        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+          <Globe size={15} className="text-gray-500" />
+          Regional y moneda
+        </h3>
+        <p className="text-xs text-gray-500 -mt-2">
+          Configura país, moneda y zona horaria de tu negocio.
+        </p>
+
+        {/* País */}
+        <div>
+          <label className="text-xs font-medium text-gray-400 mb-1.5 block">País</label>
+          <select
+            value={form.country_code}
+            onChange={e => handlePaisChange(e.target.value)}
+            className={inputCls}
+            style={inputStyle}
+          >
+            {COUNTRY_LIST.map(c => (
+              <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sugerencia al cambiar país */}
+        {sugerencia && (
+          <div
+            className="rounded-lg px-3 py-2.5 flex items-center justify-between gap-2"
+            style={{ background: 'rgba(0,214,86,0.06)', border: '1px solid rgba(0,214,86,0.15)' }}
+          >
+            <div className="flex items-center gap-2">
+              <Check size={14} className="text-[#00D656] shrink-0" />
+              <p className="text-[11px] text-gray-300">
+                Configuración sugerida: {getCurrency(sugerencia.currency_code).name} · {sugerencia.locale} · {sugerencia.timezone}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={aplicarSugerencia}
+              className="text-[11px] font-bold text-[#00D656] hover:text-[#4ADE80] shrink-0"
+            >
+              Aplicar
+            </button>
+          </div>
+        )}
+
+        {/* Moneda */}
+        <div>
+          <label className="text-xs font-medium text-gray-400 mb-1.5 block">Moneda</label>
+          <select
+            value={form.currency_code}
+            onChange={e => setForm(prev => ({ ...prev, currency_code: e.target.value }))}
+            className={inputCls}
+            style={inputStyle}
+          >
+            {CURRENCY_LIST.map(c => (
+              <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Zona horaria */}
+        <div>
+          <label className="text-xs font-medium text-gray-400 mb-1.5 block">Zona horaria</label>
+          <select
+            value={form.timezone}
+            onChange={e => setForm(prev => ({ ...prev, timezone: e.target.value }))}
+            className={inputCls}
+            style={inputStyle}
+          >
+            {COUNTRY_LIST.map(c => (
+              <option key={c.timezone} value={c.timezone}>{c.timezone} ({c.name})</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Formato de fecha */}
+        <div>
+          <label className="text-xs font-medium text-gray-400 mb-1.5 block">Formato de fecha</label>
+          <select
+            value={form.date_format}
+            onChange={e => setForm(prev => ({ ...prev, date_format: e.target.value }))}
+            className={inputCls}
+            style={inputStyle}
+          >
+            <option value="DD/MM/YYYY">DD/MM/YYYY (24/08/2026)</option>
+            <option value="MM/DD/YYYY">MM/DD/YYYY (08/24/2026)</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD (2026-08-24)</option>
+            <option value="DD-MM-YYYY">DD-MM-YYYY (24-08-2026)</option>
+          </select>
+        </div>
+
+        {/* Preview */}
+        <div
+          className="rounded-lg px-4 py-3 flex items-center justify-between"
+          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--gc-border)' }}
+        >
+          <div>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Vista previa</p>
+            <p className="text-lg font-bold text-white tabular-nums">{previewMoneda}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Fecha</p>
+            <p className="text-sm font-medium text-gray-300">
+              {new Date(2026, 7, 24).toLocaleDateString(form.locale)}
+            </p>
+          </div>
+        </div>
+
+        {/* Botón guardar */}
+        <button
+          type="submit"
+          disabled={cargando}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: '#00D656', color: '#000' }}
+        >
+          <Save size={15} />
+          {cargando ? 'Guardando…' : 'Guardar cambios'}
+        </button>
+      </form>
+    </div>
+  );
 }

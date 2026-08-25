@@ -7,14 +7,7 @@ import { useState } from 'react';
 import { Plus, X, Play, ShoppingCart, Calculator, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Modal from '../ui/Modal';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ── Modal: Nueva Sesión ─────────────────────────────────────────────
 function ModalNuevaSesion({ abierto, onCerrar, salas = [] }) {

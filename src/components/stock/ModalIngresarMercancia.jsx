@@ -10,10 +10,7 @@ import { Truck, Search, Plus, Trash2, Package, X, Calculator, Minus, ArrowUp } f
 import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
 import { getUsuarioIdSimple } from '../../lib/authHelpers';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 const METODOS_PAGO_BASE = [
   { value: 'efectivo',      label: 'Efectivo (Caja Menor)' },

@@ -5,14 +5,7 @@
 
 import { memo } from 'react';
 import { ShoppingCart, Package } from 'lucide-react';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 function StationDetailConsumoInner({ sesion }) {
   if (!sesion) return null;

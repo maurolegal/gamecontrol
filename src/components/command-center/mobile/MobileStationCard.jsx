@@ -7,14 +7,7 @@ import { useState, useCallback, useRef, useEffect, memo } from 'react';
 import { Plus, ClockPlus, ShoppingCart, MoreHorizontal, AlertTriangle, Clock, CircleCheckBig } from 'lucide-react';
 import useGlobalTick from '../../../hooks/useGlobalTick';
 import { useDerivedAlerts, ALERT_STATES, ALERT_COLORS } from '../../../hooks/useDerivedAlerts';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../../../lib/formatCurrency';
 
 function formatearTiempoCorto(sesion, now) {
   if (!sesion) return '—';

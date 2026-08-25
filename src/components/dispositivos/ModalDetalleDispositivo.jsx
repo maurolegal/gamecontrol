@@ -8,6 +8,7 @@ import ModalCrearMantenimiento from './ModalCrearMantenimiento';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useConfirm } from '../ui/ConfirmProvider';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const ESTADOS = {
   operativo: { label: 'Operativo', color: '#00D656', bg: 'rgba(0,214,86,0.1)', border: 'rgba(0,214,86,0.2)' },
@@ -37,10 +38,6 @@ const TIPOS = {
   tv: { label: 'TV', icon: Tv, color: '#F59E0B' },
   otro: { label: 'Otro', icon: Package, color: '#A0AEC0' },
 };
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
-}
 
 function formatFecha(iso) {
   if (!iso) return '—';

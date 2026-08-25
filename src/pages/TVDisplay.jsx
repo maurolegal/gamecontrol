@@ -9,6 +9,7 @@ import { User, Gamepad2, Joystick, Settings, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useSalas } from '../hooks/useSalas';
 import useGlobalTick from '../hooks/useGlobalTick';
+import { formatCOP } from '../lib/formatCurrency';
 
 // ── Ticker de promos (compartido con EventLive, persiste en localStorage) ──
 
@@ -80,14 +81,6 @@ function TickerPromos({ promos }) {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 function horaActual() {
   return new Date().toLocaleTimeString('es-CO', {

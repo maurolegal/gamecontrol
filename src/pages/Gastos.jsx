@@ -19,17 +19,9 @@ import FormGasto        from '../components/gastos/FormGasto';
 import ResumenCategorias from '../components/gastos/ResumenCategorias';
 import TablaGastos      from '../components/gastos/TablaGastos';
 import ModalCategorias  from '../components/gastos/ModalCategorias';
+import { formatCOP } from '../lib/formatCurrency';
 
 // ── Utilidades exportadas (usadas también por sub-componentes) ───────
-
-/** Formatea número como moneda COP */
-export function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
 
 /** Fecha de hoy en zona horaria Colombia (YYYY-MM-DD) */
 export function hoyBogota() {

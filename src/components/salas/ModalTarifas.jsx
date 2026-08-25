@@ -7,14 +7,7 @@ import { DollarSign, Save, Clock, TrendingDown, Award, Info, Zap } from 'lucide-
 import Modal from '../ui/Modal';
 import { useSalas } from '../../hooks/useSalas';
 import { useNotifications } from '../../hooks/useNotifications';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 // Calcular ahorro y valor por minuto
 function calcularMetricas(t30, t60, t90, t120) {

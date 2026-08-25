@@ -40,14 +40,7 @@ import * as db from '../lib/databaseService';
 import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../components/ui/ConfirmProvider';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../lib/formatCurrency';
 
 function formatearFecha(fecha) {
   if (!fecha) return '—';

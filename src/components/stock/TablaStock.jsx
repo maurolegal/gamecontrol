@@ -3,10 +3,7 @@
 // ===================================================================
 
 import { Package, AlertTriangle, Pencil, ArrowUpDown, Trash2, ImageOff, ShieldCheck } from 'lucide-react';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(v ?? 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 function obtenerEstado(p) {
   const stock = p.stock ?? 0;

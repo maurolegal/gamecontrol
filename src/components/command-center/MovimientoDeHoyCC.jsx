@@ -12,15 +12,9 @@ import {
   ArrowRight, List, DollarSign,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ── Helpers ────────────────────────────────────────────────────────
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 function formatHora(iso) {
   if (!iso) return '--:--';

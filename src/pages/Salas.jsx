@@ -16,14 +16,7 @@ import ModalTrasladarSesion from '../components/salas/ModalTrasladarSesion';
 import ModalEditarSesionAdmin from '../components/salas/ModalEditarSesionAdmin';
 import { RefreshCw, Monitor, Users, Zap, Gamepad2, DollarSign, Store, Plus, Search, Tv2 } from 'lucide-react';
 import { usePermisos } from '../hooks/usePermisos';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../lib/formatCurrency';
 
 export default function Salas() {
   const { salas, sesiones, cargando, error, cargarSalas } = useSalas();

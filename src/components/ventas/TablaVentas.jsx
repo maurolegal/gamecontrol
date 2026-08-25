@@ -3,17 +3,13 @@
 // ===================================================================
 
 import { useState } from 'react';
+import { formatCOP } from '../../lib/formatCurrency';
 import {
   Eye, Pencil, Trash2, RotateCcw, ChevronLeft, ChevronRight,
   ShoppingCart,
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────────────
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
 
 function formatFecha(iso) {
   if (!iso) return '—';

@@ -20,16 +20,9 @@ import GraficoMetodosPago from '../components/reportes/GraficoMetodosPago';
 import GraficoGastosCat   from '../components/reportes/GraficoGastosCat';
 import TablaProductos     from '../components/reportes/TablaProductos';
 import TablaHorasSalas    from '../components/reportes/TablaHorasSalas';
+import { formatCOP } from '../lib/formatCurrency';
 
 // ── Utilidades ──────────────────────────────────────────────────────
-
-export function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(Number(valor ?? 0));
-}
 
 function parseFecha(fecha) {
   if (!fecha) return null;

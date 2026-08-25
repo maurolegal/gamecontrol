@@ -13,12 +13,7 @@ import { useState, useEffect } from 'react';
 import { X, RotateCcw, Undo2, Package, AlertTriangle, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useConfirm } from '../ui/ConfirmProvider';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 const inputCls =
   'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 ' +

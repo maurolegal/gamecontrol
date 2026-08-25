@@ -1,5 +1,5 @@
 import { PieChart } from 'lucide-react';
-import { formatCOP } from '../../pages/Gastos';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ===================================================================
 // RESUMEN POR CATEGORÍA — Panel analítico (Design System GameControl)

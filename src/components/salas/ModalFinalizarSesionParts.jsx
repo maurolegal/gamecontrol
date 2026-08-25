@@ -7,16 +7,11 @@
 // ===================================================================
 
 import { memo } from 'react';
+import { formatCOP } from '../../lib/formatCurrency';
 import {
   Banknote, CreditCard, Building2, Smartphone, Split,
   Check, Copy, Package, Clock, User, Wallet, AlertTriangle, Ban,
 } from 'lucide-react';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 // ── PaymentMethodSelector ───────────────────────────────────────────
 // Solo re-renderiza cuando cambia metodoPago

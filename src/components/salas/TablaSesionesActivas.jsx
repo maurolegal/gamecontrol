@@ -6,14 +6,7 @@ import { Clock, User, DollarSign, Pencil } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { usePermisos } from '../../hooks/usePermisos';
 import useGlobalTick from '../../hooks/useGlobalTick';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 function formatearTiempo(minutos) {
   const horas = Math.floor(minutos / 60);

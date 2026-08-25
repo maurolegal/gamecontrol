@@ -1,5 +1,5 @@
 import { DollarSign, CreditCard, Activity, Users, TrendingUp, TrendingDown } from 'lucide-react';
-import { formatCOP } from '../../pages/Reportes';
+import { formatCOP } from '../../lib/formatCurrency';
 
 function TrendBadge({ actual, anterior }) {
   if (!anterior || anterior === 0) return null;

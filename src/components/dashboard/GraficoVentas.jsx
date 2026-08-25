@@ -5,14 +5,7 @@
 // ===================================================================
 
 import { BarChart2 } from 'lucide-react';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 /**
  * @param {{ datos: Array<{ dia: string, total: number }> }} props

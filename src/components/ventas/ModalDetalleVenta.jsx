@@ -6,17 +6,13 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { formatCOP } from '../../lib/formatCurrency';
 import {
   X, Printer, Gamepad2, Clock, Package,
   MapPin, User, Calendar, Ban,
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────────────
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
 
 function formatFecha(iso) {
   if (!iso) return '—';

@@ -7,14 +7,7 @@ import { useEffect, useState } from 'react';
 import { Clock, Gamepad2, UserCircle2, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useGlobalTick from '../../hooks/useGlobalTick';
-
-function formatCOP(v) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(v ?? 0);
-}
+import { formatCOP } from '../../lib/formatCurrency';
 
 function calcularProgreso(sesion) {
   // campo real en DB: fecha_inicio (TIMESTAMP), tiempo_contratado (int minutos)

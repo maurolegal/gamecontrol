@@ -6,15 +6,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Filter, RefreshCw, ChevronDown, Gamepad2, Monitor, Smartphone, ShoppingBag, Plus, Minus } from 'lucide-react';
 import useGlobalTick from '../../hooks/useGlobalTick';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ── formatCOP inline ────────────────────────────────────────────────
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 const TIPOS_SALA = [
   { value: 'todas', label: 'Todas', icon: Gamepad2 },

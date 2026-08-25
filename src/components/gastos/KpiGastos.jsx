@@ -1,5 +1,5 @@
 import { DollarSign, Wrench, Package, Zap } from 'lucide-react';
-import { formatCOP } from '../../pages/Gastos';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ===================================================================
 // KPI STRIP – Gastos (Design System GameControl)

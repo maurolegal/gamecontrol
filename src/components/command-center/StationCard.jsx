@@ -9,15 +9,9 @@ import useGlobalTick from '../../hooks/useGlobalTick';
 import { usePermisos } from '../../hooks/usePermisos';
 import { supabase } from '../../lib/supabaseClient';
 import { useDerivedAlerts, ALERT_COLORS, ALERT_LABELS, ALERT_STATES } from '../../hooks/useDerivedAlerts';
+import { formatCOP } from '../../lib/formatCurrency';
 
 // ── formatCOP inline ────────────────────────────────────────────────
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 function formatearTiempoCorto(sesion, now) {
   if (!sesion) return '—';

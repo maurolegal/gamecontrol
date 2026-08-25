@@ -23,26 +23,36 @@ VALUES (1, '{
 }'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 
--- Habilitar Realtime para esta tabla
-ALTER PUBLICATION supabase_realtime ADD TABLE configuracion;
+-- Habilitar Realtime para esta tabla (idempotente)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'configuracion'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE configuracion;
+  END IF;
+END $$;
 
--- Políticas de seguridad (RLS)
+-- Políticas de seguridad (RLS) — idempotentes
 ALTER TABLE configuracion ENABLE ROW LEVEL SECURITY;
 
 -- Permitir lectura a todos los usuarios autenticados
-CREATE POLICY "Permitir lectura de configuración a todos" 
-ON configuracion FOR SELECT 
-TO authenticated, anon 
+DROP POLICY IF EXISTS "Permitir lectura de configuración a todos" ON configuracion;
+CREATE POLICY "Permitir lectura de configuración a todos"
+ON configuracion FOR SELECT
+TO authenticated, anon
 USING (true);
 
 -- Permitir actualización solo a administradores
-CREATE POLICY "Permitir actualización de configuración a admins" 
-ON configuracion FOR UPDATE 
-TO authenticated 
+DROP POLICY IF EXISTS "Permitir actualización de configuración a admins" ON configuracion;
+CREATE POLICY "Permitir actualización de configuración a admins"
+ON configuracion FOR UPDATE
+TO authenticated
 USING (
     EXISTS (
-        SELECT 1 FROM usuarios 
-        WHERE usuarios.id = auth.uid() 
+        SELECT 1 FROM usuarios
+        WHERE usuarios.id = auth.uid()
         AND usuarios.rol = 'administrador'
     )
 );

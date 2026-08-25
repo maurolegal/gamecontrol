@@ -23,14 +23,9 @@ import ModalFinalizarSesion from '../salas/ModalFinalizarSesion';
 import ModalTrasladarSesion from '../salas/ModalTrasladarSesion';
 import ModalEditarSesion from '../salas/ModalEditarSesion';
 import ModalAnularSesion from '../salas/ModalAnularSesion';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const ICONOS = { pc: '🖥', ps4: '🎮', ps5: '🎮', xbox: '🎮', nintendo: '🕹' };
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency', currency: 'COP', minimumFractionDigits: 0,
-  }).format(valor || 0);
-}
 
 function formatearHora(isoString) {
   if (!isoString) return '—';

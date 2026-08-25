@@ -19,14 +19,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 import { usePermisos } from '../hooks/usePermisos';
 import { useNotifications } from '../hooks/useNotifications';
-
-function formatCOP(valor) {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-  }).format(Number(valor ?? 0));
-}
+import { formatCOP } from '../lib/formatCurrency';
 
 function formatFechaHora(iso) {
   if (!iso) return '—';

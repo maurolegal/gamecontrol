@@ -1,5 +1,5 @@
 import { BarChart2 } from 'lucide-react';
-import { formatCOP } from '../../pages/Reportes';
+import { formatCOP } from '../../lib/formatCurrency';
 
 export default function GraficoGastosCat({ datos, cargando }) {
   const max = Math.max(...datos.map((d) => d.valor), 1);

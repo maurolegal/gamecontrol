@@ -1,5 +1,5 @@
 import { ShoppingBag } from 'lucide-react';
-import { formatCOP } from '../../pages/Reportes';
+import { formatCOP } from '../../lib/formatCurrency';
 
 const MINI_KPIS = [
   { key: 'totalUnidades',    label: 'Items vendidos',  fmt: (v) => v,          tone: 'neutral' },
