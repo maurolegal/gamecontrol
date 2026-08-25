@@ -156,7 +156,7 @@ export function useDashboard() {
         // Ventas de hoy: tabla ventas, campo fecha_cierre (TIMESTAMP)
         supabase
           .from('ventas')
-          .select('total, metodo_pago')
+          .select('total, metodo_pago, fecha_cierre')
           .gte('fecha_cierre', hoyStart)
           .lte('fecha_cierre', hoyEnd),
 
