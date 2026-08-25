@@ -11,7 +11,7 @@
 // ===================================================================
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { X, Clock, User, Wallet, MessageSquare, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
+import { X, Clock, User, Wallet, MessageSquare, ChevronDown, ChevronUp, AlertTriangle, Smartphone } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { useSalas } from '../../hooks/useSalas';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -81,13 +81,20 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
   const [mediosPago, setMediosPago] = useState([]);
   const [copiado, setCopiado] = useState(null);
   const [montoRecibido, setMontoRecibido] = useState('');
+  const [qrImagenUrl, setQrImagenUrl] = useState(null);
 
-  // ── Cargar medios de pago (idéntico) ──────────────────────────────
+  // ── Cargar medios de pago + QR ────────────────────────────────────
   useEffect(() => {
     async function cargar() {
       try {
-        const data = await db.select('medios_pago', { orderBy: 'created_at' });
+        const [data, configRes] = await Promise.all([
+          db.select('medios_pago', { orderBy: 'created_at' }),
+          db.select('configuracion', { limite: 1 }),
+        ]);
         setMediosPago(data || []);
+        if (configRes?.[0]?.datos?.qr_imagen_url) {
+          setQrImagenUrl(configRes[0].datos.qr_imagen_url);
+        }
       } catch (e) {
         console.error('Error cargando medios de pago:', e);
       }
@@ -410,6 +417,30 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
                 copiado={copiado}
                 onCopiar={copiarNumero}
               />
+            </div>
+          )}
+
+          {/* ── IMAGEN QR ── */}
+          {metodoPago === 'qr' && qrImagenUrl && (
+            <div className="border-b border-white/5 pb-2.5">
+              <div className="text-[10px] text-[#00D656] uppercase tracking-wider font-bold mb-2 flex items-center gap-1.5">
+                <Smartphone size={11} /> Escanea para pagar
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className="rounded-xl overflow-hidden p-2"
+                  style={{ background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  <img
+                    src={qrImagenUrl}
+                    alt="Código QR de pago"
+                    className="w-44 h-44 object-contain"
+                  />
+                </div>
+                <p className="text-[11px] text-gray-400 text-center">
+                  Total a pagar: <span className="font-bold text-[#00D656]">{formatCOP(totalGeneral)}</span>
+                </p>
+              </div>
             </div>
           )}
 

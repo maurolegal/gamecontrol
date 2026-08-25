@@ -48,7 +48,7 @@ const METODOS_LABEL = {
   efectivo: 'Efectivo',
   tarjeta: 'Tarjeta',
   transferencia: 'Transferencia',
-  digital: 'QR/Digital',
+  digital: 'QR',
   parcial: 'Pago Parcial',
   anulado: 'Anulado',
 };
@@ -487,7 +487,7 @@ export default function ModalDetalleVenta({ venta, nombreSala, onCerrar }) {
                 )}
                 {(venta.monto_digital ?? 0) > 0 && (
                   <div className="flex justify-between text-[12px]">
-                    <span className="text-gray-400">QR/Digital</span>
+                    <span className="text-gray-400">QR</span>
                     <span className="text-white font-medium tabular-nums">{formatCOP(venta.monto_digital)}</span>
                   </div>
                 )}

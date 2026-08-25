@@ -180,7 +180,7 @@ export const PaymentSelector = memo(function PaymentSelector({
     { v: 'efectivo',      l: 'Efectivo',   emoji: '💵' },
     { v: 'tarjeta',       l: 'Tarjeta',    emoji: '💳' },
     { v: 'transferencia', l: 'Transfer',   emoji: '🏦' },
-    { v: 'digital',       l: 'Digital',    emoji: '📱' },
+    { v: 'digital',       l: 'QR',          emoji: '📱' },
   ];
   return (
     <div className="grid grid-cols-4 gap-1">

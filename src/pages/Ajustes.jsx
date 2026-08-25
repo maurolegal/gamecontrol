@@ -12,7 +12,7 @@ import { useSalas } from '../hooks/useSalas';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
 import {
   Settings, Building2, DollarSign, Save, TrendingDown, Award,
-  Gamepad2, Lightbulb, Wallet, Trash2, Plus, Smartphone, CreditCard,
+  Gamepad2, Lightbulb, Wallet, Trash2, Plus, Smartphone, CreditCard, QrCode, Upload, X,
 } from 'lucide-react';
 
 function formatCOP(valor) {
@@ -69,6 +69,10 @@ export default function Ajustes() {
   });
   const [cargandoMedios, setCargandoMedios] = useState(false);
 
+  // QR image
+  const [qrImagenUrl, setQrImagenUrl] = useState(null);
+  const [cargandoQr, setCargandoQr] = useState(false);
+
   // Detectar si vienen desde Salas para abrir tarifas
   useEffect(() => {
     if (location.state?.seccion === 'tarifas') setSeccionActiva('tarifas');
@@ -95,6 +99,10 @@ export default function Ajustes() {
         if (data?.[0]?.datos) {
           setConfiguracion(data[0].datos);
           setForm((prev) => ({ ...prev, ...data[0].datos }));
+          // Cargar URL del QR si existe
+          if (data[0].datos.qr_imagen_url) {
+            setQrImagenUrl(data[0].datos.qr_imagen_url);
+          }
         }
       } catch (_) {}
     }
@@ -215,6 +223,77 @@ export default function Ajustes() {
       exito('Medio de pago eliminado');
     } catch (err) {
       notifError('Error al eliminar: ' + err.message);
+    }
+  };
+
+  // ── QR image upload (Cloudinary) ──
+  const CLOUDINARY_QR = {
+    cloudName: 'dftbhxwaa',
+    uploadPreset: 'gamehub',
+    folder: 'qr-pagos',
+  };
+
+  const handleSubirQr = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      notifError('La imagen no puede superar 2MB');
+      return;
+    }
+    setCargandoQr(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', CLOUDINARY_QR.uploadPreset);
+      fd.append('folder', CLOUDINARY_QR.folder);
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_QR.cloudName}/image/upload`,
+        { method: 'POST', body: fd },
+      );
+      if (!res.ok) throw new Error('Error subiendo imagen QR');
+      const data = await res.json();
+      const url = data.secure_url;
+
+      // Guardar URL en configuración
+      const nuevaConfig = { ...configuracion, qr_imagen_url: url };
+      const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
+      const updated_by = await getUsuarioIdSimple();
+      if (existente?.[0]?.id) {
+        await db.update('configuracion', existente[0].id, {
+          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
+        });
+      } else {
+        await db.insert('configuracion', {
+          id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
+        });
+      }
+      setConfiguracion(nuevaConfig);
+      setQrImagenUrl(url);
+      exito('Imagen QR guardada correctamente');
+    } catch (err) {
+      notifError('Error al subir QR: ' + err.message);
+    } finally {
+      setCargandoQr(false);
+    }
+  };
+
+  const handleEliminarQr = async () => {
+    if (!window.confirm('¿Eliminar la imagen QR?')) return;
+    try {
+      const nuevaConfig = { ...configuracion };
+      delete nuevaConfig.qr_imagen_url;
+      const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
+      const updated_by = await getUsuarioIdSimple();
+      if (existente?.[0]?.id) {
+        await db.update('configuracion', existente[0].id, {
+          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
+        });
+      }
+      setConfiguracion(nuevaConfig);
+      setQrImagenUrl(null);
+      exito('Imagen QR eliminada');
+    } catch (err) {
+      notifError('Error al eliminar QR: ' + err.message);
     }
   };
 
@@ -504,6 +583,108 @@ export default function Ajustes() {
             ═══════════════════════════════════════════════════════════════ */}
         {seccionActiva === 'medios-pago' && (
           <div className="space-y-4 max-w-3xl">
+            {/* ── Sección QR ── */}
+            <div
+              className="rounded-xl p-5 space-y-4"
+              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <QrCode size={15} className="text-[#00D656]" />
+                  Código QR para pagos
+                </h3>
+                {qrImagenUrl && (
+                  <span
+                    className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider"
+                    style={{ background: 'rgba(0,214,86,0.12)', color: '#00D656', border: '1px solid rgba(0,214,86,0.22)' }}
+                  >
+                    Configurado
+                  </span>
+                )}
+              </div>
+
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Sube la imagen del código QR que recibirá el cliente al seleccionar este método de pago en el POS o al cerrar una sesión.
+              </p>
+
+              {qrImagenUrl ? (
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Preview */}
+                  <div
+                    className="relative rounded-xl overflow-hidden shrink-0"
+                    style={{ background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <img
+                      src={qrImagenUrl}
+                      alt="Código QR"
+                      className="w-32 h-32 object-contain"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2 w-full">
+                    <div className="flex gap-2">
+                      <label
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold cursor-pointer transition-all hover:opacity-80"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#FFFFFF' }}
+                      >
+                        <Upload size={14} />
+                        Cambiar imagen
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          onChange={handleSubirQr}
+                          disabled={cargandoQr}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        onClick={handleEliminarQr}
+                        disabled={cargandoQr}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-red-500/10"
+                        style={{ border: '1px solid rgba(239,68,68,0.2)', color: '#EF4444' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    {cargandoQr && (
+                      <p className="text-[11px] text-gray-500">Subiendo…</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <label
+                  className="flex flex-col items-center justify-center gap-3 py-8 rounded-xl cursor-pointer transition-all hover:bg-white/5"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '2px dashed rgba(255,255,255,0.1)' }}
+                >
+                  {cargandoQr ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-8 h-8 border-2 border-[#00D656]/30 border-t-[#00D656] rounded-full animate-spin" />
+                      <p className="text-[12px] text-gray-400">Subiendo imagen…</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center"
+                        style={{ background: 'rgba(0,214,86,0.08)', border: '1px solid rgba(0,214,86,0.15)' }}
+                      >
+                        <QrCode size={22} className="text-[#00D656]" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-white">Subir imagen QR</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">PNG, JPG o WebP · máx 2MB</p>
+                      </div>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onChange={handleSubirQr}
+                    disabled={cargandoQr}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+
             {/* Lista de medios existentes */}
             {mediosPago.length > 0 && (
               <div className="space-y-2">

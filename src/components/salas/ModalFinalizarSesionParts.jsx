@@ -27,7 +27,7 @@ export const PaymentMethodSelector = memo(function PaymentMethodSelector({
     { value: 'efectivo', label: 'Efectivo', Icono: Banknote, emoji: '💵' },
     { value: 'tarjeta', label: 'Tarjeta', Icono: CreditCard, emoji: '💳' },
     { value: 'transferencia', label: 'Transferencia', Icono: Building2, emoji: '🏦' },
-    { value: 'qr', label: 'QR / Digital', Icono: Smartphone, emoji: '📱' },
+    { value: 'qr', label: 'QR', Icono: Smartphone, emoji: '📱' },
     { value: 'parcial', label: 'Pago parcial', Icono: Split, emoji: '⇄' },
   ];
 

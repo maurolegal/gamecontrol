@@ -291,7 +291,7 @@ export default function ModalEditarVenta({ venta, salas = [], onGuardar, onCerra
                 <option value="efectivo">💵 Efectivo</option>
                 <option value="tarjeta">💳 Tarjeta</option>
                 <option value="transferencia">🏦 Transferencia</option>
-                <option value="digital">📱 QR/Digital</option>
+                <option value="digital">📱 QR</option>
                 <option value="parcial">🔀 Pago Parcial</option>
               </select>
             </Field>
@@ -344,7 +344,7 @@ export default function ModalEditarVenta({ venta, salas = [], onGuardar, onCerra
                     className={inputCls}
                   />
                 </Field>
-                <Field label={<span className="flex items-center gap-1"><Smartphone size={11} />QR/Digital</span>}>
+                <Field label={<span className="flex items-center gap-1"><Smartphone size={11} />QR</span>}>
                   <input
                     type="number" min="0" step="100"
                     value={form.monto_digital}

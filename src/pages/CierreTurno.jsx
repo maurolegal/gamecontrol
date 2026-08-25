@@ -141,7 +141,7 @@ export default function CierreTurno() {
         // 2) Último cierre para saber turno_desde + fondo inicial de apertura
         const cierreRes = await supabase
           .from('cierres_turno')
-          .select('turno_hasta, fondo_inicial, observaciones')
+          .select('turno_hasta, observaciones')
           .eq('usuario_id', usuario.id)
           .order('created_at', { ascending: false })
           .limit(1);
@@ -154,7 +154,7 @@ export default function CierreTurno() {
         // Buscar la apertura de caja más reciente (registro con [APERTURA_CAJA])
         const { data: aperturaData } = await supabase
           .from('cierres_turno')
-          .select('turno_desde, fondo_inicial, observaciones')
+          .select('turno_desde, observaciones')
           .eq('usuario_id', usuario.id)
           .like('observaciones', '%APERTURA_CAJA%')
           .order('created_at', { ascending: false })
@@ -163,7 +163,9 @@ export default function CierreTurno() {
         if (aperturaData?.[0]) {
           // El turno inicia desde la apertura de caja
           desde = new Date(aperturaData[0].turno_desde);
-          fondoInicial = numero(aperturaData[0].fondo_inicial);
+          // Extraer fondo inicial del texto de observaciones
+          const match = (aperturaData[0].observaciones ?? '').match(/Fondo inicial:\s*(\d+)/);
+          fondoInicial = match ? numero(match[1]) : 0;
         } else if (ultimo?.turno_hasta) {
           desde = new Date(ultimo.turno_hasta);
         } else {
@@ -568,7 +570,7 @@ export default function CierreTurno() {
                   <span className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.15)', color: '#06B6D4' }}>
                     <Smartphone size={12} />
                   </span>
-                  <span className="text-[12px] text-gray-400">Digital / QR</span>
+                  <span className="text-[12px] text-gray-400">QR</span>
                 </div>
                 <span className="text-[13px] font-semibold text-white tabular-nums">{formatCOP(datosTurno.ventasDigital)}</span>
               </div>
@@ -803,64 +805,78 @@ export default function CierreTurno() {
       // ══════════════════════════════════════════════════════════════
       // 3) GUARDAR CIERRE EN BD
       // ══════════════════════════════════════════════════════════════
-      const { data: cierreGuardado, error: cierreError } = await supabase
-        .from('cierres_turno')
-        .insert({
-          usuario_id: usuario.id,
-          usuario_email: usuario.email ?? null,
-          usuario_nombre: perfil?.nombre ?? usuario.email ?? null,
-          rol_usuario: perfil?.rol ?? null,
-          turno_desde: turnoDesde,
-          turno_hasta: ahora,
-          efectivo_contado: efectivoContadoNum,
-          efectivo_esperado: efectivoEsperado,
-          efectivo_descuadre: efectivoDescuadre,
-          fondo_inicial: datosTurno.fondoInicial,
-          ventas_efectivo: ventasEfectivo,
-          ventas_transferencia: ventasTransferencia,
-          ventas_tarjeta: ventasTarjeta,
-          ventas_digital: ventasDigital,
-          gastos_efectivo: gastosEfectivo,
-          ventas_total: ventasTotal,
-          gastos_total: gastosTotal,
-          inventario_esperado_valor: inventarioEsperadoValor,
-          inventario_contado_valor: inventarioContadoValor,
-          inventario_descuadre_valor: inventarioDescuadreValor,
-          total_descuadre: totalDescuadre,
-          observaciones: observaciones.trim() || null,
-          ticket_resumen: JSON.stringify(
-            {
-              efectivo_contado: efectivoContadoNum,
-              efectivo_esperado: efectivoEsperado,
-              efectivo_descuadre: efectivoDescuadre,
-              inventario_descuadre_valor: inventarioDescuadreValor,
-              total_descuadre: totalDescuadre,
-              ventas_efectivo: ventasEfectivo,
-              ventas_transferencia: ventasTransferencia,
-              ventas_tarjeta: ventasTarjeta,
-              ventas_digital: ventasDigital,
-              gastos_efectivo: gastosEfectivo,
-              ventas_total: ventasTotal,
-              gastos_total: gastosTotal,
-              items: items.filter((it) => it.diferencia_unidades !== 0).map((it) => ({
-                producto_id: it.producto_id,
-                nombre_producto: it.nombre_producto,
-                diferencia_unidades: it.diferencia_unidades,
-                valor_descuadre: it.valor_descuadre,
-              })),
-            },
-            null,
-            2
-          ),
-          creado_por: {
-            usuario_id: usuario.id,
-            email: usuario.email ?? null,
-            nombre: perfil?.nombre ?? null,
-            rol: perfil?.rol ?? null,
+      const datosCierre = {
+        usuario_id: usuario.id,
+        usuario_email: usuario.email ?? null,
+        usuario_nombre: perfil?.nombre ?? usuario.email ?? null,
+        rol_usuario: perfil?.rol ?? null,
+        turno_desde: turnoDesde,
+        turno_hasta: ahora,
+        efectivo_contado: efectivoContadoNum,
+        efectivo_esperado: efectivoEsperado,
+        efectivo_descuadre: efectivoDescuadre,
+        ventas_efectivo: ventasEfectivo,
+        ventas_transferencia: ventasTransferencia,
+        ventas_tarjeta: ventasTarjeta,
+        ventas_digital: ventasDigital,
+        gastos_efectivo: gastosEfectivo,
+        ventas_total: ventasTotal,
+        gastos_total: gastosTotal,
+        inventario_esperado_valor: inventarioEsperadoValor,
+        inventario_contado_valor: inventarioContadoValor,
+        inventario_descuadre_valor: inventarioDescuadreValor,
+        total_descuadre: totalDescuadre,
+        observaciones: observaciones.trim() || null,
+        ticket_resumen: JSON.stringify(
+          {
+            efectivo_contado: efectivoContadoNum,
+            efectivo_esperado: efectivoEsperado,
+            efectivo_descuadre: efectivoDescuadre,
+            fondo_inicial: datosTurno.fondoInicial,
+            inventario_descuadre_valor: inventarioDescuadreValor,
+            total_descuadre: totalDescuadre,
+            ventas_efectivo: ventasEfectivo,
+            ventas_transferencia: ventasTransferencia,
+            ventas_tarjeta: ventasTarjeta,
+            ventas_digital: ventasDigital,
+            gastos_efectivo: gastosEfectivo,
+            ventas_total: ventasTotal,
+            gastos_total: gastosTotal,
+            items: items.filter((it) => it.diferencia_unidades !== 0).map((it) => ({
+              producto_id: it.producto_id,
+              nombre_producto: it.nombre_producto,
+              diferencia_unidades: it.diferencia_unidades,
+              valor_descuadre: it.valor_descuadre,
+            })),
           },
-        })
+          null,
+          2
+        ),
+        creado_por: {
+          usuario_id: usuario.id,
+          email: usuario.email ?? null,
+          nombre: perfil?.nombre ?? null,
+          rol: perfil?.rol ?? null,
+        },
+      };
+
+      // Intentar con fondo_inicial; si la columna no existe, reintentar sin ella
+      let cierreResult = await supabase
+        .from('cierres_turno')
+        .insert({ ...datosCierre, fondo_inicial: datosTurno.fondoInicial })
         .select()
         .single();
+
+      if (cierreResult.error && cierreResult.error.code === '42703') {
+        // Columna fondo_inicial no existe → reintentar sin ella
+        cierreResult = await supabase
+          .from('cierres_turno')
+          .insert(datosCierre)
+          .select()
+          .single();
+      }
+
+      const { data: cierreGuardado, error: cierreError } = cierreResult;
 
       if (cierreError) throw cierreError;
 

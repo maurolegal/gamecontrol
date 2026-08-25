@@ -503,7 +503,7 @@ export default function Ventas() {
 
   const metodoLabel = {
     efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia',
-    digital: 'QR / Digital', parcial: 'Pago parcial',
+    digital: 'QR', parcial: 'Pago parcial',
   }[filtroMetodo] ?? 'Todos los métodos';
 
   const kpis = [
@@ -665,7 +665,7 @@ export default function Ventas() {
                 <option value="efectivo">Efectivo</option>
                 <option value="tarjeta">Tarjeta</option>
                 <option value="transferencia">Transferencia</option>
-                <option value="digital">QR / Digital</option>
+                <option value="digital">QR</option>
                 <option value="parcial">Pago parcial</option>
               </select>
               <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />

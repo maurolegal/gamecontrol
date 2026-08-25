@@ -52,7 +52,7 @@ const METODOS = {
   efectivo:      { label: 'Efectivo',       dot: '#00D656', cls: 'bg-[#00D656]/10 text-[#00D656] border-[#00D656]/20' },
   tarjeta:       { label: 'Tarjeta',        dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' },
   transferencia: { label: 'Transferencia',  dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' },
-  digital:       { label: 'QR / Digital',   dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' },
+  digital:       { label: 'QR',             dot: '#9CA3AF', cls: 'bg-white/5 text-gray-300 border-white/10' },
   parcial:       { label: 'Parcial',        dot: '#F59E0B', cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
   anulado:       { label: 'Anulado',        dot: '#EF4444', cls: 'bg-red-500/10 text-red-400 border-red-500/20' },
 };

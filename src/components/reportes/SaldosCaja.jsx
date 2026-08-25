@@ -5,7 +5,7 @@ const METODOS = [
   { key: 'efectivo',      label: 'Efectivo',           Icon: Banknote,    color: '#3B82F6' },
   { key: 'transferencia', label: 'Transferencia',       Icon: Wallet,      color: '#A855F7' },
   { key: 'tarjeta',       label: 'Tarjeta / Datáfono',  Icon: CreditCard,  color: '#EF4444' },
-  { key: 'qr',            label: 'Digital / QR',        Icon: Smartphone,  color: '#00D656' },
+  { key: 'qr',            label: 'QR',                  Icon: Smartphone,  color: '#00D656' },
 ];
 
 export default function SaldosCaja({ saldos, cargando }) {

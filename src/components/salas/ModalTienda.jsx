@@ -55,6 +55,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
   const [procesandoPago, setProcesandoPago] = useState(false);
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [carritoMobileAbierto, setCarritoMobileAbierto] = useState(false);
+  const [qrImagenUrl, setQrImagenUrl] = useState(null);
   const { exito, error: notifError } = useNotifications();
   const { agregarProductos, cargarSesionesActivas } = useSalas();
 
@@ -67,6 +68,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
   useEffect(() => {
     if (abierto) {
       cargarProductos();
+      cargarQr();
       setCarrito([]);
       setMetodoPago('efectivo');
       setBusqueda('');
@@ -75,6 +77,15 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
       sessionIdempotencyKeyRef.current = null;
     }
   }, [abierto]);
+
+  const cargarQr = async () => {
+    try {
+      const configRes = await db.select('configuracion', { limite: 1 });
+      if (configRes?.[0]?.datos?.qr_imagen_url) {
+        setQrImagenUrl(configRes[0].datos.qr_imagen_url);
+      }
+    } catch (_) {}
+  };
 
   const cargarProductos = async () => {
     setCargando(true);
@@ -461,6 +472,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
               modoSesion={modoSesion}
               metodoPago={metodoPago}
               procesandoPago={procesandoPago}
+              qrImagenUrl={qrImagenUrl}
               onVaciar={vaciarCarrito}
               onDecrementar={onDecrementar}
               onIncrementar={onIncrementar}
@@ -501,6 +513,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
                     modoSesion={modoSesion}
                     metodoPago={metodoPago}
                     procesandoPago={procesandoPago}
+                    qrImagenUrl={qrImagenUrl}
                     onVaciar={vaciarCarrito}
                     onDecrementar={onDecrementar}
                     onIncrementar={onIncrementar}
@@ -520,7 +533,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
 
 // ── CartPanel (componente interno) ──────────────────────────────────
 function CartPanel({
-  carrito, totalItems, totalCarrito, modoSesion, metodoPago, procesandoPago,
+  carrito, totalItems, totalCarrito, modoSesion, metodoPago, procesandoPago, qrImagenUrl,
   onVaciar, onDecrementar, onIncrementar, onEliminar, onMetodoSelect, onCobrar,
 }) {
   return (
@@ -581,6 +594,25 @@ function CartPanel({
           {/* Método de pago — solo POS */}
           {!modoSesion && (
             <PaymentSelector metodoPago={metodoPago} onSeleccionar={onMetodoSelect} />
+          )}
+
+          {/* Imagen QR — solo POS y método digital/QR */}
+          {!modoSesion && metodoPago === 'digital' && qrImagenUrl && (
+            <div className="flex flex-col items-center gap-1.5 py-2">
+              <div
+                className="rounded-xl overflow-hidden p-1.5"
+                style={{ background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                <img
+                  src={qrImagenUrl}
+                  alt="Código QR de pago"
+                  className="w-32 h-32 object-contain"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 text-center">
+                Escanea para pagar <span className="font-bold text-[#00D656]">{formatCOP(totalCarrito)}</span>
+              </p>
+            </div>
           )}
 
           {/* Botón COBRAR */}

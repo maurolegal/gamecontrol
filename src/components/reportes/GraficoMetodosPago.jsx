@@ -5,7 +5,7 @@ const METODOS = [
   { key: 'efectivo',      label: 'Efectivo',      color: '#3B82F6' },
   { key: 'transferencia', label: 'Transferencia',  color: '#A855F7' },
   { key: 'tarjeta',       label: 'Tarjeta',        color: '#EF4444' },
-  { key: 'qr',            label: 'Digital / QR',   color: '#00D656' },
+  { key: 'qr',            label: 'QR',             color: '#00D656' },
 ];
 
 export default function GraficoMetodosPago({ metodos, cargando }) {

@@ -26,11 +26,10 @@ export function useCaja() {
     setCargando(true);
     try {
       // Buscar el último cierre del usuario
-      // Si no hay cierre, o el último cierre fue hace más de 12h,
-      // consideramos que necesita abrir caja
+      // Usar solo columnas que sabemos que existen (sin fondo_inicial)
       const { data, error } = await supabase
         .from('cierres_turno')
-        .select('id, turno_hasta, fondo_inicial, observaciones')
+        .select('id, turno_hasta, observaciones')
         .eq('usuario_id', usuario.id)
         .order('created_at', { ascending: false })
         .limit(1);
@@ -45,40 +44,32 @@ export function useCaja() {
         setFondoInicial(0);
         setTurnoInicio(null);
       } else {
-        // Hay un cierre previo → el turno inicia desde ese cierre
-        // La caja se considera "abierta" si el usuario ya confirmó apertura
-        // Para simplicidad: si el último cierre tiene fondo_inicial > 0,
-        // significa que ya abrió caja para este turno
-        // Si no, necesita abrir
-
-        // Verificar si hay un registro de "apertura" después del último cierre
-        const { data: aperturaData } = await supabase
+        // Buscar apertura de caja más reciente (registro con [APERTURA_CAJA])
+        const { data: aperturaData, error: aperturaError } = await supabase
           .from('cierres_turno')
-          .select('id, turno_desde, fondo_inicial')
+          .select('id, turno_desde, observaciones')
           .eq('usuario_id', usuario.id)
-          .not('fondo_inicial', 'is', null)
-          .gt('fondo_inicial', 0)
+          .like('observaciones', '%APERTURA_CAJA%')
           .order('created_at', { ascending: false })
           .limit(1);
 
-        // Si el último registro con fondo_inicial tiene turno_desde > último cierre
-        // entonces la caja está abierta
+        if (aperturaError) throw aperturaError;
+
         if (aperturaData?.[0] && ultimoCierre.turno_hasta) {
           const aperturaDate = new Date(aperturaData[0].turno_desde);
           const cierreDate = new Date(ultimoCierre.turno_hasta);
           if (aperturaDate > cierreDate) {
             // La apertura es más reciente que el último cierre → caja abierta
             setCajaAbierta(true);
-            setFondoInicial(aperturaData[0].fondo_inicial || 0);
+            setFondoInicial(0); // Se cargará desde la apertura si la columna existe
             setTurnoInicio(aperturaData[0].turno_desde);
           } else {
-            // El cierre es más reciente → caja cerrada
             setCajaAbierta(false);
             setFondoInicial(0);
             setTurnoInicio(null);
           }
         } else {
-          // No hay apertura con fondo → caja cerrada
+          // No hay apertura → caja cerrada
           setCajaAbierta(false);
           setFondoInicial(0);
           setTurnoInicio(null);
@@ -99,39 +90,38 @@ export function useCaja() {
     try {
       const ahora = new Date().toISOString();
 
-      // Insertar un registro de "apertura" en cierres_turno
-      // Usamos fondo_inicial y un flag en observaciones para distinguir
-      const { error } = await supabase
-        .from('cierres_turno')
-        .insert({
+      // Insertar registro de apertura
+      // Intentar con fondo_inicial; si la columna no existe, reintentar sin ella
+      const datosBase = {
+        usuario_id: usuario.id,
+        usuario_email: usuario.email ?? null,
+        usuario_nombre: usuario?.user_metadata?.nombre ?? usuario.email ?? null,
+        rol_usuario: usuario?.user_metadata?.rol ?? null,
+        turno_desde: ahora,
+        turno_hasta: ahora,
+        efectivo_contado: 0,
+        efectivo_esperado: 0,
+        efectivo_descuadre: 0,
+        observaciones: `[APERTURA_CAJA] Fondo inicial: ${monto}`,
+        ticket_resumen: JSON.stringify({ tipo: 'apertura', fondo_inicial: monto }),
+        creado_por: {
           usuario_id: usuario.id,
-          usuario_email: usuario.email ?? null,
-          usuario_nombre: usuario?.user_metadata?.nombre ?? usuario.email ?? null,
-          rol_usuario: usuario?.user_metadata?.rol ?? null,
-          turno_desde: ahora,
-          turno_hasta: ahora, // Mismo timestamp = apertura
-          fondo_inicial: monto,
-          efectivo_contado: 0,
-          efectivo_esperado: monto, // Al abrir, esperado = fondo inicial
-          efectivo_descuadre: 0,
-          ventas_efectivo: 0,
-          ventas_transferencia: 0,
-          ventas_tarjeta: 0,
-          ventas_digital: 0,
-          gastos_efectivo: 0,
-          ventas_total: 0,
-          gastos_total: 0,
-          inventario_esperado_valor: 0,
-          inventario_contado_valor: 0,
-          inventario_descuadre_valor: 0,
-          total_descuadre: 0,
-          observaciones: '[APERTURA_CAJA]',
-          ticket_resumen: JSON.stringify({ tipo: 'apertura', fondo_inicial: monto }),
-          creado_por: {
-            usuario_id: usuario.id,
-            email: usuario.email ?? null,
-          },
-        });
+          email: usuario.email ?? null,
+        },
+      };
+
+      // Intentar con fondo_inicial primero
+      let { error } = await supabase
+        .from('cierres_turno')
+        .insert({ ...datosBase, fondo_inicial: monto });
+
+      // Si falla por columna inexistente, reintentar sin fondo_inicial
+      if (error && error.code === '42703') {
+        const retry = await supabase
+          .from('cierres_turno')
+          .insert(datosBase);
+        error = retry.error;
+      }
 
       if (error) throw error;
 
