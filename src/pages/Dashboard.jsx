@@ -134,7 +134,7 @@ function AtencionPrioritaria({ kpis, dispositivos, cargando, navigate }) {
 
   return (
     <div
-      className="rounded-xl p-3 h-full flex flex-col"
+      className="rounded-xl p-3 flex flex-col"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
@@ -143,19 +143,19 @@ function AtencionPrioritaria({ kpis, dispositivos, cargando, navigate }) {
       </h3>
 
       {cargando ? (
-        <div className="space-y-1.5 flex-1">
+        <div className="space-y-1.5">
           {[0, 1, 2].map(i => (
-            <div key={i} className="h-14 rounded-lg bg-white/5 animate-pulse" />
+            <div key={i} className="h-12 rounded-lg bg-white/5 animate-pulse" />
           ))}
         </div>
       ) : alertas.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-8">
-          <CheckCircle2 size={28} className="text-[#00D656] mb-2 opacity-40" />
-          <p className="text-sm font-medium text-gray-400">Todo bajo control</p>
-          <p className="text-[11px] text-gray-600 mt-0.5">Sin alertas operacionales</p>
+        <div className="flex flex-col items-center justify-center py-4">
+          <CheckCircle2 size={24} className="text-[#00D656] mb-1.5 opacity-40" />
+          <p className="text-xs font-medium text-gray-400">Todo bajo control</p>
+          <p className="text-[10px] text-gray-600 mt-0.5">Sin alertas operacionales</p>
         </div>
       ) : (
-        <div className="space-y-1.5 flex-1">
+        <div className="space-y-1.5">
           {alertas.map((a, i) => (
             <AlertaItem key={i} {...a} />
           ))}
@@ -182,7 +182,7 @@ function ResumenFinanciero({ kpis, metodosPago, cargando }) {
 
   return (
     <div
-      className="rounded-xl p-3 h-full"
+      className="rounded-xl p-3"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
@@ -276,7 +276,7 @@ function Rendimiento({ grafico, kpis, periodo, setPeriodo, cargando }) {
 
   return (
     <div
-      className="rounded-xl p-3 h-full"
+      className="rounded-xl p-3"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <div className="flex items-center justify-between mb-2">
@@ -343,7 +343,7 @@ function Rendimiento({ grafico, kpis, periodo, setPeriodo, cargando }) {
 function InventarioCritico({ productos, cargando, navigate }) {
   return (
     <div
-      className="rounded-xl p-3 h-full flex flex-col"
+      className="rounded-xl p-3 flex flex-col"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
@@ -352,7 +352,7 @@ function InventarioCritico({ productos, cargando, navigate }) {
       </h3>
 
       {cargando ? (
-        <div className="space-y-1.5 flex-1">
+        <div className="space-y-1.5">
           {[0, 1, 2, 3].map(i => <div key={i} className="h-12 bg-white/5 rounded-lg animate-pulse" />)}
         </div>
       ) : productos.length === 0 ? (
@@ -363,7 +363,7 @@ function InventarioCritico({ productos, cargando, navigate }) {
         </div>
       ) : (
         <>
-          <div className="space-y-1.5 flex-1">
+          <div className="space-y-1.5">
             {productos.slice(0, 5).map(p => (
               <div
                 key={p.id}
@@ -421,7 +421,7 @@ function EstadoDispositivos({ dispositivos, cargando, navigate }) {
 
   return (
     <div
-      className="rounded-xl p-3 h-full flex flex-col"
+      className="rounded-xl p-3 flex flex-col"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
@@ -440,7 +440,7 @@ function EstadoDispositivos({ dispositivos, cargando, navigate }) {
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-3 flex-1">
+          <div className="flex items-center gap-3">
             <DonutChart
               data={donutData}
               size={95}
@@ -493,14 +493,14 @@ function TurnoActual({ turno, usuario, navigate }) {
   if (!turno) {
     return (
       <div
-        className="rounded-xl p-3 h-full flex flex-col"
+        className="rounded-xl p-3 flex flex-col"
         style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
       >
         <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
           <Banknote size={15} className="text-gray-400" />
           Turno Actual
         </h3>
-        <div className="flex-1 flex flex-col items-center justify-center py-4">
+        <div className="flex flex-col items-center justify-center py-4">
           <Clock size={24} className="text-gray-600 mb-2 opacity-40" />
           <p className="text-xs text-gray-500">Sin turno activo</p>
           <button
@@ -517,7 +517,7 @@ function TurnoActual({ turno, usuario, navigate }) {
 
   return (
     <div
-      className="rounded-xl p-3 h-full"
+      className="rounded-xl p-3"
       style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
     >
       <div className="flex items-center justify-between mb-2">
