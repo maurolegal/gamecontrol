@@ -11,7 +11,7 @@ import {
   User, Gamepad2, Zap, Trophy,
   Monitor, Radio, CheckCircle2, ExternalLink, ArrowLeft,
   ChevronLeft, ChevronRight, Castle, Film, Package, Tv,
-  Mountain, Bird, Apple, Fish, Settings, X,
+  Mountain, Bird, Apple, Fish, Settings, X, Image,
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useSalas } from '../hooks/useSalas';
@@ -225,6 +225,23 @@ const PROMOS_DEFAULT = [
 ];
 
 const PROMOS_STORAGE_KEY = 'gc_eventlive_promos';
+const BANNER_STORAGE_KEY = 'gc_eventlive_banner';
+
+const BANNER_DEFAULT = 'https://i.ibb.co/v4mN2Qb8/Firefly-Gemini-Flash-la-necesito-ajustada-1400-180-px-proporcion-7-8-1-400212.png';
+
+function loadBanner() {
+  try {
+    const val = localStorage.getItem(BANNER_STORAGE_KEY);
+    if (val) return val;
+  } catch (_e) {}
+  return BANNER_DEFAULT;
+}
+
+function saveBanner(url) {
+  try {
+    localStorage.setItem(BANNER_STORAGE_KEY, url);
+  } catch (_e) {}
+}
 
 function loadPromos() {
   try {
@@ -585,8 +602,13 @@ export default function EventLive() {
   const [modalPromosAbierto, setModalPromosAbierto] = useState(false);
   const [promosDraft, setPromosDraft] = useState([]);
 
+  // ── Banner de productos (editable via engranaje) ──
+  const [bannerUrl, setBannerUrl] = useState(loadBanner);
+  const [bannerDraft, setBannerDraft] = useState('');
+
   function abrirModalPromos() {
     setPromosDraft([...promos]);
+    setBannerDraft(bannerUrl);
     setModalPromosAbierto(true);
   }
 
@@ -595,6 +617,9 @@ export default function EventLive() {
     if (limpias.length === 0) return;
     setPromos(limpias);
     savePromos(limpias);
+    const banner = bannerDraft.trim() || BANNER_DEFAULT;
+    setBannerUrl(banner);
+    saveBanner(banner);
     setModalPromosAbierto(false);
   }
 
@@ -772,9 +797,10 @@ export default function EventLive() {
             }}
           >
             <img
-              src="https://i.ibb.co/v4mN2Qb8/Firefly-Gemini-Flash-la-necesito-ajustada-1400-180-px-proporcion-7-8-1-400212.png"
+              src={bannerUrl}
               alt="Productos y precios"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={(e) => { e.target.src = BANNER_DEFAULT; }}
             />
           </div>
         </div>
@@ -863,6 +889,42 @@ export default function EventLive() {
             >
               + Agregar promo
             </button>
+
+            {/* ── Banner de productos ── */}
+            <div className="pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <Image size={16} className="text-purple-400" />
+                <p className="text-sm font-bold text-white">Banner de productos</p>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">
+                Pega la URL de la imagen del banner (1400×180px recomendado).
+              </p>
+              <input
+                type="url"
+                value={bannerDraft}
+                onChange={e => setBannerDraft(e.target.value)}
+                className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: 'white',
+                }}
+                placeholder="https://..."
+              />
+              {bannerDraft && (
+                <div
+                  className="mt-2 rounded-lg overflow-hidden"
+                  style={{ border: '1px solid rgba(139,92,246,0.2)', height: '60px' }}
+                >
+                  <img
+                    src={bannerDraft}
+                    alt="Preview banner"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.target.style.opacity = '0.3'; }}
+                  />
+                </div>
+              )}
+            </div>
 
             <div className="flex gap-3 pt-2">
               <button
