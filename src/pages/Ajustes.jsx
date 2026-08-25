@@ -3,7 +3,7 @@
 // Header compacto · Tabs discretos · Tarifas unificadas · Footer sticky
 // ===================================================================
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
@@ -11,9 +11,11 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../components/ui/ConfirmProvider';
 import { useSalas } from '../hooks/useSalas';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
+import { supabase } from '../lib/supabaseClient';
 import {
   Settings, Building2, DollarSign, Save, TrendingDown, Award,
   Gamepad2, Lightbulb, Wallet, Trash2, Plus, Smartphone, CreditCard, QrCode, Upload, X,
+  Check, Loader2, Search,
 } from 'lucide-react';
 
 function formatCOP(valor) {
@@ -74,6 +76,20 @@ export default function Ajustes() {
   // QR image
   const [qrImagenUrl, setQrImagenUrl] = useState(null);
   const [cargandoQr, setCargandoQr] = useState(false);
+
+  // ── Juegos ──
+  const [catalogoJuegos, setCatalogoJuegos] = useState([]);
+  const [cargandoCatalogo, setCargandoCatalogo] = useState(true);
+  const [nuevoJuego, setNuevoJuego] = useState({ nombre: '', plataforma: '' });
+  const [guardandoJuego, setGuardandoJuego] = useState(false);
+  // Asignación por estación
+  const [juegoSalaId, setJuegoSalaId] = useState('');
+  const [juegoEstacion, setJuegoEstacion] = useState('');
+  const [juegosInstalados, setJuegosInstalados] = useState(null); // Set<juego_id> | null
+  const [dispositivoEncontrado, setDispositivoEncontrado] = useState(null);
+  const [cargandoAsignacion, setCargandoAsignacion] = useState(false);
+  const [guardandoAsignacion, setGuardandoAsignacion] = useState(false);
+  const [busquedaJuego, setBusquedaJuego] = useState('');
 
   // Detectar si vienen desde Salas para abrir tarifas
   useEffect(() => {
@@ -301,10 +317,171 @@ export default function Ajustes() {
     }
   };
 
+  // ── Cargar catálogo de juegos ──
+  const cargarCatalogoJuegos = useCallback(async () => {
+    setCargandoCatalogo(true);
+    try {
+      const { data, error } = await supabase
+        .from('juegos')
+        .select('id, nombre, plataforma, portada_url, estado')
+        .order('nombre', { ascending: true });
+      if (error) throw error;
+      setCatalogoJuegos(data ?? []);
+    } catch (err) {
+      notifError('Error cargando catálogo de juegos: ' + err.message);
+      setCatalogoJuegos([]);
+    } finally {
+      setCargandoCatalogo(false);
+    }
+  }, [notifError]);
+
+  useEffect(() => {
+    cargarCatalogoJuegos();
+  }, [cargarCatalogoJuegos]);
+
+  // ── Agregar juego al catálogo ──
+  const handleAgregarJuego = async (e) => {
+    e.preventDefault();
+    if (!nuevoJuego.nombre.trim()) {
+      notifError('El nombre del juego es obligatorio');
+      return;
+    }
+    setGuardandoJuego(true);
+    try {
+      const { data, error } = await supabase
+        .from('juegos')
+        .insert({
+          nombre: nuevoJuego.nombre.trim(),
+          plataforma: nuevoJuego.plataforma.trim() || null,
+          estado: 'activo',
+        })
+        .select('id, nombre, plataforma, portada_url, estado')
+        .single();
+      if (error) throw error;
+      setCatalogoJuegos(prev => [...prev, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      setNuevoJuego({ nombre: '', plataforma: '' });
+      exito(`Juego "${data.nombre}" agregado al catálogo`);
+    } catch (err) {
+      if (err.code === '23505') {
+        notifError('Ya existe un juego con ese nombre');
+      } else {
+        notifError('Error: ' + err.message);
+      }
+    } finally {
+      setGuardandoJuego(false);
+    }
+  };
+
+  // ── Eliminar juego del catálogo ──
+  const handleEliminarJuegoCatalogo = async (juegoId, juegoNombre) => {
+    const ok = await confirm(`¿Eliminar "${juegoNombre}" del catálogo?\n\nSe quitará de todas las estaciones asignadas.`, { tipo: 'danger', confirmText: 'Eliminar' });
+    if (!ok) return;
+    try {
+      const { error } = await supabase.from('juegos').delete().eq('id', juegoId);
+      if (error) throw error;
+      setCatalogoJuegos(prev => prev.filter(j => j.id !== juegoId));
+      // Si estaba instalado en la estación seleccionada, quitarlo del set
+      setJuegosInstalados(prev => {
+        if (!prev) return prev;
+        const next = new Set(prev);
+        next.delete(juegoId);
+        return next;
+      });
+      exito(`Juego "${juegoNombre}" eliminado`);
+    } catch (err) {
+      notifError('Error: ' + err.message);
+    }
+  };
+
+  // ── Estaciones disponibles para la sala seleccionada ──
+  const salaSeleccionadaJuegos = salas.find(s => s.id === juegoSalaId);
+  const prefijoSalaJuegos = salaSeleccionadaJuegos?.prefijo || 'EST';
+  const numEstacionesSalaJuegos = salaSeleccionadaJuegos?.numEstaciones ?? 0;
+  const estacionesDisponiblesJuegos = useMemo(
+    () => Array.from({ length: numEstacionesSalaJuegos }, (_, i) => `${prefijoSalaJuegos}${i + 1}`),
+    [prefijoSalaJuegos, numEstacionesSalaJuegos]
+  );
+
+  // ── Cargar juegos instalados al seleccionar sala + estación ──
+  const cargarJuegosEstacion = useCallback(async () => {
+    if (!juegoSalaId || !juegoEstacion) {
+      setJuegosInstalados(null);
+      setDispositivoEncontrado(null);
+      return;
+    }
+    setCargandoAsignacion(true);
+    try {
+      // Buscar dispositivo por sala_id + estacion
+      const { data: dispositivo } = await supabase
+        .from('dispositivos')
+        .select('id, nombre, codigo_interno')
+        .eq('sala_id', juegoSalaId)
+        .eq('estacion', juegoEstacion)
+        .maybeSingle();
+
+      if (dispositivo?.id) {
+        setDispositivoEncontrado(dispositivo);
+        const { data: dj } = await supabase
+          .from('dispositivo_juegos')
+          .select('juego_id')
+          .eq('dispositivo_id', dispositivo.id);
+        const ids = new Set((dj ?? []).map(d => d.juego_id));
+        setJuegosInstalados(ids);
+      } else {
+        setDispositivoEncontrado(null);
+        setJuegosInstalados(new Set());
+      }
+    } catch (err) {
+      notifError('Error: ' + err.message);
+      setJuegosInstalados(new Set());
+      setDispositivoEncontrado(null);
+    } finally {
+      setCargandoAsignacion(false);
+    }
+  }, [juegoSalaId, juegoEstacion, notifError]);
+
+  useEffect(() => {
+    cargarJuegosEstacion();
+  }, [cargarJuegosEstacion]);
+
+  // ── Guardar asignación de juegos ──
+  const handleGuardarAsignacion = async () => {
+    if (!dispositivoEncontrado || !juegosInstalados) return;
+    setGuardandoAsignacion(true);
+    try {
+      // Eliminar relaciones existentes
+      await supabase.from('dispositivo_juegos').delete().eq('dispositivo_id', dispositivoEncontrado.id);
+      // Insertar nuevas
+      if (juegosInstalados.size > 0) {
+        const rows = Array.from(juegosInstalados).map(juego_id => ({
+          dispositivo_id: dispositivoEncontrado.id,
+          juego_id,
+        }));
+        const { error } = await supabase.from('dispositivo_juegos').insert(rows);
+        if (error) throw error;
+      }
+      exito(`Juegos actualizados para ${juegoEstacion}`);
+    } catch (err) {
+      notifError('Error: ' + err.message);
+    } finally {
+      setGuardandoAsignacion(false);
+    }
+  };
+
+  // ── Filtrar catálogo por búsqueda ──
+  const catalogoFiltrado = useMemo(() => {
+    if (!busquedaJuego.trim()) return catalogoJuegos;
+    const q = busquedaJuego.toLowerCase();
+    return catalogoJuegos.filter(j =>
+      j.nombre.toLowerCase().includes(q) || (j.plataforma || '').toLowerCase().includes(q)
+    );
+  }, [catalogoJuegos, busquedaJuego]);
+
   const TABS = [
     { id: 'general',    label: 'General',       icon: <Building2 size={14} /> },
     { id: 'tarifas',    label: 'Tarifas',       icon: <DollarSign size={14} />, count: salas.length },
     { id: 'medios-pago', label: 'Medios de Pago', icon: <Wallet size={14} />, count: mediosPago.length },
+    { id: 'juegos',     label: 'Juegos',        icon: <Gamepad2 size={14} />, count: catalogoJuegos.length },
   ];
 
   return (
@@ -820,6 +997,265 @@ export default function Ajustes() {
                   {cargandoMedios ? 'Agregando…' : 'Agregar cuenta'}
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════
+            SECCIÓN: JUEGOS
+            ═══════════════════════════════════════════════════════════════ */}
+        {seccionActiva === 'juegos' && (
+          <div className="space-y-4 max-w-3xl">
+
+            {/* ── Asignar juegos a estación ── */}
+            <div
+              className="rounded-xl p-5 space-y-4"
+              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Gamepad2 size={15} className="text-[#8B5CF6]" />
+                Asignar juegos a estación
+              </h3>
+
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                Selecciona una sala y estación para ver y gestionar los juegos instalados en ese dispositivo.
+              </p>
+
+              {/* Selects sala + estación */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Sala</label>
+                  <select
+                    value={juegoSalaId}
+                    onChange={(e) => { setJuegoSalaId(e.target.value); setJuegoEstacion(''); }}
+                    className={`${inputCls} cursor-pointer`}
+                  >
+                    <option value="">Seleccionar…</option>
+                    {salas.filter(s => s.activa !== false).map(s => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Estación</label>
+                  <select
+                    value={juegoEstacion}
+                    onChange={(e) => setJuegoEstacion(e.target.value)}
+                    className={`${inputCls} cursor-pointer`}
+                    disabled={!juegoSalaId || estacionesDisponiblesJuegos.length === 0}
+                  >
+                    <option value="">
+                      {juegoSalaId
+                        ? estacionesDisponiblesJuegos.length === 0
+                          ? 'Sin estaciones'
+                          : 'Seleccionar…'
+                        : 'Primero selecciona una sala'}
+                    </option>
+                    {estacionesDisponiblesJuegos.map(est => (
+                      <option key={est} value={est}>{est}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Info dispositivo */}
+              {juegoEstacion && (
+                cargandoAsignacion ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 size={20} className="text-[#8B5CF6] animate-spin" />
+                  </div>
+                ) : dispositivoEncontrado ? (
+                  <>
+                    <div
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg"
+                      style={{ background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.15)' }}
+                    >
+                      <Gamepad2 size={14} className="text-[#8B5CF6]" />
+                      <span className="text-[12px] text-gray-300">
+                        Dispositivo: <span className="font-semibold text-white">{dispositivoEncontrado.nombre}</span>
+                        <span className="text-gray-600 font-mono ml-2">#{dispositivoEncontrado.codigo_interno}</span>
+                      </span>
+                      <span className="ml-auto text-[11px] text-gray-500">
+                        {juegosInstalados?.size || 0} juego{(juegosInstalados?.size || 0) !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+
+                    {/* Buscador */}
+                    {catalogoJuegos.length > 6 && (
+                      <div className="relative">
+                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" />
+                        <input
+                          type="text"
+                          value={busquedaJuego}
+                          onChange={(e) => setBusquedaJuego(e.target.value)}
+                          placeholder="Buscar juego…"
+                          className={`${inputCls} pl-9`}
+                        />
+                      </div>
+                    )}
+
+                    {/* Lista de juegos con checkboxes */}
+                    {catalogoJuegos.length === 0 ? (
+                      <div className="text-center py-6 text-gray-500">
+                        <Gamepad2 size={24} className="mx-auto mb-2 text-gray-600" />
+                        <p className="text-[12px]">No hay juegos en el catálogo</p>
+                        <p className="text-[10px] mt-1">Agrega juegos en la sección de abajo</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                        {catalogoFiltrado.map((juego) => {
+                          const instalado = juegosInstalados?.has(juego.id);
+                          return (
+                            <label
+                              key={juego.id}
+                              className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all"
+                              style={{
+                                background: instalado ? 'rgba(0,214,86,0.06)' : 'rgba(255,255,255,0.02)',
+                                border: instalado ? '1px solid rgba(0,214,86,0.15)' : '1px solid rgba(255,255,255,0.03)',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={instalado || false}
+                                onChange={() => setJuegosInstalados(prev => {
+                                  if (!prev) return prev;
+                                  const next = new Set(prev);
+                                  if (instalado) next.delete(juego.id);
+                                  else next.add(juego.id);
+                                  return next;
+                                })}
+                                className="w-4 h-4 rounded border-white/20 text-[#00D656] focus:ring-2 focus:ring-[#00D656]/50"
+                              />
+                              {juego.portada_url && (
+                                <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover shrink-0" style={{ border: '1px solid rgba(255,255,255,0.05)' }} />
+                              )}
+                              {!juego.portada_url && (
+                                <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                                  <Gamepad2 size={12} className="text-[#8B5CF6]" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
+                                <p className="text-[10px] text-gray-500">{juego.plataforma || '—'}</p>
+                              </div>
+                              {instalado && <Check size={14} className="text-[#00D656] shrink-0" />}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Botón guardar */}
+                    {catalogoJuegos.length > 0 && (
+                      <button
+                        onClick={handleGuardarAsignacion}
+                        disabled={guardandoAsignacion}
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                        style={{ background: '#00D656', color: '#000' }}
+                      >
+                        {guardandoAsignacion ? <><Loader2 size={15} className="animate-spin" /> Guardando…</> : <><Save size={15} /> Guardar asignación</>}
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div
+                    className="rounded-lg p-4 text-center"
+                    style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}
+                  >
+                    <p className="text-[12px] text-amber-400 font-medium">No hay dispositivo asignado a esta estación</p>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Crea un dispositivo en <span className="text-white">/dispositivos</span> con sala <span className="text-white">{salaSeleccionadaJuegos?.nombre}</span> y estación <span className="text-white">{juegoEstacion}</span>
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+
+            {/* ── Catálogo de juegos ── */}
+            <div
+              className="rounded-xl p-5 space-y-4"
+              style={{ background: '#111318', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Plus size={15} className="text-[#00D656]" />
+                  Catálogo de juegos
+                </h3>
+                {catalogoJuegos.length > 0 && (
+                  <span className="text-[11px] text-gray-500">{catalogoJuegos.length} juego{catalogoJuegos.length !== 1 ? 's' : ''}</span>
+                )}
+              </div>
+
+              {/* Formulario agregar juego */}
+              <form onSubmit={handleAgregarJuego} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2.5">
+                <input
+                  type="text"
+                  value={nuevoJuego.nombre}
+                  onChange={(e) => setNuevoJuego(prev => ({ ...prev, nombre: e.target.value }))}
+                  placeholder="Nombre del juego *"
+                  className={inputCls}
+                  required
+                />
+                <input
+                  type="text"
+                  value={nuevoJuego.plataforma}
+                  onChange={(e) => setNuevoJuego(prev => ({ ...prev, plataforma: e.target.value }))}
+                  placeholder="Plataforma (PS5, Xbox, PC…)"
+                  className={inputCls}
+                />
+                <button
+                  type="submit"
+                  disabled={guardandoJuego}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-40"
+                  style={{ background: '#00D656', color: '#000' }}
+                >
+                  {guardandoJuego ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                  Agregar
+                </button>
+              </form>
+
+              {/* Lista del catálogo */}
+              {cargandoCatalogo ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 size={20} className="text-gray-500 animate-spin" />
+                </div>
+              ) : catalogoJuegos.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  <Gamepad2 size={24} className="mx-auto mb-2 text-gray-600" />
+                  <p className="text-[12px]">Catálogo vacío</p>
+                  <p className="text-[10px] mt-1">Agrega el primer juego arriba</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                  {catalogoJuegos.map((juego) => (
+                    <div
+                      key={juego.id}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg group"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}
+                    >
+                      {juego.portada_url && (
+                        <img src={juego.portada_url} alt={juego.nombre} className="w-8 h-8 rounded object-cover shrink-0" style={{ border: '1px solid rgba(255,255,255,0.05)' }} />
+                      )}
+                      {!juego.portada_url && (
+                        <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                          <Gamepad2 size={12} className="text-[#8B5CF6]" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
+                        <p className="text-[10px] text-gray-500">{juego.plataforma || '—'}</p>
+                      </div>
+                      <button
+                        onClick={() => handleEliminarJuegoCatalogo(juego.id, juego.nombre)}
+                        className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                        title="Eliminar del catálogo"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

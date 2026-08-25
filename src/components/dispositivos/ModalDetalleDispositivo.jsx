@@ -3,7 +3,7 @@
 // ===================================================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, Settings, Calendar, Shield, Truck, CreditCard, Wrench, DollarSign, Clock, History, Plus, Package, Trash2, Tv, Monitor, Gamepad2, Smartphone, Check, Loader2, Image } from 'lucide-react';
+import { X, Settings, Calendar, Shield, Truck, CreditCard, Wrench, DollarSign, Clock, History, Plus, Package, Trash2, Tv, Monitor, Gamepad2, Smartphone } from 'lucide-react';
 import ModalCrearMantenimiento from './ModalCrearMantenimiento';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -54,10 +54,6 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
   const [cargandoMant, setCargandoMant] = useState(true);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
   const [modalMantenimientoOpen, setModalMantenimientoOpen] = useState(false);
-  const [juegosInstalados, setJuegosInstalados] = useState([]);
-  const [catalogoJuegos, setCatalogoJuegos] = useState([]);
-  const [cargandoJuegos, setCargandoJuegos] = useState(true);
-  const [guardandoJuegos, setGuardandoJuegos] = useState(false);
 
   // Cargar mantenimientos
   useEffect(() => {
@@ -73,28 +69,6 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
         setCargandoMant(false);
       })
       .catch(() => setCargandoMant(false));
-  }, [dispositivo?.id]);
-
-  // Cargar juegos instalados + catálogo
-  useEffect(() => {
-    if (!dispositivo?.id) return;
-    setCargandoJuegos(true);
-    Promise.all([
-      supabase
-        .from('dispositivo_juegos')
-        .select('juego_id, juegos(nombre, plataforma, portada_url)')
-        .eq('dispositivo_id', dispositivo.id),
-      supabase
-        .from('juegos')
-        .select('id, nombre, plataforma, portada_url')
-        .eq('estado', 'activo')
-        .order('nombre', { ascending: true }),
-    ]).then(([{ data: instalados }, { data: catalogo }]) => {
-      const idsInstalados = new Set((instalados ?? []).map((dj) => dj.juego_id));
-      setJuegosInstalados(Array.from(idsInstalados));
-      setCatalogoJuegos(catalogo ?? []);
-      setCargandoJuegos(false);
-    }).catch(() => setCargandoJuegos(false));
   }, [dispositivo?.id]);
 
   const handleCambiarEstado = useCallback(async (nuevoEstado) => {
@@ -114,34 +88,6 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
       setCambiandoEstado(false);
     }
   }, [dispositivo, exito, notifError, onActualizado]);
-
-  const handleGuardarJuegos = useCallback(async () => {
-    if (!dispositivo) return;
-    setGuardandoJuegos(true);
-    try {
-      // Eliminar relaciones existentes
-      await supabase
-        .from('dispositivo_juegos')
-        .delete()
-        .eq('dispositivo_id', dispositivo.id);
-
-      // Insertar nuevas
-      if (juegosInstalados.size > 0) {
-        const rows = Array.from(juegosInstalados).map((juego_id) => ({
-          dispositivo_id: dispositivo.id,
-          juego_id,
-        }));
-        const { error } = await supabase.from('dispositivo_juegos').insert(rows);
-        if (error) throw error;
-      }
-      exito('Juegos actualizados correctamente');
-      onActualizado?.({ ...dispositivo });
-    } catch (err) {
-      notifError('Error guardando juegos: ' + err.message);
-    } finally {
-      setGuardandoJuegos(false);
-    }
-  }, [dispositivo, juegosInstalados, exito, notifError, onActualizado]);
 
   const handleEliminar = useCallback(async () => {
     if (!dispositivo) return;
@@ -415,96 +361,6 @@ export default function ModalDetalleDispositivo({ dispositivo, onClose, onActual
                     );
                   })}
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── Juegos instalados ── */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className={sectionTitle}>Juegos instalados</p>
-              {cargandoJuegos ? (
-                <Loader2 size={14} className="text-gray-500 animate-spin" />
-              ) : (
-                <span className="text-[11px] text-gray-500">
-                  {juegosInstalados.size} / {catalogoJuegos.length} disponibles
-                </span>
-              )}
-            </div>
-
-            {catalogoJuegos.length === 0 ? (
-              <div className="rounded-lg p-6 text-center" style={{ background: '#0F1117', border: '1px solid rgba(255,255,255,0.04)' }}>
-                <Gamepad2 size={24} className="mx-auto mb-2 text-gray-600" />
-                <p className="text-gray-400">Catálogo de juegos vacío</p>
-                <p className="text-[11px] text-gray-600 mt-1">Agrega juegos desde la base de datos</p>
-              </div>
-            ) : (
-              <div className="space-y-1.5 max-h-60 overflow-y-auto">
-                {catalogoJuegos.map((juego) => {
-                  const instalado = juegosInstalados.has(juego.id);
-                  return (
-                    <label
-                      key={juego.id}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all"
-                      style={{
-                        background: instalado ? 'rgba(0,214,86,0.06)' : 'rgba(255,255,255,0.02)',
-                        border: instalado ? '1px solid rgba(0,214,86,0.15)' : '1px solid rgba(255,255,255,0.03)',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={instalado}
-                        onChange={() => setJuegosInstalados((prev) => {
-                          const next = new Set(prev);
-                          if (instalado) next.delete(juego.id);
-                          else next.add(juego.id);
-                          return next;
-                        })}
-                        className="w-4 h-4 rounded border-white/20 text-[#00D656] focus:ring-2 focus:ring-[#00D656]/50"
-                      />
-                      {juego.portada_url && (
-                        <img
-                          src={juego.portada_url}
-                          alt={juego.nombre}
-                          className="w-8 h-8 rounded object-cover shrink-0"
-                          style={{ border: '1px solid rgba(255,255,255,0.05)' }}
-                        />
-                      )}
-                      {!juego.portada_url && (
-                        <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                          <Gamepad2 size={12} className="text-[#8B5CF6]" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
-                        <p className="text-[10px] text-gray-500">{juego.plataforma || '—'}</p>
-                      </div>
-                      {instalado && (
-                        <Check size={14} className="text-[#00D656] shrink-0" />
-                      )}
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-
-            {catalogoJuegos.length > 0 && (
-              <div className="flex justify-end mt-3">
-                <button
-                  onClick={handleGuardarJuegos}
-                  disabled={guardandoJuegos}
-                  className="px-4 py-2 rounded-lg text-[12px] font-bold min-h-[44px] transition-all disabled:opacity-50"
-                  style={{
-                    background: guardandoJuegos ? 'rgba(255,255,255,0.05)' : '#00D656',
-                    color: guardandoJuegos ? '#6B7280' : '#000',
-                  }}
-                >
-                  {guardandoJuegos ? (
-                    <> <Loader2 size={14} className="mr-1 animate-spin" /> Guardando… </>
-                  ) : (
-                    <> <Check size={14} className="mr-1" /> Guardar cambios </>
-                  )}
-                </button>
               </div>
             )}
           </div>
