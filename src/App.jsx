@@ -5,6 +5,7 @@ import { ConfirmProvider } from './components/ui/ConfirmProvider';
 import Layout from './components/layout/Layout';
 
 import Login      from './pages/Login';
+import Restablecer from './pages/Restablecer';
 import TVDisplay  from './pages/TVDisplay';
 import EventLive  from './pages/EventLive';
 import Dashboard       from './pages/Dashboard';
@@ -42,6 +43,7 @@ export default function App() {
       <Routes>
         {/* Pública */}
         <Route path="/login" element={<Login />} />
+        <Route path="/restablecer" element={<Restablecer />} />
         <Route path="/tv"         element={<TVDisplay />} />
         <Route path="/event-live"  element={<EventLive />} />
 

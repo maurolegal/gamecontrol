@@ -7,8 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Gamepad2, Mail, Lock, Eye, EyeOff, Zap,
-  Monitor, BarChart3, Users, ChevronRight
+  Monitor, BarChart3, Users, ChevronRight, X
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../hooks/useAuth';
 
 // ─── Particle Canvas ─────────────────────────────────────────────────────────
@@ -89,6 +90,12 @@ export default function Login() {
   const [emailFocus,   setEmailFocus]   = useState(false);
   const [passFocus,    setPassFocus]    = useState(false);
 
+  // ── Recuperar contraseña ──
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryCargando, setRecoveryCargando] = useState(false);
+  const [recoveryOk, setRecoveryOk] = useState('');
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
@@ -100,6 +107,34 @@ export default function Login() {
       setTimeout(() => navigate('/'), 900);
     } else {
       setError('Credenciales incorrectas. Verifica tu email y contraseña.');
+    }
+  }
+
+  async function handleRecovery(e) {
+    e.preventDefault();
+    setRecoveryOk('');
+    setError('');
+
+    if (!recoveryEmail.trim()) {
+      setError('Ingresa tu correo electrónico');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recoveryEmail)) {
+      setError('Ingresa un correo válido');
+      return;
+    }
+
+    setRecoveryCargando(true);
+    const redirectTo = `${window.location.origin}/restablecer`;
+    const { error: err } = await supabase.auth.resetPasswordForEmail(recoveryEmail, { redirectTo });
+    setRecoveryCargando(false);
+
+    if (err) {
+      setError(err.message);
+    } else {
+      setRecoveryOk('Te enviamos un enlace para restablecer tu contraseña.');
     }
   }
 
@@ -482,6 +517,7 @@ export default function Login() {
 
               <button
                 type="button"
+                onClick={() => setShowRecovery(true)}
                 className="text-xs font-semibold"
                 style={{ color: '#7b2cff', transition: 'color 0.2s' }}
                 onMouseOver={e => { e.currentTarget.style.color = '#00ff9c'; }}
@@ -554,6 +590,96 @@ export default function Login() {
           </motion.p>
         </motion.div>
       </motion.div>
+
+      {/* ── Modal Recuperar Contraseña ── */}
+      {showRecovery && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+          onClick={() => setShowRecovery(false)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-sm p-6 rounded-2xl"
+            style={{
+              background: 'rgba(6,8,20,0.95)',
+              border: '1px solid rgba(0,255,120,0.25)',
+              boxShadow: '0 0 40px rgba(0,255,100,0.1)',
+            }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-black tracking-widest text-white uppercase">Recuperar</h3>
+              <button
+                onClick={() => setShowRecovery(false)}
+                className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center"
+              >
+                <X size={16} className="text-gray-500" />
+              </button>
+            </div>
+
+            {recoveryOk ? (
+              <div className="text-center py-4 space-y-3">
+                <p className="text-[#00ff9c] font-semibold">{recoveryOk}</p>
+                <p className="text-sm text-gray-500">Revisa tu bandeja de entrada.</p>
+                <button
+                  onClick={() => { setShowRecovery(false); setRecoveryOk(''); setRecoveryEmail(''); }}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-white/5 hover:bg-white/10 border border-white/10"
+                >
+                  Cerrar
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleRecovery} className="space-y-4">
+                <p className="text-sm text-gray-500">
+                  Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+                </p>
+
+                <div className="relative">
+                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  <input
+                    type="email"
+                    value={recoveryEmail}
+                    onChange={e => setRecoveryEmail(e.target.value)}
+                    placeholder="admin@gamecontrol.com"
+                    required
+                    autoComplete="email"
+                    className="w-full rounded-xl pl-10 pr-4 py-3 text-sm outline-none"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: 'none', color: '#f1f5f9' }}
+                  />
+                </div>
+
+                {error && (
+                  <div
+                    className="rounded-xl p-3 text-sm"
+                    style={{ background: 'rgba(255,45,80,0.1)', border: '1px solid rgba(255,45,80,0.3)', color: '#ff6b8a' }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={recoveryCargando}
+                  className="w-full py-3 rounded-xl font-black text-sm tracking-widest uppercase"
+                  style={{
+                    background: 'linear-gradient(90deg, #00e676 0%, #00b96a 45%, #7b2cff 100%)',
+                    color: '#000',
+                    opacity: recoveryCargando ? 0.7 : 1,
+                  }}
+                >
+                  {recoveryCargando ? 'Enviando...' : 'Enviar enlace'}
+                </button>
+              </form>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }
