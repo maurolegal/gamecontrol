@@ -172,8 +172,8 @@ export default function CommandCenterHeader({
     <header
       className="relative z-40 px-4 py-2.5"
       style={{
-        background: 'rgba(10,14,25,0.95)',
-        backdropFilter: 'blur(20px)',
+        background: 'var(--gc-header)',
+        backdropFilter: 'blur(8px)',
         borderBottom: '1px solid var(--gc-border)',
       }}
       data-dropdown

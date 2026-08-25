@@ -359,7 +359,10 @@ export default function CommandCenter() {
   // ── Render ────────────────────────────────────────────────────────
   if (cargando && salas.length === 0) {
     return (
-      <div className="flex flex-col" style={{ background: '#080A10' }}>
+      <div
+        className="flex min-h-full flex-col -m-3 md:-m-6"
+        style={{ background: 'var(--gc-bg)' }}
+      >
         <CommandCenterHeader
           salas={[]}
           sesiones={[]}
@@ -386,7 +389,10 @@ export default function CommandCenter() {
   }
 
   return (
-    <div className="flex flex-col" style={{ background: '#080A10', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div
+      className="flex min-h-full flex-col -m-3 md:-m-6"
+      style={{ background: 'var(--gc-bg)', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
+    >
       {/* ── HEADER (sticky) ── */}
       <CommandCenterHeader
         salas={salasFiltradas}
@@ -403,7 +409,7 @@ export default function CommandCenter() {
       />
 
       {/* ── CONTENIDO (sin scroll anidado — el Layout maneja el scroll) ── */}
-      <main style={{ paddingBottom: '80px' }}>
+      <main className="px-4 md:px-6" style={{ paddingBottom: '80px' }}>
         {/* ── ATTENTION CENTER (solo si hay sesiones activas) ── */}
         {sesionesFiltradas.length > 0 && (
           <div className={paddingClass} style={{ paddingBottom: 0 }}>

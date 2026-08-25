@@ -50,10 +50,9 @@ export default function CommandCenterFooter({
     <footer
       className="sticky bottom-0 z-40 flex flex-wrap items-center justify-between gap-4 px-4 py-2"
       style={{
-        background: 'rgba(10,14,25,0.95)',
-        backdropFilter: 'blur(20px)',
+        background: 'var(--gc-header)',
+        backdropFilter: 'blur(8px)',
         borderTop: '1px solid var(--gc-border)',
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.3)',
       }}
     >
       {/* ── REALTIME STATUS ── */}
