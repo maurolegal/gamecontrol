@@ -15,19 +15,31 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 2. Actualizar DEFAULT de todas las tablas que usan uuid_generate_v4()
--- Solo se aplica si la tabla existe (evita error si una tabla no existe)
+-- Solo se aplica si la tabla existe y NO es identity column
 DO $$
 DECLARE
   t TEXT;
   tablas TEXT[] := ARRAY['salas','sesiones','ventas','gastos','productos','cierres_turno','caja','clientes','dispositivos'];
+  is_identity BOOLEAN;
 BEGIN
   FOREACH t IN ARRAY tablas LOOP
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = t) THEN
-      EXECUTE format('ALTER TABLE %I ALTER COLUMN id SET DEFAULT gen_random_uuid()', t);
-      RAISE NOTICE 'DEFAULT actualizado en tabla: %', t;
-    ELSE
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = t) THEN
       RAISE NOTICE 'Tabla % no existe, se omite', t;
+      CONTINUE;
     END IF;
+
+    -- Verificar si la columna id es identity column
+    SELECT (is_identity = 'YES') INTO is_identity
+    FROM information_schema.columns
+    WHERE table_name = t AND column_name = 'id';
+
+    IF is_identity THEN
+      RAISE NOTICE 'Tabla % usa IDENTITY, se omite', t;
+      CONTINUE;
+    END IF;
+
+    EXECUTE format('ALTER TABLE %I ALTER COLUMN id SET DEFAULT gen_random_uuid()', t);
+    RAISE NOTICE 'DEFAULT actualizado en tabla: %', t;
   END LOOP;
 END $$;
 
