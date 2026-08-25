@@ -1,21 +1,15 @@
 -- ===================================================================
 -- MIGRACIÓN: Reemplazar uuid_generate_v4() por gen_random_uuid()
--- 
+--
 -- Problema: La función uuid_generate_v4() requiere la extensión
 -- "uuid-ossp" que no está disponible en todos los planes de Supabase.
 -- gen_random_uuid() está disponible nativamente en PostgreSQL 13+.
---
--- Esta migración:
--- 1. Crea la extensión pgcrypto (provee gen_random_uuid)
--- 2. Actualiza todos los DEFAULT de las tablas
--- 3. Recrea la función crear_usuario sin uuid_generate_v4
 -- ===================================================================
 
 -- 1. Asegurar que pgcrypto está disponible (provee gen_random_uuid)
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- 2. Actualizar DEFAULT de todas las tablas que usan uuid_generate_v4()
--- Solo se aplica si la tabla existe y NO es identity column
+-- 2. Actualizar DEFAULT de tablas (solo si existen y no son IDENTITY)
 DO $$
 DECLARE
   t TEXT;
@@ -28,7 +22,6 @@ BEGIN
       CONTINUE;
     END IF;
 
-    -- Verificar si la columna id es identity column
     SELECT (c.is_identity = 'YES') INTO v_es_identity
     FROM information_schema.columns c
     WHERE c.table_name = t AND c.column_name = 'id';
@@ -43,12 +36,24 @@ BEGIN
   END LOOP;
 END $$;
 
--- 3. Recrear la función crear_usuario usando gen_random_uuid() en lugar de uuid_generate_v4()
--- Primero eliminar cualquier versión existente con diferentes parámetros
-DROP FUNCTION IF EXISTS crear_usuario(TEXT, TEXT, TEXT, TEXT, JSONB);
-DROP FUNCTION IF EXISTS crear_usuario(TEXT, TEXT, TEXT, TEXT);
-DROP FUNCTION IF EXISTS crear_usuario(TEXT, TEXT, TEXT);
+-- 3. Eliminar TODAS las versiones existentes de crear_usuario
+-- Usamos el catálogo del sistema para eliminar cualquier signatura
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN
+    SELECT p.oid::text AS oid, pg_get_function_identity_arguments(p.oid) AS args
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE p.proname = 'crear_usuario' AND n.nspname = 'public'
+  LOOP
+    EXECUTE format('DROP FUNCTION IF EXISTS crear_usuario(%s)', r.args);
+    RAISE NOTICE 'Eliminada funcion crear_usuario(%)', r.args;
+  END LOOP;
+END $$;
 
+-- 4. Crear la nueva función crear_usuario con gen_random_uuid()
 CREATE OR REPLACE FUNCTION crear_usuario(
   p_nombre TEXT,
   p_email TEXT,
@@ -62,7 +67,6 @@ SECURITY DEFINER
 AS $$
 DECLARE
   v_user_id UUID;
-  v_result JSONB;
 BEGIN
   -- Verificar permisos (solo admin puede crear usuarios)
   IF NOT EXISTS (
@@ -78,8 +82,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Ya existe un usuario con ese email');
   END IF;
 
-  -- Crear usuario en auth.users usando el admin API implícito
-  -- Usar gen_random_uuid() en lugar de uuid_generate_v4()
+  -- Generar UUID nativo (no requiere uuid-ossp)
   v_user_id := gen_random_uuid();
 
   -- Insertar en auth.users
@@ -135,7 +138,7 @@ EXCEPTION
 END;
 $$;
 
--- 4. Otorgar permisos
+-- 5. Otorgar permisos
 GRANT EXECUTE ON FUNCTION crear_usuario TO authenticated;
 
--- Migracion completada: uuid_generate_v4() -> gen_random_uuid()
+-- Migracion completada
