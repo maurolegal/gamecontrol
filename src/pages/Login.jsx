@@ -249,7 +249,7 @@ export default function Login() {
               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
             >
               <img
-                src="/GAMECONTROL-LOGO.png"
+                src="/GAMECONTROL-LOGO.webp"
                 alt="GameControl Logo"
                 style={{ width: 180, height: 180, objectFit: 'contain' }}
               />
@@ -342,7 +342,7 @@ export default function Login() {
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-2 mb-8 justify-center">
             <img
-              src="/GAMECONTROL-LOGO.png"
+              src="/GAMECONTROL-LOGO.webp"
               alt="GameControl Logo"
               style={{ width: 36, height: 36, objectFit: 'contain' }}
             />
