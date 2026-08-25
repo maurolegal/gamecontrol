@@ -96,6 +96,10 @@ export function useDashboard() {
 
   // ── Tiempo restante (usa campos reales del esquema) ────────────
   function minutosRestantes(sesion) {
+    // Sesiones en modo libre no tienen cuenta regresiva → nunca vencidas
+    const esLibre = (sesion.notas ?? '').includes('[TIEMPO_LIBRE]');
+    if (esLibre) return Infinity;
+
     // fecha_inicio es TIMESTAMP, tiempo_contratado es INTEGER (minutos)
     const inicio = sesion.fecha_inicio;
     if (!inicio) return Infinity;
@@ -172,7 +176,7 @@ export function useDashboard() {
         // Sesiones activas — solo filtrar por estado, fecha_fin puede estar seteada en algunos flujos
         supabase
           .from('sesiones')
-          .select('id, sala_id, estacion, cliente, fecha_inicio, tiempo_contratado, tiempo_adicional, total_general, estado')
+          .select('id, sala_id, estacion, cliente, fecha_inicio, tiempo_contratado, tiempo_adicional, total_general, estado, notas')
           .eq('estado', 'activa'),
 
         // Gastos de hoy (fecha_gasto es tipo DATE)
