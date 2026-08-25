@@ -6,7 +6,7 @@ import { iniciales, avatarColor } from './utils';
 
 // ===================================================================
 // MODAL CAMBIAR CONTRASEÑA – Design System GameControl (dark)
-// Usa RPC admin_cambiar_password → fallback directo a tabla usuarios
+// Usa supabase.auth.admin.updateUserById → fallback a RPC
 // ===================================================================
 export default function ModalPassword({ usuario, onClose, onGuardado }) {
   const { exito, error: notifError } = useNotifications();
@@ -28,21 +28,29 @@ export default function ModalPassword({ usuario, onClose, onGuardado }) {
 
     setGuardando(true);
     try {
-      const { data: rpcData, error: rpcErr } = await supabase.rpc('admin_cambiar_password', {
-        target_user_id: usuario.id,
-        new_password:   pwd,
-      });
+      // Intentar con admin API primero
+      const { error: adminErr } = await supabase.auth.admin.updateUserById(usuario.id, { password: pwd });
 
-      if (!rpcErr && rpcData?.success) {
-        exito(rpcData.message || 'Contraseña actualizada');
+      if (adminErr) {
+        // Fallback: RPC legacy
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('admin_cambiar_password', {
+          target_user_id: usuario.id,
+          new_password:   pwd,
+        });
+
+        if (!rpcErr && rpcData?.success) {
+          exito(rpcData.message || 'Contraseña actualizada');
+        } else {
+          // Último recurso: actualizar tabla directamente
+          const { error: updErr } = await supabase
+            .from('usuarios')
+            .update({ password_hash: pwd, fecha_actualizacion: new Date().toISOString() })
+            .eq('id', usuario.id);
+          if (updErr) throw new Error(adminErr.message || rpcErr?.message || updErr.message);
+          exito('Contraseña actualizada');
+        }
       } else {
-        const { data: hashed } = await supabase.rpc('hash_password', { password: pwd }).catch(() => ({ data: null }));
-        const { error: updErr } = await supabase
-          .from('usuarios')
-          .update({ password_hash: hashed ?? pwd, fecha_actualizacion: new Date().toISOString() })
-          .eq('id', usuario.id);
-        if (updErr) throw updErr;
-        exito('Contraseña actualizada (tabla BD)');
+        exito('Contraseña actualizada correctamente');
       }
 
       onGuardado?.();

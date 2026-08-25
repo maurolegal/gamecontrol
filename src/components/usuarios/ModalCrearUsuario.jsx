@@ -4,6 +4,7 @@ import PermisoGrid, { aplicarRol } from './PermisoGrid';
 import { PERMISOS_DEFAULT } from './utils';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useUsuarios } from '../../hooks/useUsuarios';
 
 const FORM_VACIO = { nombre: '', email: '', rol: 'operador', password: '', confirmPassword: '' };
 
@@ -12,6 +13,7 @@ const FORM_VACIO = { nombre: '', email: '', rol: 'operador', password: '', confi
 // ===================================================================
 export default function ModalCrearUsuario({ open, onClose, onCreado }) {
   const { exito, error: notifError } = useNotifications();
+  const { crear } = useUsuarios();
   const [form, setForm] = useState({ ...FORM_VACIO });
   const [permisos, setPermisos] = useState({ ...PERMISOS_DEFAULT });
   const [showPwd, setShowPwd] = useState(false);
@@ -49,25 +51,17 @@ export default function ModalCrearUsuario({ open, onClose, onCreado }) {
 
     setGuardando(true);
     try {
-      let { data, error } = await supabase.rpc('crear_usuario', {
-        p_nombre:   form.nombre.trim(),
-        p_email:    form.email.trim(),
-        p_password: form.password,
-        p_rol:      form.rol,
-        p_permisos: permisos,
+      const resultado = await crear({
+        nombre: form.nombre.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        rol: form.rol,
+        permisos,
       });
 
-      if (error && error.message?.includes('argument')) {
-        ({ data, error } = await supabase.rpc('crear_usuario', {
-          p_nombre:   form.nombre.trim(),
-          p_email:    form.email.trim(),
-          p_password: form.password,
-          p_rol:      form.rol,
-          p_permisos: permisos,
-        }));
+      if (!resultado.success) {
+        throw new Error(resultado.error || 'Error desconocido');
       }
-
-      if (error) throw error;
 
       exito(`Usuario "${form.nombre.trim()}" creado exitosamente`);
       onCreado?.();
