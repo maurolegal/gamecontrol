@@ -89,6 +89,11 @@ export function useDashboard() {
   const [salasMap, setSalasMap] = useState({});
   const [productosAlerta, setProductosAlerta] = useState([]);
 
+  // ── Estado extendido: dispositivos, métodos de pago, turno actual ──
+  const [dispositivos, setDispositivos] = useState([]);
+  const [metodosPagoHoy, setMetodosPagoHoy] = useState({ efectivo: 0, transferencia: 0, tarjeta: 0, digital: 0 });
+  const [turnoActual, setTurnoActual] = useState(null); // { desde, usuario, fondoInicial }
+
   // ── Tiempo restante (usa campos reales del esquema) ────────────
   function minutosRestantes(sesion) {
     // fecha_inicio es TIMESTAMP, tiempo_contratado es INTEGER (minutos)
@@ -141,6 +146,8 @@ export function useDashboard() {
         { data: sesionesRaw },
         { data: gastosRaw },
         { data: productosRaw },
+        { data: dispositivosRaw },
+        { data: turnoRaw },
       ] = await Promise.all([
         // Ventas de hoy: tabla ventas, campo fecha_cierre (TIMESTAMP)
         supabase
@@ -177,8 +184,22 @@ export function useDashboard() {
         // Productos activos con stock
         supabase
           .from('productos')
-          .select('id, nombre, stock, stock_minimo, categoria')
+          .select('id, nombre, stock, stock_minimo, categoria, imagen_url')
           .eq('activo', true),
+
+        // Dispositivos (excluyendo baja)
+        supabase
+          .from('dispositivos')
+          .select('id, nombre, estado, tipo, codigo_interno')
+          .neq('estado', 'baja'),
+
+        // Último cierre/apertura del usuario actual para turno
+        supabase
+          .from('cierres_turno')
+          .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen, usuario_id, created_at')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
 
       const sesionesVivas = sesionesRaw ?? [];
@@ -242,6 +263,43 @@ export function useDashboard() {
       });
 
       setProductosAlerta(criticos.slice(0, 5));
+
+      // ── Dispositivos: contar por estado ──
+      setDispositivos(dispositivosRaw ?? []);
+
+      // ── Métodos de pago de hoy ──
+      const ventasHoyFiltradas = (ventasHoyRaw ?? []).filter(v => {
+        if (!v.fecha_cierre && !v.total) return true; // si no hay fecha, contar
+        return true;
+      });
+      const metodos = { efectivo: 0, transferencia: 0, tarjeta: 0, digital: 0 };
+      (ventasHoyRaw ?? []).forEach(v => {
+        const total = Number(v.total) || 0;
+        const mp = v.metodo_pago || 'efectivo';
+        if (metodos[mp] !== undefined) metodos[mp] += total;
+      });
+      setMetodosPagoHoy(metodos);
+
+      // ── Turno actual: si el último registro es apertura, hay turno activo ──
+      if (turnoRaw?.observaciones?.includes('[APERTURA_CAJA]')) {
+        let fondoInicial = 0;
+        const match = (turnoRaw.observaciones ?? '').match(/Fondo inicial:\s*([\d.]+)/);
+        fondoInicial = match ? Number(match[1]) : 0;
+        if (!fondoInicial && turnoRaw.ticket_resumen) {
+          try {
+            const ticket = JSON.parse(turnoRaw.ticket_resumen);
+            fondoInicial = Number(ticket.fondo_inicial) || 0;
+          } catch (_) {}
+        }
+        setTurnoActual({
+          desde: turnoRaw.turno_desde,
+          usuario_id: turnoRaw.usuario_id,
+          fondoInicial,
+          apertura_id: turnoRaw.id,
+        });
+      } else {
+        setTurnoActual(null);
+      }
 
       // Toast de stock — solo una vez por sesión de carga
       if (criticos.length > 0 && !alertaStockRef.current) {
@@ -381,5 +439,8 @@ export function useDashboard() {
     setPeriodo,
     refetch: fetchKPIs,
     minutosRestantes,
+    dispositivos,
+    metodosPagoHoy,
+    turnoActual,
   };
 }
