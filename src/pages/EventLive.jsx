@@ -937,7 +937,7 @@ export default function EventLive() {
                 <p className="text-sm font-bold text-white">Banner de productos</p>
               </div>
               <p className="text-xs text-gray-500 mb-2">
-                Sube una imagen para el banner (1400×180px recomendado). Se guarda en Cloudinary.
+                Sube una imagen para el banner (1400×180px recomendado).
               </p>
               <input
                 ref={bannerFileRef}
