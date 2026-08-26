@@ -20,6 +20,7 @@ import { useAuth } from '../hooks/useAuth';
 import { usePermisos } from '../hooks/usePermisos';
 import { useNotifications } from '../hooks/useNotifications';
 import { formatCOP } from '../lib/formatCurrency';
+import { getTenantIdForUser } from '../lib/databaseService';
 
 function formatFechaHora(iso) {
   if (!iso) return '—';
@@ -102,6 +103,10 @@ export default function CierreTurno() {
   const [auditoria, setAuditoria] = useState(null);
 
   // ── Cargar turno desde último cierre + top5 productos valiosos ─────
+  // NOTA: ventas.usuario_id guarda public.usuarios.id (resuelto por la RPC),
+  // NO auth.uid(). Usamos perfil.id para consultar ventas correctamente.
+  const usuarioInternoId = perfil?.id || null;
+
   useEffect(() => {
     if (!usuario?.id) return;
 
@@ -177,13 +182,19 @@ export default function CierreTurno() {
     async function calcularTotalesTurno(desdeIso, fondoInicial = 0) {
       const ahora = new Date().toISOString();
 
-      // Ventas del turno
-      const { data: ventas, error: ventasError } = await supabase
+      // Ventas del turno — usar perfil.id (public.usuarios.id) que es lo que
+      // la RPC registrar_venta_pos guarda en ventas.usuario_id
+      const ventasQuery = supabase
         .from('ventas')
         .select('id, total, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
         .gte('fecha_cierre', desdeIso)
-        .lte('fecha_cierre', ahora)
-        .eq('usuario_id', usuario.id);
+        .lte('fecha_cierre', ahora);
+
+      if (usuarioInternoId) {
+        ventasQuery.eq('usuario_id', usuarioInternoId);
+      }
+
+      const { data: ventas, error: ventasError } = await ventasQuery;
 
       if (ventasError) throw ventasError;
 
@@ -711,12 +722,19 @@ export default function CierreTurno() {
       // ══════════════════════════════════════════════════════════════
       // 1) RE-CALCULAR TOTALES REALES DEL TURNO (server-side fresh)
       // ══════════════════════════════════════════════════════════════
-      const { data: ventas, error: ventasError } = await supabase
+      // Ventas del turno — usar perfil.id (public.usuarios.id) que es lo que
+      // la RPC registrar_venta_pos guarda en ventas.usuario_id
+      const ventasSaveQuery = supabase
         .from('ventas')
         .select('id, total, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
         .gte('fecha_cierre', turnoDesde)
-        .lte('fecha_cierre', ahora)
-        .eq('usuario_id', usuario.id);
+        .lte('fecha_cierre', ahora);
+
+      if (usuarioInternoId) {
+        ventasSaveQuery.eq('usuario_id', usuarioInternoId);
+      }
+
+      const { data: ventas, error: ventasError } = await ventasSaveQuery;
 
       const { data: gastos, error: gastosError } = await supabase
         .from('gastos')
@@ -796,8 +814,13 @@ export default function CierreTurno() {
       // ══════════════════════════════════════════════════════════════
       // 3) GUARDAR CIERRE EN BD
       // ══════════════════════════════════════════════════════════════
+      const tenantId = await getTenantIdForUser({
+        usuarioId: usuarioInternoId,
+        email: usuario.email,
+      });
       const datosCierre = {
-        usuario_id: usuario.id,
+        tenant_id: tenantId,
+        usuario_id: usuarioInternoId ?? usuario.id,
         usuario_email: usuario.email ?? null,
         usuario_nombre: perfil?.nombre ?? usuario.email ?? null,
         rol_usuario: perfil?.rol ?? null,
@@ -875,6 +898,7 @@ export default function CierreTurno() {
       // 4) ITEMS DE INVENTARIO
       // ══════════════════════════════════════════════════════════════
       const itemsParaInsert = items.map((it) => ({
+        tenant_id: tenantId,
         cierre_turno_id: cierreGuardado.id,
         producto_id: it.producto_id,
         nombre_producto: it.nombre_producto,
@@ -901,6 +925,7 @@ export default function CierreTurno() {
 
       if (efectivoDescuadre !== 0) {
         alertas.push({
+          tenant_id: tenantId,
           cierre_turno_id: cierreGuardado.id,
           tipo: 'efectivo',
           nivel: Math.abs(efectivoDescuadre) >= 10000 ? 'alta' : 'media',
@@ -920,6 +945,7 @@ export default function CierreTurno() {
       for (const it of items) {
         if (it.diferencia_unidades === 0) continue;
         alertas.push({
+          tenant_id: tenantId,
           cierre_turno_id: cierreGuardado.id,
           tipo: 'inventario',
           nivel: Math.abs(it.valor_descuadre) >= 10000 ? 'alta' : 'media',

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
+import { getTenantIdForUser } from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
 
 // ===================================================================
@@ -10,7 +11,7 @@ import useGameStore from '../store/useGameStore';
 // ===================================================================
 
 export function useCaja() {
-  const { usuario } = useGameStore();
+  const { usuario, perfil } = useGameStore();
   const [cajaAbierta, setCajaAbierta] = useState(false);
   const [fondoInicial, setFondoInicial] = useState(0);
   const [turnoInicio, setTurnoInicio] = useState(null);
@@ -29,7 +30,7 @@ export function useCaja() {
       const { data, error } = await supabase
         .from('cierres_turno')
         .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen')
-        .eq('usuario_id', usuario.id)
+        .eq('usuario_id', perfil?.id ?? usuario.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -72,18 +73,23 @@ export function useCaja() {
     } finally {
       setCargando(false);
     }
-  }, [usuario?.id]);
+  }, [usuario?.id, perfil?.id]);
 
   // Abrir caja con fondo inicial
   const abrirCaja = useCallback(async (monto) => {
-    if (!usuario?.id) return false;
+    if (!usuario?.id || !perfil?.id) return false;
     try {
+      const tenantId = await getTenantIdForUser({
+        usuarioId: perfil.id,
+        email: usuario.email,
+      });
       const ahora = new Date().toISOString();
 
       // Insertar registro de apertura
       // Intentar con fondo_inicial; si la columna no existe, reintentar sin ella
       const datosBase = {
-        usuario_id: usuario.id,
+        tenant_id: tenantId,
+        usuario_id: perfil.id,
         usuario_email: usuario.email ?? null,
         usuario_nombre: usuario?.user_metadata?.nombre ?? usuario.email ?? null,
         rol_usuario: usuario?.user_metadata?.rol ?? null,
@@ -123,7 +129,7 @@ export function useCaja() {
       console.error('Error abriendo caja:', err);
       return false;
     }
-  }, [usuario?.id, usuario?.email]);
+  }, [usuario?.id, usuario?.email, perfil?.id]);
 
   useEffect(() => {
     verificarCaja();

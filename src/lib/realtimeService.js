@@ -1,178 +1,190 @@
 // ===================================================================
 // REALTIME SERVICE — Singleton centralizado para Supabase Realtime
-// Sprint 0.3-C/D Fase 1 — Infraestructura aditiva (no disruptiva)
+// Sprint 0.3-C/D Fase 2 — canales filtrados por tenant
 // ===================================================================
 //
-// Objetivo: una sola channel por tabla, compartida entre todos los
-// suscriptores. Cuando el último suscriptor desuscribe, se remueve
-// la channel automáticamente.
-//
-// API:
-//   const unsub = realtimeService.subscribe('sesiones', (payload) => { ... });
-//   unsub();  // desuscribe este callback; si era el último, removeChannel
-//
-// No reemplaza ninguna suscripción existente todavía. Las suscripciones
-// actuales siguen funcionando independientes hasta la Fase 2.
+// Mantiene un channel lógico por tenant y comparte suscripciones entre
+// tablas. Cada postgres_changes incluye tenant_id=eq.<tenantId>.
+// El tenant se obtiene del JWT actual; no se usa localStorage como autoridad.
 // ===================================================================
 
 import { supabase } from './supabaseClient';
 
-// ── Estado interno del singleton ────────────────────────────────────
-// Map<tableName, { channel, callbacks: Set<fn> }>
-// Persistir en globalThis para sobrevivir HMR
-const GLOBAL_RT_KEY = '__realtime_channels_gamecontrol__';
-const _channels = globalThis[GLOBAL_RT_KEY] || new Map();
-globalThis[GLOBAL_RT_KEY] = _channels;
+const GLOBAL_RT_KEY = '__realtime_channels_gamecontrol_v2__';
+const state = globalThis[GLOBAL_RT_KEY] || {
+  subscriptions: new Map(),
+  tenantListeners: new Set(),
+  channel: null,
+  tenantId: null,
+  generation: 0,
+  authSubscription: null,
+};
+globalThis[GLOBAL_RT_KEY] = state;
 
-/**
- * Suscribe un callback a cambios de una tabla.
- * Reutiliza la channel existente si ya hay otros suscriptores.
- *
- * @param {string} tabla - Nombre de la tabla (ej: 'sesiones', 'ventas')
- * @param {(payload: object) => void} callback - Función a ejecutar on change
- * @returns {() => void} función para desuscribir este callback
- */
+const TENANT_TABLES = new Set([
+  'sesiones',
+  'salas',
+  'ventas',
+  'gastos',
+  'productos',
+  'alertas_arqueo',
+]);
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function decodeJwtClaims(accessToken) {
+  try {
+    const encoded = accessToken?.split('.')[1];
+    if (!encoded) return null;
+    const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='))
+        .split('')
+        .map(char => `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`)
+        .join('')
+    );
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function tenantFromSession(session) {
+  const claims = decodeJwtClaims(session?.access_token);
+  const tenantId =
+    session?.user?.app_metadata?.active_tenant_id ??
+    claims?.active_tenant_id;
+  return UUID_RE.test(tenantId ?? '') ? tenantId : null;
+}
+
+async function resolveTenantId() {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) return null;
+  return tenantFromSession(data?.session);
+}
+
+function removeChannel() {
+  if (state.channel) {
+    try { supabase.removeChannel(state.channel); } catch {}
+  }
+  state.channel = null;
+  state.tenantId = null;
+}
+
+async function rebuildChannel() {
+  const generation = ++state.generation;
+  const tenantId = await resolveTenantId();
+  if (generation !== state.generation) return;
+
+  const previousTenantId = state.tenantId;
+  removeChannel();
+  if (previousTenantId !== tenantId) {
+    state.tenantListeners.forEach((listener) => {
+      try { listener(tenantId, previousTenantId); } catch {}
+    });
+  }
+  if (!tenantId || state.subscriptions.size === 0) return;
+
+  const channel = supabase.channel(`rt-svc-tenant-${tenantId}`);
+  for (const [table, callbacks] of state.subscriptions) {
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table,
+        filter: `tenant_id=eq.${tenantId}`,
+      },
+      (payload) => {
+        if (state.tenantId !== tenantId || generation !== state.generation) return;
+        callbacks.forEach((callback) => {
+          try { callback(payload); } catch (error) {
+            console.error(`[realtimeService] Error en callback de ${table}:`, error);
+          }
+        });
+      }
+    );
+  }
+
+  state.channel = channel;
+  state.tenantId = tenantId;
+  channel.subscribe((status) => {
+    if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      if (state.tenantId === tenantId) rebuildChannel();
+    }
+  });
+}
+
 export function subscribe(tabla, callback) {
-  if (!tabla || typeof callback !== 'function') {
-    console.warn('[realtimeService] subscribe: tabla y callback son obligatorios');
+  if (!TENANT_TABLES.has(tabla) || typeof callback !== 'function') {
+    console.warn(`[realtimeService] Tabla no tenant-scoped o callback inválido: ${tabla}`);
     return () => {};
   }
 
-  let entry = _channels.get(tabla);
+  const callbacks = state.subscriptions.get(tabla) || new Set();
+  callbacks.add(callback);
+  state.subscriptions.set(tabla, callbacks);
+  rebuildChannel();
 
-  // Crear channel si no existe para esta tabla
-  if (!entry) {
-    const channel = supabase
-      .channel(`rt-svc-${tabla}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: tabla },
-        (payload) => {
-          console.log(`[realtimeService] 📡 ${tabla} change:`, payload.eventType, payload.new?.id || '');
-          // Disparar todos los callbacks registrados para esta tabla
-          const ent = _channels.get(tabla);
-          if (!ent) return;
-          ent.callbacks.forEach((cb) => {
-            try {
-              cb(payload);
-            } catch (err) {
-              console.error(`[realtimeService] Error en callback de ${tabla}:`, err);
-            }
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log(`[realtimeService] 🔌 ${tabla} channel status:`, status);
-        // Auto-reconexión si el canal se cierra o falla
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          const ent = _channels.get(tabla);
-          if (!ent || ent.callbacks.size === 0) return;
-          console.log(`[realtimeService] 🔄 ${tabla} reconnecting in 2s...`);
-          setTimeout(() => {
-            const ent2 = _channels.get(tabla);
-            if (!ent2 || ent2.callbacks.size === 0) return;
-            try { supabase.removeChannel(ent2.channel); } catch {}
-            _channels.delete(tabla);
-            // Re-crear canal con los callbacks existentes
-            const cbs = Array.from(ent2.callbacks);
-            cbs.forEach(cb => subscribe(tabla, cb));
-          }, 2000);
-        }
-      });
-
-    entry = { channel, callbacks: new Set() };
-    _channels.set(tabla, entry);
-  }
-
-  // Registrar callback
-  entry.callbacks.add(callback);
-
-  // Devolver función de desuscripción
   return function unsubscribe() {
-    const ent = _channels.get(tabla);
-    if (!ent) return;
-    ent.callbacks.delete(callback);
-
-    // Si no quedan callbacks, remover la channel
-    if (ent.callbacks.size === 0) {
-      try {
-        supabase.removeChannel(ent.channel);
-      } catch (err) {
-        console.error(`[realtimeService] Error removiendo channel de ${tabla}:`, err);
-      }
-      _channels.delete(tabla);
+    const current = state.subscriptions.get(tabla);
+    if (!current) return;
+    current.delete(callback);
+    if (current.size === 0) state.subscriptions.delete(tabla);
+    if (state.subscriptions.size === 0) {
+      state.generation += 1;
+      removeChannel();
+    } else {
+      rebuildChannel();
     }
   };
 }
 
-/**
- * Devuelve el número de callbacks activos para una tabla.
- * Útil para debugging y verificación.
- *
- * @param {string} tabla
- * @returns {number}
- */
 export function getSubscriberCount(tabla) {
-  return _channels.get(tabla)?.callbacks.size ?? 0;
+  return state.subscriptions.get(tabla)?.size ?? 0;
 }
 
-/**
- * Devuelve un mapa de todas las tablas suscritas y su conteo.
- * Útil para debugging.
- */
 export function getDebugInfo() {
-  const info = {};
-  for (const [tabla, entry] of _channels) {
-    info[tabla] = {
-      subscribers: entry.callbacks.size,
-      state: entry.channel?.state ?? 'unknown',
-    };
+  const tables = {};
+  for (const [table, callbacks] of state.subscriptions) {
+    tables[table] = { subscribers: callbacks.size };
   }
-  return info;
+  return {
+    tenantId: state.tenantId,
+    channel: state.channel ? `rt-svc-tenant-${state.tenantId}` : null,
+    filter: state.tenantId ? `tenant_id=eq.${state.tenantId}` : null,
+    tables,
+  };
 }
 
-/**
- * Fuerza la reconexión de todos los canales activos.
- * Útil cuando se sospecha que el realtime está caído.
- */
 export function forceReconnectAll() {
-  console.log('[realtimeService] 🔁 forceReconnectAll iniciado');
-  for (const [tabla, entry] of _channels) {
-    if (!entry || entry.callbacks.size === 0) continue;
-    try { supabase.removeChannel(entry.channel); } catch {}
-    _channels.delete(tabla);
-    const cbs = Array.from(entry.callbacks);
-    cbs.forEach(cb => subscribe(tabla, cb));
-  }
+  if (state.subscriptions.size > 0) rebuildChannel();
 }
 
-// Export por defecto con la API completa
-const realtimeService = { subscribe, getSubscriberCount, getDebugInfo, forceReconnectAll };
+export function getCurrentTenantId() {
+  return state.tenantId;
+}
+
+export function onTenantChange(callback) {
+  if (typeof callback !== 'function') return () => {};
+  state.tenantListeners.add(callback);
+  return () => state.tenantListeners.delete(callback);
+}
+
+if (!state.authSubscription) {
+  const { data } = supabase.auth.onAuthStateChange(() => {
+    rebuildChannel();
+  });
+  state.authSubscription = data?.subscription ?? null;
+}
+
+const realtimeService = {
+  subscribe,
+  getSubscriberCount,
+  getDebugInfo,
+  getCurrentTenantId,
+  onTenantChange,
+  forceReconnectAll,
+};
+
 export default realtimeService;
-
-// ── Heartbeat: verifica canales cada 30s y reconecta si están caídos ──
-const HEARTBEAT_INTERVAL = 30000;
-let _heartbeatStarted = false;
-
-function startHeartbeat() {
-  if (_heartbeatStarted) return;
-  _heartbeatStarted = true;
-
-  setInterval(() => {
-    for (const [tabla, entry] of _channels) {
-      if (!entry || entry.callbacks.size === 0) continue;
-      const status = entry.channel?.state;
-      // Supabase channel states: 'joined', 'joining', 'closed', 'errored', 'leaving', 'timed_out'
-      if (status === 'closed' || status === 'errored' || status === 'timed_out') {
-        console.log(`[realtimeService] 💓 Heartbeat: ${tabla} está ${status}, reconectando...`);
-        try { supabase.removeChannel(entry.channel); } catch {}
-        _channels.delete(tabla);
-        const cbs = Array.from(entry.callbacks);
-        cbs.forEach(cb => subscribe(tabla, cb));
-      }
-    }
-  }, HEARTBEAT_INTERVAL);
-}
-
-// Iniciar heartbeat al importar el módulo
-startHeartbeat();

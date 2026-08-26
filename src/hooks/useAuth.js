@@ -23,12 +23,13 @@ function obtenerRolDeSesion(session) {
 
 async function cargarPerfilPorEmail(email) {
   if (!email) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('usuarios')
     .select('id, nombre, email, rol, permisos, estado')
-    .eq('email', email)
-    .single();
-  return data ?? null;
+    .eq('email', String(email).trim().toLowerCase())
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] ?? null;
 }
 
 export function useAuth() {

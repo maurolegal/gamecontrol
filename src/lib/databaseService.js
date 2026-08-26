@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { subscribe as realtimeSubscribe } from './realtimeService';
 
 // ===================================================================
 // OPERACIONES CRUD SOBRE SUPABASE
@@ -77,6 +78,43 @@ export async function insert(tabla, datos) {
   return data;
 }
 
+export async function getTenantIdForUser({ usuarioId, email } = {}) {
+  let publicUserId = usuarioId;
+
+  if (!publicUserId && email) {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+    if (error) throw error;
+    publicUserId = data?.id;
+  }
+
+  if (!publicUserId) {
+    throw new Error('No se pudo identificar el usuario de la aplicación');
+  }
+
+  const { data: memberships, error } = await supabase
+    .from('tenant_members')
+    .select('tenant_id')
+    .eq('user_id', publicUserId)
+    .eq('status', 'active');
+
+  if (error) throw error;
+
+  const tenantIds = [...new Set((memberships ?? []).map((membership) => membership.tenant_id))];
+  if (tenantIds.length !== 1) {
+    throw new Error(
+      tenantIds.length === 0
+        ? 'El usuario no tiene un tenant activo'
+        : 'El usuario tiene varios tenants activos y debe seleccionar uno'
+    );
+  }
+
+  return tenantIds[0];
+}
+
 /**
  * Actualiza un registro por id.
  */
@@ -99,8 +137,5 @@ export async function remove(tabla, id) {
  * Devuelve la suscripción; llama a `.unsubscribe()` para cancelar.
  */
 export function suscribir(tabla, callback) {
-  return supabase
-    .channel(`realtime:${tabla}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: tabla }, callback)
-    .subscribe();
+  return realtimeSubscribe(tabla, callback);
 }

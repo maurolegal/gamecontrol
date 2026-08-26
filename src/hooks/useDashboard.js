@@ -13,7 +13,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import useGameStore from '../store/useGameStore';
-import { subscribe as realtimeSubscribe } from '../lib/realtimeService';
+import { onTenantChange, subscribe as realtimeSubscribe } from '../lib/realtimeService';
 
 // ── Helpers de fecha ────────────────────────────────────────────────
 const HOY_DATE = () => new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
@@ -388,32 +388,41 @@ export function useDashboard() {
   }, []);
 
   // ── initRealtime ───────────────────────────────────────────────
-  // Sprint 0.3-C/D Fase 2: sesiones via realtimeService (canal compartido)
-  // ventas y gastos mantienen canal propio (no duplicados)
+  // Todas las tablas realtime usan el singleton filtrado por tenant.
   const initRealtime = useCallback(() => {
-    // Canal propio para ventas + gastos (no duplicados en otros hooks)
-    const channel = supabase
-      .channel('dashboard-rt-v2')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, () => {
-        fetchKPIs();
-        fetchGrafico();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'gastos' }, () => {
-        fetchKPIs();
-        fetchGrafico();
-      })
-      .subscribe();
-
-    // Sesiones via realtimeService (canal compartido con useSalas, TVDisplay, EventLive)
+    const unsubVentas = realtimeSubscribe('ventas', () => {
+      fetchKPIs();
+      fetchGrafico();
+    });
+    const unsubGastos = realtimeSubscribe('gastos', () => {
+      fetchKPIs();
+      fetchGrafico();
+    });
     const unsubSesiones = realtimeSubscribe('sesiones', () => {
       fetchKPIs();
     });
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubVentas();
+      unsubGastos();
       unsubSesiones();
     };
   }, [fetchKPIs, fetchGrafico]);
+
+  // ── Invalidar cache al cambiar/logout del tenant ───────────────
+  useEffect(() => onTenantChange(() => {
+    setKpis({
+      ingresosHoy: 0, ingresosAyer: 0, salasOcupadas: 0, totalSalas: 0,
+      estacionesOcupadas: 0, totalEstaciones: 0, sesionesActivas: 0,
+      sesionesPorVencer: 0, sesionesVencidas: 0, alertasStock: 0, gastosHoy: 0,
+    });
+    setGrafico({ labels: [], ventas: [], gastos: [] });
+    setSalasMap({});
+    setProductosAlerta([]);
+    setDispositivos([]);
+    setMetodosPagoHoy({ efectivo: 0, transferencia: 0, tarjeta: 0, digital: 0 });
+    setTurnoActual(null);
+  }), []);
 
   // ── Carga inicial ──────────────────────────────────────────────
   useEffect(() => {

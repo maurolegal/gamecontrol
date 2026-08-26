@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
-import { subscribe as realtimeSubscribe } from '../lib/realtimeService';
+import { onTenantChange, subscribe as realtimeSubscribe } from '../lib/realtimeService';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
 
 // ===================================================================
@@ -184,6 +184,11 @@ export function useSalas() {
       clearInterval(pollInterval);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => onTenantChange(() => {
+    setSalas([]);
+    setSesiones([]);
+  }), [setSalas, setSesiones]);
 
   // ── Abrir sesión completa ─────────────────────────────────────────
   const abrirSesion = useCallback(
