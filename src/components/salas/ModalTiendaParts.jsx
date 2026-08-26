@@ -6,9 +6,10 @@
 // o la búsqueda. ProductCard es el más crítico (lista larga).
 // ===================================================================
 
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { Plus, Minus, Trash2, Check, Package } from 'lucide-react';
 import { formatCOP } from '../../lib/formatCurrency';
+import { useMetodosPago } from '../../hooks/useMetodosPago';
 
 const PLACEHOLDER_IMAGE = 'https://res.cloudinary.com/dtygv4kfq/image/upload/v1770084000/placeholder_product.png';
 
@@ -171,14 +172,30 @@ export const CategoryFilter = memo(function CategoryFilter({
 export const PaymentSelector = memo(function PaymentSelector({
   metodoPago, onSeleccionar,
 }) {
-  const METODOS = [
+  const { filtrarMetodos, primerMetodoActivo, esMetodoActivo } = useMetodosPago();
+
+  const TODOS_METODOS = [
     { v: 'efectivo',      l: 'Efectivo',   emoji: '💵' },
     { v: 'tarjeta',       l: 'Tarjeta',    emoji: '💳' },
     { v: 'transferencia', l: 'Transfer',   emoji: '🏦' },
     { v: 'digital',       l: 'QR',          emoji: '📱' },
   ];
+
+  const METODOS = filtrarMetodos(TODOS_METODOS);
+
+  // Auto-seleccionar un método válido si el actual está desactivado
+  useEffect(() => {
+    if (!esMetodoActivo(metodoPago)) {
+      const nuevo = primerMetodoActivo(TODOS_METODOS);
+      if (nuevo) onSeleccionar(nuevo);
+    }
+  }, [metodoPago, esMetodoActivo, primerMetodoActivo, onSeleccionar]);
+
+  const numMetodos = METODOS.length;
+  const gridCols = numMetodos <= 2 ? 'grid-cols-2' : numMetodos === 3 ? 'grid-cols-3' : 'grid-cols-4';
+
   return (
-    <div className="grid grid-cols-4 gap-1">
+    <div className={`grid ${gridCols} gap-1`}>
       {METODOS.map(({ v, l, emoji }) => {
         const activo = metodoPago === v;
         return (

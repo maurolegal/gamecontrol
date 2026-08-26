@@ -150,7 +150,7 @@ export default function Login() {
       <div
         className="fixed inset-0"
         style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1593640408182-31c228f2c39a?w=1920&q=80')",
+          backgroundImage: 'radial-gradient(circle at 18% 24%, rgba(0, 255, 156, 0.16), transparent 28%), radial-gradient(circle at 82% 18%, rgba(123, 44, 255, 0.2), transparent 30%), linear-gradient(135deg, #080d1d 0%, #11152a 48%, #07131c 100%)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           zIndex: 0,

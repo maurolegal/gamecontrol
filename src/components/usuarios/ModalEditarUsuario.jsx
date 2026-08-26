@@ -82,6 +82,15 @@ export default function ModalEditarUsuario({ usuario, onClose, onGuardado }) {
         throw new Error('No se pudo actualizar el usuario. Es posible que no tengas permisos para cambiar el rol. Verifica las políticas RLS en Supabase.');
       }
 
+      const { error: membershipError } = await supabase
+        .from('tenant_members')
+        .update({
+          role: form.rol,
+          status: form.estado === 'activo' ? 'active' : 'suspended',
+        })
+        .eq('user_id', usuario.id);
+      if (membershipError) throw membershipError;
+
       exito(`Usuario "${form.nombre}" actualizado`);
       onGuardado?.();
       onClose();

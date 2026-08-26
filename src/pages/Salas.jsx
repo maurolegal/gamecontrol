@@ -103,6 +103,7 @@ export default function Salas() {
 
   return (
     <>
+      <div className="space-y-4">
       {/* Título de página */}
       <div className="mb-4 md:mb-6">
         <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Salas Gaming</h2>
@@ -293,7 +294,7 @@ export default function Salas() {
 
         {/* Movimiento de Hoy */}
         <MovimientoDeHoy salas={salas} />
-      </main>
+      </div>
 
       {/* Modales */}
       <ModalAgregarTiempo

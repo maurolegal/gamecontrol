@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { usePermisos } from './hooks/usePermisos';
 import { ConfirmProvider } from './components/ui/ConfirmProvider';
@@ -6,6 +7,7 @@ import Layout from './components/layout/Layout';
 
 import Login      from './pages/Login';
 import Restablecer from './pages/Restablecer';
+import Landing    from './pages/Landing';
 import TVDisplay  from './pages/TVDisplay';
 import EventLive  from './pages/EventLive';
 import Dashboard       from './pages/Dashboard';
@@ -21,6 +23,21 @@ import Ajustes    from './pages/Ajustes';
 import Clientes   from './pages/Clientes';
 import CierreTurno from './pages/CierreTurno';
 import AuditoriaCierres from './pages/AuditoriaCierres';
+import PlatformTenants from './pages/PlatformTenants';
+
+// ── Detectar hash de recuperación de Supabase y redirigir ───────────
+function RecoveryRedirect() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery')) {
+      // Supabase pone el token en el hash, navegamos a /restablecer
+      // conservando el hash para que supabase-js lo procese
+      navigate('/restablecer' + hash);
+    }
+  }, [navigate]);
+  return null;
+}
 
 // ── Protección de rutas ──────────────────────────────────────────────
 function PrivateRoute({ children }) {
@@ -36,14 +53,22 @@ function ProtectedRoute({ modulo, children }) {
   return puedeAccederModulo(modulo) ? children : <Navigate to="/" replace />;
 }
 
+function PlatformRoute({ children }) {
+  const { cargando, esPlatformAdmin } = useAuth();
+  if (cargando) return null;
+  return esPlatformAdmin ? children : <Navigate to="/" replace />;
+}
+
 export default function App() {
   return (
     <ConfirmProvider>
     <BrowserRouter>
+      <RecoveryRedirect />
       <Routes>
         {/* Pública */}
         <Route path="/login" element={<Login />} />
         <Route path="/restablecer" element={<Restablecer />} />
+        <Route path="/landing" element={<Landing />} />
         <Route path="/tv"         element={<TVDisplay />} />
         <Route path="/event-live"  element={<EventLive />} />
 
@@ -67,6 +92,7 @@ export default function App() {
                   <Route path="/dispositivos"  element={<ProtectedRoute modulo="dispositivos"><Dispositivos /></ProtectedRoute>} />
                   <Route path="/recetas"       element={<ProtectedRoute modulo="recetas"><Recetas /></ProtectedRoute>} />
                   <Route path="/ajustes"   element={<ProtectedRoute modulo="ajustes"><Ajustes /></ProtectedRoute>} />
+                  <Route path="/platform/tenants" element={<PlatformRoute><PlatformTenants /></PlatformRoute>} />
                 </Routes>
               </Layout>
             </PrivateRoute>

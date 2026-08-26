@@ -6,8 +6,9 @@
 // solo el método de pago o el monto recibido.
 // ===================================================================
 
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { formatCOP } from '../../lib/formatCurrency';
+import { useMetodosPago } from '../../hooks/useMetodosPago';
 import {
   Banknote, CreditCard, Building2, Smartphone, Split,
   Check, Copy, Package, Clock, User, Wallet, AlertTriangle, Ban,
@@ -18,13 +19,25 @@ import {
 export const PaymentMethodSelector = memo(function PaymentMethodSelector({
   metodoPago, onSeleccionar,
 }) {
-  const METODOS = [
+  const { filtrarMetodos, primerMetodoActivo, esMetodoActivo } = useMetodosPago();
+
+  const TODOS_METODOS = [
     { value: 'efectivo', label: 'Efectivo', Icono: Banknote, emoji: '💵' },
     { value: 'tarjeta', label: 'Tarjeta', Icono: CreditCard, emoji: '💳' },
     { value: 'transferencia', label: 'Transferencia', Icono: Building2, emoji: '🏦' },
     { value: 'qr', label: 'QR', Icono: Smartphone, emoji: '📱' },
     { value: 'parcial', label: 'Pago parcial', Icono: Split, emoji: '⇄' },
   ];
+
+  const METODOS = filtrarMetodos(TODOS_METODOS);
+
+  // Auto-seleccionar un método válido si el actual está desactivado
+  useEffect(() => {
+    if (!esMetodoActivo(metodoPago)) {
+      const nuevo = primerMetodoActivo(TODOS_METODOS);
+      if (nuevo) onSeleccionar(nuevo);
+    }
+  }, [metodoPago, esMetodoActivo, primerMetodoActivo, onSeleccionar]);
 
   return (
     <div className="grid grid-cols-2 gap-1.5">

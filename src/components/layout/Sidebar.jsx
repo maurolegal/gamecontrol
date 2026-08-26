@@ -15,6 +15,7 @@ import {
   Tv,
   Radio,
   Cpu,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermisos } from '../../hooks/usePermisos';
@@ -114,7 +115,7 @@ function IconChip({ Icon, color, isActive }) {
 }
 
 export default function Sidebar() {
-  const { usuario, rol, cerrarSesion } = useAuth();
+  const { usuario, rol, esPlatformAdmin, cerrarSesion } = useAuth();
   const { puedeAccederModulo } = usePermisos();
   const navigate = useNavigate();
 
@@ -212,6 +213,18 @@ export default function Sidebar() {
             </div>
           </div>
         ))}
+
+        {esPlatformAdmin && (
+          <div className="mt-5 pt-3" style={{ borderTop: '1px solid var(--gc-border)' }}>
+            <div className="px-3 pb-2 text-[10px] uppercase font-bold" style={{ color: '#677184', letterSpacing: '0.12em' }}>
+              Plataforma
+            </div>
+            <NavLink to="/platform/tenants" className="group flex items-center gap-2.5 pl-2.5 pr-3 py-2 rounded-lg text-[13px] text-[#AAB2C0] hover:text-white hover:bg-white/[0.04]">
+              <IconChip Icon={Building2} color={COLOR_MODULO.dashboard} isActive={false} />
+              <span className="truncate">Tenants</span>
+            </NavLink>
+          </div>
+        )}
 
         {/* ── Grupo Pantallas (públicas) ── */}
         <div className="mt-5 pt-3" style={{ borderTop: '1px solid var(--gc-border)' }}>

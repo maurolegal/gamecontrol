@@ -5,6 +5,8 @@ import Notification from '../ui/Notification';
 import ModalAperturaCaja from '../caja/ModalAperturaCaja';
 import { useAuth } from '../../hooks/useAuth';
 import { useCaja } from '../../hooks/useCaja';
+import useGameStore from '../../store/useGameStore';
+import * as db from '../../lib/databaseService';
 
 // ===================================================================
 // APP SHELL — Layout global único para toda la aplicación
@@ -14,8 +16,32 @@ import { useCaja } from '../../hooks/useCaja';
 
 export default function Layout({ children }) {
   const { usuario } = useAuth();
-  const { cajaAbierta, cargando: cargandoCaja, abrirCaja } = useCaja();
+  const {
+    cajaAbierta,
+    cargando: cargandoCaja,
+    estadoPerfil,
+    errorPerfil,
+    abrirCaja,
+  } = useCaja();
+  const setConfiguracion = useGameStore((s) => s.setConfiguracion);
   const [mostrarModalCaja, setMostrarModalCaja] = useState(false);
+
+  // Cargar configuración global al iniciar sesión (para metodos_disponibles, etc.)
+  useEffect(() => {
+    if (!usuario) return;
+    let cancelled = false;
+    async function cargarConfig() {
+      try {
+        const data = await db.select('configuracion', { limite: 1 });
+        if (cancelled) return;
+        if (data?.[0]?.datos) {
+          setConfiguracion(data[0].datos);
+        }
+      } catch (_) {}
+    }
+    cargarConfig();
+    return () => { cancelled = true; };
+  }, [usuario, setConfiguracion]);
 
   // Mostrar modal de apertura cuando el usuario está logueado pero no hay caja abierta
   useEffect(() => {
@@ -61,6 +87,8 @@ export default function Layout({ children }) {
         onClose={() => setMostrarModalCaja(false)}
         onAbrir={handleAbrirCaja}
         usuarioNombre={usuario?.user_metadata?.nombre ?? usuario?.email}
+        perfilEstado={estadoPerfil}
+        perfilError={errorPerfil}
       />
     </div>
   );

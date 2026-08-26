@@ -22,11 +22,22 @@ export default function Restablecer() {
 
   // Escuchar el token de recovery de Supabase
   useEffect(() => {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    // Si hay hash en la URL, forzar detección de sesión
+    if (window.location.hash && window.location.hash.includes('type=recovery')) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data?.session) {
+          // Sesión de recovery establecida, ya podemos actualizar
+        }
+      });
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
         // Token recibido, permitimos el cambio
       }
     });
+
+    return () => subscription?.unsubscribe?.();
   }, []);
 
   async function handleSubmit(e) {

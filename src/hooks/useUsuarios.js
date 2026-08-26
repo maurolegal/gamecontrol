@@ -28,69 +28,57 @@ export function useUsuarios() {
   useEffect(() => { cargar(); }, [cargar]);
 
   const crear = useCallback(async ({ nombre, email, password, rol, permisos }) => {
-    // 1. Crear usuario en Supabase Auth
-    const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { nombre, rol },
+    const { data, error } = await supabase.rpc('crear_usuario', {
+      p_nombre: nombre,
+      p_email: email.trim().toLowerCase(),
+      p_password: password,
+      p_rol: rol,
+      p_permisos: permisos || {},
     });
 
-    if (authErr) {
-      // Fallback: intentar con signUp (sin admin)
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { nombre, rol } },
-      });
-      if (signUpErr) throw new Error(authErr.message);
-      return crearEnTabla(signUpData.user?.id, nombre, email, password, rol, permisos);
-    }
-
-    return crearEnTabla(authData.user?.id, nombre, email, password, rol, permisos);
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'No se pudo crear el usuario');
+    return data;
   }, []);
 
-  async function crearEnTabla(id, nombre, email, password, rol, permisos) {
-    if (!id) throw new Error('No se pudo obtener el ID del usuario de Auth');
-
-    const { error: dbErr } = await supabase
-      .from('usuarios')
-      .insert([{
-        id,
-        nombre,
-        email: email.toLowerCase(),
-        password_hash: password, // NOT NULL en el schema, Auth maneja la validación real
-        rol,
-        permisos: permisos || {},
-        estado: 'activo',
-      }]);
-
-    if (dbErr) throw new Error('Usuario creado en Auth pero error en tabla: ' + dbErr.message);
-    return { success: true, id };
-  }
-
   const actualizar = useCallback(async (id, datos) => {
+    const { rol, estado, ...perfil } = datos;
     const { error } = await supabase
       .from('usuarios')
-      .update({ ...datos, fecha_actualizacion: new Date().toISOString() })
+      .update({ ...perfil, rol, estado, fecha_actualizacion: new Date().toISOString() })
       .eq('id', id);
     if (error) throw new Error(error.message);
+
+    const membership = {
+      ...(rol ? { role: rol } : {}),
+      ...(estado ? { status: estado === 'activo' ? 'active' : 'suspended' } : {}),
+    };
+    if (Object.keys(membership).length > 0) {
+      const { error: membershipError } = await supabase
+        .from('tenant_members')
+        .update(membership)
+        .eq('user_id', id);
+      if (membershipError) throw new Error(membershipError.message);
+    }
     return { success: true };
   }, []);
 
   const cambiarPassword = useCallback(async (userId, newPassword) => {
-    const { error } = await supabase.auth.admin.updateUserById(userId, { password: newPassword });
+    const { data, error } = await supabase.rpc('admin_cambiar_password', {
+      target_user_id: userId,
+      new_password: newPassword,
+    });
     if (error) throw new Error(error.message);
+    if (data && data.success === false) throw new Error(data.error || 'No se pudo cambiar la contraseña');
     return { success: true };
   }, []);
 
   const eliminar = useCallback(async (id) => {
-    // Eliminar de la tabla
-    const { error: dbErr } = await supabase.from('usuarios').delete().eq('id', id);
-    if (dbErr) throw new Error(dbErr.message);
-    // Eliminar de Auth
-    const { error: authErr } = await supabase.auth.admin.deleteUser(id);
-    if (authErr) console.warn('Usuario eliminado de tabla pero no de Auth:', authErr.message);
+    const { error } = await supabase
+      .from('tenant_members')
+      .update({ status: 'suspended' })
+      .eq('user_id', id);
+    if (error) throw new Error(error.message);
     return { success: true };
   }, []);
 

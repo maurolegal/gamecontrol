@@ -28,30 +28,14 @@ export default function ModalPassword({ usuario, onClose, onGuardado }) {
 
     setGuardando(true);
     try {
-      // Intentar con admin API primero
-      const { error: adminErr } = await supabase.auth.admin.updateUserById(usuario.id, { password: pwd });
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('admin_cambiar_password', {
+        target_user_id: usuario.id,
+        new_password: pwd,
+      });
 
-      if (adminErr) {
-        // Fallback: RPC legacy
-        const { data: rpcData, error: rpcErr } = await supabase.rpc('admin_cambiar_password', {
-          target_user_id: usuario.id,
-          new_password:   pwd,
-        });
-
-        if (!rpcErr && rpcData?.success) {
-          exito(rpcData.message || 'Contraseña actualizada');
-        } else {
-          // Último recurso: actualizar tabla directamente
-          const { error: updErr } = await supabase
-            .from('usuarios')
-            .update({ password_hash: pwd, fecha_actualizacion: new Date().toISOString() })
-            .eq('id', usuario.id);
-          if (updErr) throw new Error(adminErr.message || rpcErr?.message || updErr.message);
-          exito('Contraseña actualizada');
-        }
-      } else {
-        exito('Contraseña actualizada correctamente');
-      }
+      if (rpcErr) throw rpcErr;
+      if (!rpcData?.success) throw new Error(rpcData?.error || 'No se pudo actualizar la contraseña');
+      exito(rpcData.message || 'Contraseña actualizada');
 
       onGuardado?.();
       onClose();

@@ -11,26 +11,76 @@ import useGameStore from '../store/useGameStore';
 // ===================================================================
 
 export function useCaja() {
-  const { usuario, perfil } = useGameStore();
+  const { usuario, perfil, setPerfil } = useGameStore();
   const [cajaAbierta, setCajaAbierta] = useState(false);
   const [fondoInicial, setFondoInicial] = useState(0);
   const [turnoInicio, setTurnoInicio] = useState(null);
   const [cargando, setCargando] = useState(true);
+  const [estadoPerfil, setEstadoPerfil] = useState('idle');
+  const [errorPerfil, setErrorPerfil] = useState(null);
+
+  const resolverPerfil = useCallback(async () => {
+    if (perfil?.id && perfil?.tenant_id) {
+      setEstadoPerfil('ready');
+      setErrorPerfil(null);
+      return perfil;
+    }
+
+    if (!usuario?.email) {
+      const error = new Error('No hay una sesión autenticada');
+      setEstadoPerfil('error');
+      setErrorPerfil(error.message);
+      return null;
+    }
+
+    setEstadoPerfil('loading');
+    setErrorPerfil(null);
+    try {
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('id, nombre, email, rol, permisos, estado, tenant_id')
+        .eq('email', String(usuario.email).trim().toLowerCase())
+        .limit(1);
+
+      if (error) throw error;
+      const perfilResuelto = data?.[0] ?? null;
+      if (!perfilResuelto?.id || !perfilResuelto?.tenant_id) {
+        throw new Error('No se encontró el perfil interno o su tenant activo');
+      }
+
+      setPerfil(perfilResuelto);
+      setEstadoPerfil('ready');
+      return perfilResuelto;
+    } catch (error) {
+      const message = error?.message ?? 'No se pudo cargar el perfil interno';
+      setEstadoPerfil('error');
+      setErrorPerfil(message);
+      console.error('Error resolviendo perfil de caja:', message);
+      return null;
+    }
+  }, [perfil, usuario?.email, setPerfil]);
 
   // Verificar si hay turno abierto al cargar
   const verificarCaja = useCallback(async () => {
     if (!usuario?.id) {
+      setEstadoPerfil('idle');
       setCargando(false);
       return;
     }
 
     setCargando(true);
     try {
+      const perfilActual = await resolverPerfil();
+      if (!perfilActual) {
+        setCajaAbierta(false);
+        return;
+      }
+
       // Traer el último registro del usuario (cualquier tipo)
       const { data, error } = await supabase
         .from('cierres_turno')
         .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen')
-        .eq('usuario_id', perfil?.id ?? usuario.id)
+        .eq('usuario_id', perfilActual.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -73,14 +123,21 @@ export function useCaja() {
     } finally {
       setCargando(false);
     }
-  }, [usuario?.id, perfil?.id]);
+  }, [usuario?.id, resolverPerfil]);
 
   // Abrir caja con fondo inicial
   const abrirCaja = useCallback(async (monto) => {
-    if (!usuario?.id || !perfil?.id) return false;
+    if (!usuario?.id) {
+      setErrorPerfil('No hay una sesión autenticada');
+      return false;
+    }
+
+    const perfilActual = await resolverPerfil();
+    if (!perfilActual) return false;
+
     try {
       const tenantId = await getTenantIdForUser({
-        usuarioId: perfil.id,
+        usuarioId: perfilActual.id,
         email: usuario.email,
       });
       const ahora = new Date().toISOString();
@@ -89,7 +146,7 @@ export function useCaja() {
       // Intentar con fondo_inicial; si la columna no existe, reintentar sin ella
       const datosBase = {
         tenant_id: tenantId,
-        usuario_id: perfil.id,
+        usuario_id: perfilActual.id,
         usuario_email: usuario.email ?? null,
         usuario_nombre: usuario?.user_metadata?.nombre ?? usuario.email ?? null,
         rol_usuario: usuario?.user_metadata?.rol ?? null,
@@ -126,10 +183,12 @@ export function useCaja() {
       setTurnoInicio(ahora);
       return true;
     } catch (err) {
-      console.error('Error abriendo caja:', err);
+      const message = err?.message ?? 'No se pudo abrir la caja';
+      setErrorPerfil(message);
+      console.error('Error abriendo caja:', message);
       return false;
     }
-  }, [usuario?.id, usuario?.email, perfil?.id]);
+  }, [usuario?.id, usuario?.email, resolverPerfil]);
 
   useEffect(() => {
     verificarCaja();
@@ -140,6 +199,8 @@ export function useCaja() {
     fondoInicial,
     turnoInicio,
     cargando,
+    estadoPerfil,
+    errorPerfil,
     verificarCaja,
     abrirCaja,
   };

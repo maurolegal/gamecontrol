@@ -606,67 +606,76 @@ const StationCardInner = memo(function StationCardInner({
     {/* ── POPOVER JUEGOS ── */}
     {juegosOpen && (
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none"
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
         onClick={() => setJuegosOpen(false)}
       >
         <div
-          className="relative pointer-events-auto w-72 max-w-[90vw] rounded-xl shadow-2xl animate-fade-in"
-          style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
+          className="relative w-80 max-w-[92vw] rounded-2xl shadow-2xl animate-pop-in"
+          style={{
+            background: 'var(--gc-surface)',
+            border: '1px solid rgba(139,92,246,0.25)',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(139,92,246,0.1)',
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--gc-border)' }}>
-            <div className="flex items-center gap-2">
-              <Gamepad2 size={16} className="text-purple-400" />
+          <div className="flex items-center justify-between px-4 py-3.5 rounded-t-2xl" style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.12), transparent)', borderBottom: '1px solid rgba(139,92,246,0.15)' }}>
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg" style={{ background: 'rgba(139,92,246,0.18)' }}>
+                <Gamepad2 size={18} className="text-purple-400" />
+              </div>
               <div>
-                <p className="text-[13px] font-bold text-white">{estacionId}</p>
-                <p className="text-[10px] text-gray-500">{juegosData?.dispositivoNombre ? `Dispositivo: ${juegosData.dispositivoNombre}` : 'Sin dispositivo asignado'}</p>
+                <p className="text-[14px] font-bold text-white">{estacionId}</p>
+                <p className="text-[10px] text-gray-400">{juegosData?.dispositivoNombre ? `Dispositivo: ${juegosData.dispositivoNombre}` : 'Sin dispositivo asignado'}</p>
               </div>
             </div>
             <button
               onClick={() => setJuegosOpen(false)}
-              className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Cerrar"
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           </div>
 
           {/* Body */}
-          <div className="p-3 max-h-64 overflow-y-auto">
+          <div className="p-4 max-h-72 overflow-y-auto">
             {cargandoJuegos ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 size={20} className="text-purple-400 animate-spin" />
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={22} className="text-purple-400 animate-spin" />
               </div>
             ) : juegosData?.juegos?.length === 0 ? (
-              <div className="text-center py-6 text-gray-500">
-                <Gamepad2 size={24} className="mx-auto mb-2 text-gray-600" />
-                <p className="text-[12px]">Sin juegos configurados</p>
-                <p className="text-[10px] mt-1">Gestiona desde <span className="text-purple-400">Dispositivos</span></p>
+              <div className="text-center py-8 text-gray-500">
+                <div className="w-12 h-12 rounded-full mx-auto mb-3 flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.1)' }}>
+                  <Gamepad2 size={24} className="text-purple-400" />
+                </div>
+                <p className="text-[13px] text-gray-300 font-medium">Sin juegos configurados</p>
+                <p className="text-[11px] mt-1 text-gray-500">Gestiona desde <span className="text-purple-400">Dispositivos</span></p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {juegosData.juegos.map((juego) => (
                   <div
                     key={juego.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.03)' }}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
                   >
                     {juego.portada_url && (
                       <img
                         src={juego.portada_url}
                         alt={juego.nombre}
-                        className="w-8 h-8 rounded object-cover shrink-0"
+                        className="w-9 h-9 rounded object-cover shrink-0"
                         style={{ border: '1px solid var(--gc-border)' }}
                       />
                     )}
                     {!juego.portada_url && (
-                      <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
-                        <Gamepad2 size={12} className="text-[#8B5CF6]" />
+                      <div className="w-9 h-9 rounded flex items-center justify-center shrink-0" style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                        <Gamepad2 size={14} className="text-[#8B5CF6]" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-medium text-white truncate">{juego.nombre}</p>
+                      <p className="text-[13px] font-medium text-white truncate">{juego.nombre}</p>
                     </div>
                   </div>
                 ))}
@@ -675,8 +684,8 @@ const StationCardInner = memo(function StationCardInner({
           </div>
 
           {/* Footer */}
-          <div className="px-3 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-            <p className="text-[10px] text-gray-500 text-center">
+          <div className="px-4 py-3 rounded-b-2xl" style={{ background: 'rgba(255,255,255,0.02)', borderTop: '1px solid rgba(139,92,246,0.08)' }}>
+            <p className="text-[11px] text-purple-300/80 text-center font-medium">
               {juegosData?.juegos?.length || 0} juego{juegosData?.juegos?.length !== 1 ? 's' : ''} instalado{juegosData?.juegos?.length !== 1 ? 's' : ''}
             </p>
           </div>

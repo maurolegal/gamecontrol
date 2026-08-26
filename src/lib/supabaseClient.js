@@ -13,6 +13,14 @@ if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KE
 // mantiene el lock del Navigator LockManager para el auth token.
 const GLOBAL_KEY = '__supabase_client_gamecontrol__';
 
+async function authLock(name, _acquireTimeout, fn) {
+  if (!globalThis.navigator?.locks?.request) {
+    return fn();
+  }
+
+  return globalThis.navigator.locks.request(name, { mode: 'exclusive' }, fn);
+}
+
 function getSupabaseClient() {
   if (globalThis[GLOBAL_KEY]) {
     return globalThis[GLOBAL_KEY];
@@ -21,7 +29,8 @@ function getSupabaseClient() {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false,
+      detectSessionInUrl: true,
+      lock: authLock,
     },
     global: {
       headers: { 'X-Client-Info': 'GameControl-v2.0' },

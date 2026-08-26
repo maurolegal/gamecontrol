@@ -9,7 +9,14 @@ import { formatCOP } from '../../lib/formatCurrency';
 
 const DENOMINACIONES_RAPIDAS = [50000, 100000, 200000, 300000, 500000];
 
-export default function ModalAperturaCaja({ open, onClose, onAbrir, usuarioNombre }) {
+export default function ModalAperturaCaja({
+  open,
+  onClose,
+  onAbrir,
+  usuarioNombre,
+  perfilEstado = 'ready',
+  perfilError,
+}) {
   const [monto, setMonto] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
@@ -135,16 +142,16 @@ export default function ModalAperturaCaja({ open, onClose, onAbrir, usuarioNombr
           </div>
 
           {/* Error */}
-          {error && (
+          {(error || perfilError) && (
             <div className="rounded-lg p-3" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}>
-              <p className="text-[12px] text-red-400">{error}</p>
+              <p className="text-[12px] text-red-400">{error || perfilError}</p>
             </div>
           )}
 
           {/* Submit */}
           <button
             type="submit"
-            disabled={guardando}
+            disabled={guardando || perfilEstado === 'loading'}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-black font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             style={{ background: '#00D656', boxShadow: '0 0 16px rgba(0,214,86,0.3)' }}
           >

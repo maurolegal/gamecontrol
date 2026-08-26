@@ -59,18 +59,35 @@ export default function Ajustes() {
   const { confirm } = useConfirm();
   const location = useLocation();
 
-  const [form, setForm] = useState({ nombre_negocio: '', moneda: 'COP' });
+  const [form, setForm] = useState({
+    nombre_negocio: '',
+    nit_identificacion: '',
+    telefono: '',
+    whatsapp: '',
+    email_negocio: '',
+    direccion: '',
+    ciudad: '',
+    logo_url: '',
+  });
   const [tarifasPorSala, setTarifasPorSala] = useState({});
   const [tarifasOriginales, setTarifasOriginales] = useState({}); // para detectar cambios
   const [cargando, setCargando] = useState(false);
   const [cargandoTarifas, setCargandoTarifas] = useState(false);
-  const [seccionActiva, setSeccionActiva] = useState('general');
+  const [seccionActiva, setSeccionActiva] = useState('negocio');
 
   const [mediosPago, setMediosPago] = useState([]);
   const [nuevaCuenta, setNuevaCuenta] = useState({
     banco: '', tipo: 'ahorros', numero: '', titular: '', saldo_inicial: '',
   });
   const [cargandoMedios, setCargandoMedios] = useState(false);
+
+  // Métodos de pago disponibles (toggle on/off)
+  const [metodosDisponibles, setMetodosDisponibles] = useState({
+    efectivo: true,
+    transferencia: true,
+    tarjeta: false,
+    qr_digital: true,
+  });
 
   // QR image
   const [qrImagenUrl, setQrImagenUrl] = useState(null);
@@ -122,6 +139,10 @@ export default function Ajustes() {
           if (data[0].datos.qr_imagen_url) {
             setQrImagenUrl(data[0].datos.qr_imagen_url);
           }
+          // Cargar métodos disponibles si existen
+          if (data[0].datos.metodos_disponibles) {
+            setMetodosDisponibles(data[0].datos.metodos_disponibles);
+          }
         }
       } catch (_) {}
     }
@@ -163,7 +184,7 @@ export default function Ajustes() {
     setCargando(true);
     try {
       const updated_by = await getUsuarioIdSimple();
-      const nuevaConfig = { ...configuracion, ...form };
+      const nuevaConfig = { ...configuracion, ...form, metodos_disponibles: metodosDisponibles };
       const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
       if (existente?.[0]?.id) {
         await db.update('configuracion', existente[0].id, {
@@ -180,6 +201,24 @@ export default function Ajustes() {
       notifError(err.message);
     } finally {
       setCargando(false);
+    }
+  }
+
+  // Guardar solo métodos disponibles
+  async function guardarMetodosDisponibles() {
+    try {
+      const updated_by = await getUsuarioIdSimple();
+      const nuevaConfig = { ...configuracion, metodos_disponibles: metodosDisponibles };
+      const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
+      if (existente?.[0]?.id) {
+        await db.update('configuracion', existente[0].id, {
+          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
+        });
+      }
+      setConfiguracion(nuevaConfig);
+      exito('Métodos de pago actualizados');
+    } catch (err) {
+      notifError(err.message);
     }
   }
 
@@ -577,11 +616,11 @@ export default function Ajustes() {
   }, [catalogoJuegos, busquedaJuego]);
 
   const TABS = [
-    { id: 'general',    label: 'General',       icon: <Building2 size={14} /> },
-    { id: 'regional',   label: 'Regional',      icon: <Globe size={14} /> },
-    { id: 'tarifas',    label: 'Tarifas',       icon: <DollarSign size={14} />, count: salas.length },
+    { id: 'negocio',     label: 'Negocio',       icon: <Building2 size={14} /> },
+    { id: 'regional',    label: 'Regional',      icon: <Globe size={14} /> },
+    { id: 'tarifas',     label: 'Tarifas',       icon: <DollarSign size={14} />, count: salas.length },
     { id: 'medios-pago', label: 'Medios de Pago', icon: <Wallet size={14} />, count: mediosPago.length },
-    { id: 'juegos',     label: 'Juegos',        icon: <Gamepad2 size={14} />, count: catalogoJuegos.length },
+    { id: 'juegos',      label: 'Juegos',        icon: <Gamepad2 size={14} />, count: catalogoJuegos.length },
   ];
 
   return (
@@ -589,7 +628,7 @@ export default function Ajustes() {
       {/* Título + subtítulo (no card) */}
       <div className="mb-4">
         <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Configuración</h2>
-        <p className="text-xs text-gray-500 mt-0.5">Gestiona las reglas operativas de GameControl</p>
+        <p className="text-xs text-gray-500 mt-0.5">Gestiona tu negocio y la operación de GameControl</p>
       </div>
 
       {/* ── Tabs discretos ── */}
@@ -618,13 +657,14 @@ export default function Ajustes() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            SECCIÓN: GENERAL
+            SECCIÓN: NEGOCIO
+            Identidad, contacto, dirección e información fiscal
             ═══════════════════════════════════════════════════════════════ */}
-        {seccionActiva === 'general' && (
-          <div className="max-w-xl">
+        {seccionActiva === 'negocio' && (
+          <div className="max-w-[920px]">
             <form
               onSubmit={handleSubmit}
-              className="rounded-xl p-5 space-y-4"
+              className="rounded-xl p-6 space-y-5"
               style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
             >
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -632,39 +672,161 @@ export default function Ajustes() {
                 Información del Negocio
               </h3>
 
-              <div>
-                <label className={labelCls}>Nombre del negocio</label>
-                <input
-                  value={form.nombre_negocio ?? ''}
-                  onChange={(e) => setForm((p) => ({ ...p, nombre_negocio: e.target.value }))}
-                  placeholder="Ej: GameZone"
-                  className={inputCls}
-                />
-              </div>
-
-              <div>
-                <label className={labelCls}>Moneda</label>
-                <select
-                  value={form.moneda ?? 'COP'}
-                  onChange={(e) => setForm((p) => ({ ...p, moneda: e.target.value }))}
-                  className={`${inputCls} cursor-pointer`}
+              {/* Logo — ancho completo */}
+              <div className="flex items-center gap-4">
+                <div
+                  className="w-20 h-20 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
                 >
-                  <option value="COP">Peso Colombiano (COP)</option>
-                  <option value="USD">Dólar (USD)</option>
-                  <option value="EUR">Euro (EUR)</option>
-                  <option value="MXN">Peso Mexicano (MXN)</option>
-                </select>
+                  {form.logo_url ? (
+                    <img src={form.logo_url} alt="Logo" className="w-full h-full object-contain" />
+                  ) : (
+                    <Building2 size={26} className="text-gray-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-gray-400 mb-1 block">Logo del negocio</label>
+                  <div className="flex items-center gap-2">
+                    <label
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all hover:opacity-80"
+                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+                    >
+                      <Upload size={13} />
+                      {form.logo_url ? 'Cambiar' : 'Subir logo'}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) { notifError('Máximo 2MB'); return; }
+                          setCargandoQr(true);
+                          try {
+                            const fd = new FormData();
+                            fd.append('file', file);
+                            fd.append('upload_preset', CLOUDINARY_QR.uploadPreset);
+                            fd.append('folder', 'logos-negocio');
+                            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_QR.cloudName}/image/upload`, { method: 'POST', body: fd });
+                            if (!res.ok) throw new Error('Error subiendo logo');
+                            const data = await res.json();
+                            setForm(prev => ({ ...prev, logo_url: data.secure_url }));
+                            exito('Logo cargado. Guarda los cambios.');
+                          } catch (err) {
+                            notifError('Error: ' + err.message);
+                          } finally {
+                            setCargandoQr(false);
+                            e.target.value = '';
+                          }
+                        }}
+                        disabled={cargandoQr}
+                        className="hidden"
+                      />
+                    </label>
+                    {form.logo_url && (
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, logo_url: '' }))}
+                        className="text-xs text-red-400 hover:text-red-300"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={cargando}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: '#00D656', color: '#000' }}
-              >
-                <Save size={15} />
-                {cargando ? 'Guardando…' : 'Guardar cambios'}
-              </button>
+              {/* Grid 2 columnas en desktop */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Nombre comercial *</label>
+                  <input
+                    value={form.nombre_negocio ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, nombre_negocio: e.target.value }))}
+                    placeholder="Ej: NEMESIS VIDEOJUEGOS"
+                    className={inputCls}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>NIT / identificación</label>
+                  <input
+                    value={form.nit_identificacion ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, nit_identificacion: e.target.value }))}
+                    placeholder="Ej: 900.123.456-7"
+                    className={inputCls}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Teléfono</label>
+                  <input
+                    value={form.telefono ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, telefono: e.target.value }))}
+                    placeholder="Ej: 300 123 4567"
+                    className={inputCls}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>WhatsApp</label>
+                  <input
+                    value={form.whatsapp ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, whatsapp: e.target.value }))}
+                    placeholder="Ej: 300 123 4567"
+                    className={inputCls}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Email</label>
+                  <input
+                    type="email"
+                    value={form.email_negocio ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, email_negocio: e.target.value }))}
+                    placeholder="Ej: contacto@negocio.com"
+                    className={inputCls}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Ciudad</label>
+                  <input
+                    value={form.ciudad ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, ciudad: e.target.value }))}
+                    placeholder="Ej: Bogotá"
+                    className={inputCls}
+                  />
+                </div>
+
+                {/* Dirección — ancho completo */}
+                <div className="md:col-span-2">
+                  <label className={labelCls}>Dirección</label>
+                  <input
+                    value={form.direccion ?? ''}
+                    onChange={(e) => setForm((p) => ({ ...p, direccion: e.target.value }))}
+                    placeholder="Ej: Calle 45 # 23-18, Local 2"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-600 leading-relaxed">
+                Esta información se usa en recibos, facturas, reportes y PDFs generados por el sistema.
+              </p>
+
+              {/* Botón alineado a la derecha en desktop, full width en mobile */}
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className="flex items-center justify-center gap-2 w-full md:w-auto px-6 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ background: '#00D656', color: '#000' }}
+                >
+                  <Save size={15} />
+                  {cargando ? 'Guardando…' : 'Guardar cambios'}
+                </button>
+              </div>
             </form>
           </div>
         )}
@@ -874,6 +1036,63 @@ export default function Ajustes() {
             ═══════════════════════════════════════════════════════════════ */}
         {seccionActiva === 'medios-pago' && (
           <div className="space-y-4 max-w-3xl">
+            {/* ── Métodos disponibles ── */}
+            <div
+              className="rounded-xl p-5 space-y-4"
+              style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Wallet size={15} className="text-[#00D656]" />
+                  Métodos disponibles
+                </h3>
+                <button
+                  onClick={guardarMetodosDisponibles}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:opacity-80"
+                  style={{ background: 'rgba(0,214,86,0.1)', border: '1px solid rgba(0,214,86,0.2)', color: '#00D656' }}
+                >
+                  <Save size={12} /> Guardar
+                </button>
+              </div>
+
+              <p className="text-[11px] text-gray-500 leading-relaxed -mt-1">
+                Activa los métodos de pago que aceptas en tu negocio. Estos aparecen en el POS y cierre de turno.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  { key: 'efectivo',      label: 'Efectivo',      icon: <Wallet size={16} /> },
+                  { key: 'transferencia',  label: 'Transferencia',  icon: <Building2 size={16} /> },
+                  { key: 'tarjeta',        label: 'Tarjeta',        icon: <CreditCard size={16} /> },
+                  { key: 'qr_digital',     label: 'QR / Digital',   icon: <QrCode size={16} /> },
+                ].map(({ key, label, icon }) => {
+                  const activo = metodosDisponibles[key];
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setMetodosDisponibles(prev => ({ ...prev, [key]: !prev[key] }))}
+                      className="flex items-center gap-2.5 px-3.5 py-3 rounded-lg transition-all"
+                      style={{
+                        background: activo ? 'rgba(0,214,86,0.08)' : 'rgba(255,255,255,0.02)',
+                        border: activo ? '1px solid rgba(0,214,86,0.25)' : '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <span style={{ color: activo ? '#00D656' : '#666' }}>{icon}</span>
+                      <span className={`text-sm font-medium ${activo ? 'text-white' : 'text-gray-500'}`}>{label}</span>
+                      <span className="ml-auto">
+                        {activo ? (
+                          <Check size={15} className="text-[#00D656]" />
+                        ) : (
+                          <span className="w-4 h-4 rounded-full border border-gray-600 block" />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* ── Sección QR ── */}
             <div
               className="rounded-xl p-5 space-y-4"
@@ -979,7 +1198,7 @@ export default function Ajustes() {
             {/* Lista de medios existentes */}
             {mediosPago.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Cuentas configuradas</h3>
+                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Cuentas / Destinos de pago</h3>
                 {mediosPago.map((medio) => (
                   <div
                     key={medio.id}
@@ -1029,7 +1248,7 @@ export default function Ajustes() {
             >
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Plus size={15} className="text-[#00D656]" />
-                Agregar nueva cuenta
+                Agregar cuenta / destino
               </h3>
 
               <form onSubmit={handleAgregarMedioPago} className="space-y-3">
