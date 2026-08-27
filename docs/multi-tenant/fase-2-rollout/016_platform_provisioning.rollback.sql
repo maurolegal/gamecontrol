@@ -22,6 +22,7 @@ END;
 $$;
 
 DROP FUNCTION IF EXISTS public.platform_get_tenant(uuid);
+DROP FUNCTION IF EXISTS public.platform_provision_tenant(text,text,text,text,text,text,uuid,text,text,text,uuid,uuid[]);
 DROP FUNCTION IF EXISTS public.platform_provision_tenant(text,text,text,text,text,text,uuid,text,text,text);
 DROP FUNCTION IF EXISTS public.platform_provision_tenant(text,text,text,text,text,text,text,text,text);
 

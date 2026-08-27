@@ -101,7 +101,9 @@ CREATE OR REPLACE FUNCTION public.platform_provision_tenant(
   p_auth_user_id uuid,
   p_business_phone text DEFAULT NULL,
   p_address text DEFAULT NULL,
-  p_logo_url text DEFAULT NULL
+  p_logo_url text DEFAULT NULL,
+  p_plan_id uuid DEFAULT NULL,
+  p_module_ids uuid[] DEFAULT '{}'
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -117,6 +119,8 @@ DECLARE
   v_admin_name text := btrim(COALESCE(p_admin_name, ''));
   v_auth_user_id uuid := p_auth_user_id;
   v_platform_admin_auth_id uuid := auth.uid();
+  v_module_id uuid;
+  v_valid boolean;
   v_regional public.platform_regional_catalog;
   v_existing public.platform_provisioning_requests;
   v_tenant public.tenants;
@@ -214,6 +218,36 @@ BEGIN
   INSERT INTO public.tenant_members (tenant_id, user_id, role, status)
   VALUES (v_tenant.id, v_user.id, 'administrador', 'invited');
 
+  IF p_plan_id IS NOT NULL THEN
+    IF to_regclass('public.plans') IS NULL OR to_regclass('public.subscriptions') IS NULL THEN
+      RAISE EXCEPTION 'Catálogo de planes no disponible';
+    END IF;
+    EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.plans WHERE id = $1 AND active)'
+      INTO v_valid USING p_plan_id;
+    IF NOT v_valid THEN
+      RAISE EXCEPTION 'Plan no disponible';
+    END IF;
+    EXECUTE 'INSERT INTO public.subscriptions (tenant_id, plan_id, status) VALUES ($1, $2, ''trialing'')'
+      USING v_tenant.id, p_plan_id;
+    INSERT INTO public.auditoria (usuario_id, actor_auth_user_id, tabla, registro_id, accion, datos_nuevos, actor_type, tenant_id)
+    VALUES (NULL, v_platform_admin_auth_id, 'subscriptions', p_plan_id, 'INSERT', jsonb_build_object('plan_id', p_plan_id, 'status', 'trialing'), 'user', v_tenant.id);
+  END IF;
+
+  FOREACH v_module_id IN ARRAY COALESCE(p_module_ids, '{}'::uuid[]) LOOP
+    IF to_regclass('public.modules') IS NULL OR to_regclass('public.tenant_modules') IS NULL THEN
+      RAISE EXCEPTION 'Catálogo de módulos no disponible';
+    END IF;
+    EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.modules WHERE id = $1 AND active)'
+      INTO v_valid USING v_module_id;
+    IF NOT v_valid THEN
+      RAISE EXCEPTION 'Módulo no disponible';
+    END IF;
+    EXECUTE 'INSERT INTO public.tenant_modules (tenant_id, module_id, status) VALUES ($1, $2, ''active'')'
+      USING v_tenant.id, v_module_id;
+    INSERT INTO public.auditoria (usuario_id, actor_auth_user_id, tabla, registro_id, accion, datos_nuevos, actor_type, tenant_id)
+    VALUES (NULL, v_platform_admin_auth_id, 'tenant_modules', v_module_id, 'INSERT', jsonb_build_object('module_id', v_module_id, 'status', 'active'), 'user', v_tenant.id);
+  END LOOP;
+
   INSERT INTO public.auditoria (
     usuario_id, actor_auth_user_id, tabla, registro_id, accion, datos_nuevos, actor_type, tenant_id
   ) VALUES (
@@ -254,8 +288,8 @@ EXCEPTION
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.platform_provision_tenant(text,text,text,text,text,text,uuid,text,text,text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.platform_provision_tenant(text,text,text,text,text,text,uuid,text,text,text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.platform_provision_tenant(text,text,text,text,text,text,uuid,text,text,text,uuid,uuid[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.platform_provision_tenant(text,text,text,text,text,text,uuid,text,text,text,uuid,uuid[]) TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.platform_get_tenant(p_tenant_id uuid)
 RETURNS jsonb
