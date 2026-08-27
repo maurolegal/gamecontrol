@@ -24,6 +24,7 @@ import Clientes   from './pages/Clientes';
 import CierreTurno from './pages/CierreTurno';
 import AuditoriaCierres from './pages/AuditoriaCierres';
 import PlatformTenants from './pages/PlatformTenants';
+import PlatformTenantDetail from './pages/PlatformTenantDetail';
 
 // ── Detectar hash de recuperación de Supabase y redirigir ───────────
 function RecoveryRedirect() {
@@ -93,6 +94,7 @@ export default function App() {
                   <Route path="/recetas"       element={<ProtectedRoute modulo="recetas"><Recetas /></ProtectedRoute>} />
                   <Route path="/ajustes"   element={<ProtectedRoute modulo="ajustes"><Ajustes /></ProtectedRoute>} />
                   <Route path="/platform/tenants" element={<PlatformRoute><PlatformTenants /></PlatformRoute>} />
+                  <Route path="/platform/tenants/:tenantId" element={<PlatformRoute><PlatformTenantDetail /></PlatformRoute>} />
                 </Routes>
               </Layout>
             </PrivateRoute>

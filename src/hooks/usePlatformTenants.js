@@ -26,7 +26,17 @@ export function usePlatformTenants(enabled = false) {
     await cargar();
   }, [cargar]);
 
+  const provisionar = useCallback(async (payload) => {
+    const { data, error: requestError } = await supabase.functions.invoke('platform-provision-tenant', {
+      body: { ...payload, idempotency_key: payload.idempotency_key ?? crypto.randomUUID() },
+    });
+    if (requestError) throw requestError;
+    if (!data?.success) throw new Error(data?.error || 'No se pudo crear el tenant');
+    await cargar();
+    return data;
+  }, [cargar]);
+
   useEffect(() => { cargar(); }, [cargar]);
 
-  return { tenants, cargando, error, cargar, cambiarEstado };
+  return { tenants, cargando, error, cargar, cambiarEstado, provisionar };
 }
