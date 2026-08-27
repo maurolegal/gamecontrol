@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { getTenantIdForUser } from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
 
 // ===================================================================
@@ -76,45 +75,19 @@ export function useCaja() {
         return;
       }
 
-      // Traer el último registro del usuario (cualquier tipo)
-      const { data, error } = await supabase
-        .from('cierres_turno')
-        .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen')
-        .eq('usuario_id', perfilActual.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
+      const { data, error } = await supabase.rpc('obtener_turno_caja_activo');
       if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || 'No se pudo resolver la caja activa');
 
-      const ultimoRegistro = data?.[0];
-
-      if (!ultimoRegistro) {
-        // No hay ningún registro previo → necesita abrir caja
+      const turno = data?.turno;
+      if (!turno) {
         setCajaAbierta(false);
         setFondoInicial(0);
         setTurnoInicio(null);
-      } else if (ultimoRegistro.observaciones?.includes('[APERTURA_CAJA]')) {
-        // El último registro es una apertura → caja abierta
-        // Extraer fondo inicial de observaciones o ticket_resumen
-        let fondo = 0;
-        try {
-          const match = ultimoRegistro.observaciones.match(/Fondo inicial:\s*([\d.]+)/);
-          if (match) fondo = parseFloat(match[1]);
-        } catch (_) {}
-        if (!fondo && ultimoRegistro.ticket_resumen) {
-          try {
-            const ticket = JSON.parse(ultimoRegistro.ticket_resumen);
-            fondo = ticket.fondo_inicial || 0;
-          } catch (_) {}
-        }
-        setCajaAbierta(true);
-        setFondoInicial(fondo);
-        setTurnoInicio(ultimoRegistro.turno_desde);
       } else {
-        // El último registro es un cierre → caja cerrada
-        setCajaAbierta(false);
-        setFondoInicial(0);
-        setTurnoInicio(null);
+        setCajaAbierta(true);
+        setFondoInicial(Number(turno.fondo_inicial) || 0);
+        setTurnoInicio(turno.turno_desde);
       }
     } catch (err) {
       console.error('Error verificando caja:', err);
@@ -136,51 +109,16 @@ export function useCaja() {
     if (!perfilActual) return false;
 
     try {
-      const tenantId = await getTenantIdForUser({
-        usuarioId: perfilActual.id,
-        email: usuario.email,
+      const { data, error } = await supabase.rpc('abrir_turno_caja', {
+        p_fondo_inicial: monto,
       });
-      const ahora = new Date().toISOString();
-
-      // Insertar registro de apertura
-      // Intentar con fondo_inicial; si la columna no existe, reintentar sin ella
-      const datosBase = {
-        tenant_id: tenantId,
-        usuario_id: perfilActual.id,
-        usuario_email: usuario.email ?? null,
-        usuario_nombre: usuario?.user_metadata?.nombre ?? usuario.email ?? null,
-        rol_usuario: usuario?.user_metadata?.rol ?? null,
-        turno_desde: ahora,
-        turno_hasta: ahora, // NOT NULL en DB; la lógica usa observaciones para detectar apertura
-        efectivo_contado: 0,
-        efectivo_esperado: 0,
-        efectivo_descuadre: 0,
-        observaciones: `[APERTURA_CAJA] Fondo inicial: ${monto}`,
-        ticket_resumen: JSON.stringify({ tipo: 'apertura', fondo_inicial: monto }),
-        creado_por: {
-          usuario_id: usuario.id,
-          email: usuario.email ?? null,
-        },
-      };
-
-      // Intentar con fondo_inicial primero
-      let { error } = await supabase
-        .from('cierres_turno')
-        .insert({ ...datosBase, fondo_inicial: monto });
-
-      // Si falla por columna inexistente, reintentar sin fondo_inicial
-      if (error && error.code === '42703') {
-        const retry = await supabase
-          .from('cierres_turno')
-          .insert(datosBase);
-        error = retry.error;
-      }
-
       if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'No se pudo abrir la caja');
 
+      const turno = data.turno;
       setCajaAbierta(true);
-      setFondoInicial(monto);
-      setTurnoInicio(ahora);
+      setFondoInicial(Number(turno?.fondo_inicial) || Number(monto) || 0);
+      setTurnoInicio(turno?.turno_desde ?? new Date().toISOString());
       return true;
     } catch (err) {
       const message = err?.message ?? 'No se pudo abrir la caja';

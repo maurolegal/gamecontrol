@@ -20,7 +20,6 @@ import { useAuth } from '../hooks/useAuth';
 import { usePermisos } from '../hooks/usePermisos';
 import { useNotifications } from '../hooks/useNotifications';
 import { formatCOP } from '../lib/formatCurrency';
-import { getTenantIdForUser } from '../lib/databaseService';
 
 function formatFechaHora(iso) {
   if (!iso) return '—';
@@ -108,7 +107,7 @@ export default function CierreTurno() {
   const usuarioInternoId = perfil?.id || null;
 
   useEffect(() => {
-    if (!usuario?.id) return;
+    if (!usuario?.id || !usuarioInternoId) return;
 
     async function cargar() {
       setCargando(true);
@@ -136,42 +135,18 @@ export default function CierreTurno() {
         const initConteos = Object.fromEntries(lista.map((p) => [p.id, '']));
         setConteosInventario(initConteos);
 
-        // 2) Último registro del usuario (apertura o cierre)
-        const cierreRes = await supabase
-          .from('cierres_turno')
-          .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen')
-          .eq('usuario_id', usuario.id)
-          .order('created_at', { ascending: false })
-          .limit(1);
+        // 2) Resolver el turno activo compartido por el tenant
+        const { data: turnoData, error: turnoError } = await supabase.rpc('obtener_turno_caja_activo');
+        if (turnoError) throw turnoError;
+        if (turnoData?.success === false) throw new Error(turnoData.error || 'No se pudo resolver la caja activa');
+        const turno = turnoData?.turno;
+        if (!turno) throw new Error('No hay una caja activa para cerrar');
 
-        if (cierreRes.error) throw cierreRes.error;
-        const ultimo = cierreRes.data?.[0];
-        let desde;
-        let fondoInicial = 0;
-
-        if (ultimo?.observaciones?.includes('[APERTURA_CAJA]')) {
-          // El último registro es una apertura → el turno inicia desde ahí
-          desde = new Date(ultimo.turno_desde);
-          // Extraer fondo inicial
-          const match = (ultimo.observaciones ?? '').match(/Fondo inicial:\s*([\d.]+)/);
-          fondoInicial = match ? numero(match[1]) : 0;
-          if (!fondoInicial && ultimo.ticket_resumen) {
-            try {
-              const ticket = JSON.parse(ultimo.ticket_resumen);
-              fondoInicial = numero(ticket.fondo_inicial) || 0;
-            } catch (_) {}
-          }
-        } else if (ultimo?.turno_hasta) {
-          // El último registro es un cierre → el turno inicia desde el cierre
-          desde = new Date(ultimo.turno_hasta);
-        } else {
-          desde = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-          desde.setHours(0, 0, 0, 0);
-        }
-        setTurnoDesde(desde.toISOString());
+        const desdeIso = turno.turno_desde;
+        setTurnoDesde(desdeIso);
 
         // 3) Calcular totales por medio de pago del turno actual (preview)
-        await calcularTotalesTurno(desde.toISOString(), fondoInicial);
+        await calcularTotalesTurno(desdeIso, numero(turno.fondo_inicial), turno.id);
       } catch (err) {
         notifError(err?.message ?? 'No se pudo cargar el cierre de turno');
       } finally {
@@ -179,38 +154,25 @@ export default function CierreTurno() {
       }
     }
 
-    async function calcularTotalesTurno(desdeIso, fondoInicial = 0) {
-      const ahora = new Date().toISOString();
+    async function calcularTotalesTurno(desdeIso, fondoInicial = 0, turnoId) {
+      const [ventasRes, gastosRes] = await Promise.all([
+        supabase
+          .from('ventas')
+          .select('id, total, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
+          .eq('turno_id', turnoId)
+          .not('estado', 'in', '(anulada,cancelada)'),
+        supabase
+          .from('gastos')
+          .select('id, monto, metodo_pago, fecha_gasto')
+          .eq('turno_id', turnoId)
+          .not('estado', 'in', '(anulado,anulada,cancelado,cancelada)'),
+      ]);
 
-      // Ventas del turno — usar perfil.id (public.usuarios.id) que es lo que
-      // la RPC registrar_venta_pos guarda en ventas.usuario_id
-      const ventasQuery = supabase
-        .from('ventas')
-        .select('id, total, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
-        .gte('fecha_cierre', desdeIso)
-        .lte('fecha_cierre', ahora);
+      if (ventasRes.error) throw ventasRes.error;
+      if (gastosRes.error) throw gastosRes.error;
 
-      if (usuarioInternoId) {
-        ventasQuery.eq('usuario_id', usuarioInternoId);
-      }
-
-      const { data: ventas, error: ventasError } = await ventasQuery;
-
-      if (ventasError) throw ventasError;
-
-      // Gastos del turno (solo fecha, no hora)
-      const fechaDesde = desdeIso.slice(0, 10);
-      const fechaHasta = ahora.slice(0, 10);
-      const { data: gastos, error: gastosError } = await supabase
-        .from('gastos')
-        .select('id, monto, metodo_pago, fecha_gasto')
-        .gte('fecha_gasto', fechaDesde)
-        .lte('fecha_gasto', fechaHasta);
-
-      if (gastosError) throw gastosError;
-
-      const ventasData = ventas ?? [];
-      const gastosData = gastos ?? [];
+      const ventasData = ventasRes.data ?? [];
+      const gastosData = gastosRes.data ?? [];
 
       let ventasEfectivo = 0, ventasTransferencia = 0, ventasTarjeta = 0, ventasDigital = 0;
       let gastosEfectivo = 0, gastosTotal = 0;
@@ -265,7 +227,7 @@ export default function CierreTurno() {
       if (signOutTimeoutRef.current) clearTimeout(signOutTimeoutRef.current);
       if (signOutIntervalRef.current) clearInterval(signOutIntervalRef.current);
     };
-  }, [usuario?.id, notifError]);
+  }, [usuario?.id, usuarioInternoId, notifError]);
 
   const puedeFinalizar = useMemo(() => {
     if (!turnoDesde) return false;
@@ -639,8 +601,12 @@ export default function CierreTurno() {
 
                 <div className="space-y-2 text-[12px]">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Operador</span>
-                    <span className="text-white font-medium">{perfil?.nombre ?? usuario?.email}</span>
+                    <span className="text-gray-400">Aperturó</span>
+                    <span className="text-white font-medium">{auditoria.apertura || perfil?.nombre || usuario?.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Cerró</span>
+                    <span className="text-white font-medium">{auditoria.cierre || perfil?.nombre || usuario?.email}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Turno</span>
@@ -674,6 +640,16 @@ export default function CierreTurno() {
                     <span className="text-gray-400">Neto</span>
                     <span className={`text-white font-semibold ${netoTurno >= 0 ? 'text-[#00D656]' : 'text-red-400'}`}>{formatCOP(netoTurno)}</span>
                   </div>
+                </div>
+
+                <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Movimientos de efectivo</p>
+                  {auditoria.movimientosEfectivo?.length ? auditoria.movimientosEfectivo.map((movimiento, index) => (
+                    <div key={`${movimiento.usuario_id}-${index}`} className="flex justify-between gap-3 text-[11px] py-1">
+                      <span className="text-gray-400 truncate">{movimiento.usuario_nombre || movimiento.usuario_id || 'Usuario'}</span>
+                      <span className="text-white font-medium shrink-0">{formatCOP(numero(movimiento.valor))}</span>
+                    </div>
+                  )) : <p className="text-[11px] text-gray-600">Sin movimientos de efectivo</p>}
                 </div>
 
                 <button
@@ -716,67 +692,26 @@ export default function CierreTurno() {
     try {
       const efectivoContadoNum = efectivoContado;
       if (efectivoContadoNum < 0) throw new Error('El efectivo contado no puede ser negativo');
+      if (!perfil?.tenant_id) throw new Error('No se pudo resolver el tenant activo');
 
-      const ahora = new Date().toISOString();
+      const { data: cierreData, error: cierreRpcError } = await supabase.rpc('cerrar_turno_caja', {
+        p_efectivo_contado: efectivoContadoNum,
+        p_inventario: [],
+        p_observaciones: observaciones.trim() || null,
+      });
+      if (cierreRpcError) throw cierreRpcError;
+      if (!cierreData?.success) throw new Error(cierreData?.error || 'No se pudo cerrar el turno');
 
-      // ══════════════════════════════════════════════════════════════
-      // 1) RE-CALCULAR TOTALES REALES DEL TURNO (server-side fresh)
-      // ══════════════════════════════════════════════════════════════
-      // Ventas del turno — usar perfil.id (public.usuarios.id) que es lo que
-      // la RPC registrar_venta_pos guarda en ventas.usuario_id
-      const ventasSaveQuery = supabase
-        .from('ventas')
-        .select('id, total, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
-        .gte('fecha_cierre', turnoDesde)
-        .lte('fecha_cierre', ahora);
-
-      if (usuarioInternoId) {
-        ventasSaveQuery.eq('usuario_id', usuarioInternoId);
-      }
-
-      const { data: ventas, error: ventasError } = await ventasSaveQuery;
-
-      const { data: gastos, error: gastosError } = await supabase
-        .from('gastos')
-        .select('id, monto, metodo_pago, fecha_gasto')
-        .gte('fecha_gasto', turnoDesde.slice(0, 10))
-        .lte('fecha_gasto', ahora.slice(0, 10));
-
-      if (ventasError) throw ventasError;
-      if (gastosError) throw gastosError;
-
-      const ventasData = ventas ?? [];
-      const gastosData = gastos ?? [];
-
-      let ventasEfectivo = 0, ventasTransferencia = 0, ventasTarjeta = 0, ventasDigital = 0;
-      let gastosEfectivo = 0, gastosTotal = 0;
-
-      for (const v of ventasData) {
-        const total = numero(v.total);
-        switch (v.metodo_pago) {
-          case 'efectivo': ventasEfectivo += total; break;
-          case 'transferencia': ventasTransferencia += total; break;
-          case 'tarjeta': ventasTarjeta += total; break;
-          case 'digital': ventasDigital += total; break;
-          case 'parcial':
-            ventasEfectivo += numero(v.monto_efectivo);
-            ventasTransferencia += numero(v.monto_transferencia);
-            ventasTarjeta += numero(v.monto_tarjeta);
-            ventasDigital += numero(v.monto_digital);
-            break;
-        }
-      }
-
-      for (const g of gastosData) {
-        const monto = numero(g.monto);
-        gastosTotal += monto;
-        if (g.metodo_pago === 'efectivo') gastosEfectivo += monto;
-      }
-
-      const ventasTotal = ventasEfectivo + ventasTransferencia + ventasTarjeta + ventasDigital;
-      // Efectivo esperado = fondo inicial + ventas efectivo - gastos efectivo
-      const efectivoEsperado = datosTurno.fondoInicial + ventasEfectivo - gastosEfectivo;
-      const efectivoDescuadre = efectivoContadoNum - efectivoEsperado;
+      const tenantId = perfil.tenant_id;
+      const ventasEfectivo = numero(cierreData.ventas_efectivo);
+      const ventasTransferencia = numero(cierreData.ventas_transferencia);
+      const ventasTarjeta = numero(cierreData.ventas_tarjeta);
+      const ventasDigital = numero(cierreData.ventas_digital);
+      const gastosEfectivo = numero(cierreData.gastos_efectivo);
+      const gastosTotal = numero(cierreData.gastos_total);
+      const ventasTotal = numero(cierreData.ventas_total);
+      const efectivoEsperado = numero(cierreData.efectivo_esperado);
+      const efectivoDescuadre = numero(cierreData.efectivo_descuadre);
 
       // ══════════════════════════════════════════════════════════════
       // 2) INVENTARIO - solo productos con conteo ingresado
@@ -811,88 +746,8 @@ export default function CierreTurno() {
 
       const totalDescuadre = efectivoDescuadre + inventarioDescuadreValor;
 
-      // ══════════════════════════════════════════════════════════════
-      // 3) GUARDAR CIERRE EN BD
-      // ══════════════════════════════════════════════════════════════
-      const tenantId = await getTenantIdForUser({
-        usuarioId: usuarioInternoId,
-        email: usuario.email,
-      });
-      const datosCierre = {
-        tenant_id: tenantId,
-        usuario_id: usuarioInternoId ?? usuario.id,
-        usuario_email: usuario.email ?? null,
-        usuario_nombre: perfil?.nombre ?? usuario.email ?? null,
-        rol_usuario: perfil?.rol ?? null,
-        turno_desde: turnoDesde,
-        turno_hasta: ahora,
-        efectivo_contado: efectivoContadoNum,
-        efectivo_esperado: efectivoEsperado,
-        efectivo_descuadre: efectivoDescuadre,
-        ventas_efectivo: ventasEfectivo,
-        ventas_transferencia: ventasTransferencia,
-        ventas_tarjeta: ventasTarjeta,
-        ventas_digital: ventasDigital,
-        gastos_efectivo: gastosEfectivo,
-        ventas_total: ventasTotal,
-        gastos_total: gastosTotal,
-        inventario_esperado_valor: inventarioEsperadoValor,
-        inventario_contado_valor: inventarioContadoValor,
-        inventario_descuadre_valor: inventarioDescuadreValor,
-        total_descuadre: totalDescuadre,
-        observaciones: observaciones.trim() || null,
-        ticket_resumen: JSON.stringify(
-          {
-            efectivo_contado: efectivoContadoNum,
-            efectivo_esperado: efectivoEsperado,
-            efectivo_descuadre: efectivoDescuadre,
-            fondo_inicial: datosTurno.fondoInicial,
-            inventario_descuadre_valor: inventarioDescuadreValor,
-            total_descuadre: totalDescuadre,
-            ventas_efectivo: ventasEfectivo,
-            ventas_transferencia: ventasTransferencia,
-            ventas_tarjeta: ventasTarjeta,
-            ventas_digital: ventasDigital,
-            gastos_efectivo: gastosEfectivo,
-            ventas_total: ventasTotal,
-            gastos_total: gastosTotal,
-            items: items.filter((it) => it.diferencia_unidades !== 0).map((it) => ({
-              producto_id: it.producto_id,
-              nombre_producto: it.nombre_producto,
-              diferencia_unidades: it.diferencia_unidades,
-              valor_descuadre: it.valor_descuadre,
-            })),
-          },
-          null,
-          2
-        ),
-        creado_por: {
-          usuario_id: usuario.id,
-          email: usuario.email ?? null,
-          nombre: perfil?.nombre ?? null,
-          rol: perfil?.rol ?? null,
-        },
-      };
-
-      // Intentar con fondo_inicial; si la columna no existe, reintentar sin ella
-      let cierreResult = await supabase
-        .from('cierres_turno')
-        .insert({ ...datosCierre, fondo_inicial: datosTurno.fondoInicial })
-        .select()
-        .single();
-
-      if (cierreResult.error && cierreResult.error.code === '42703') {
-        // Columna fondo_inicial no existe → reintentar sin ella
-        cierreResult = await supabase
-          .from('cierres_turno')
-          .insert(datosCierre)
-          .select()
-          .single();
-      }
-
-      const { data: cierreGuardado, error: cierreError } = cierreResult;
-
-      if (cierreError) throw cierreError;
+      // El cierre de caja ya fue creado atómicamente por cerrar_turno_caja.
+      const cierreGuardado = { id: cierreData.cierre_id };
 
       // ══════════════════════════════════════════════════════════════
       // 4) ITEMS DE INVENTARIO
@@ -972,6 +827,9 @@ export default function CierreTurno() {
         esperado: efectivoEsperado,
         contado: efectivoContadoNum,
         diferencia: efectivoDescuadre,
+        apertura: cierreData.usuario_apertura,
+        cierre: cierreData.usuario_cierre,
+        movimientosEfectivo: cierreData.movimientos_efectivo ?? [],
         tipo: 'auditoria',
         nivel: Math.abs(totalDescuadre) >= 10000 ? 'alta' : 'media',
         mensaje:
