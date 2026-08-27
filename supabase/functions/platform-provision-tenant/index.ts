@@ -5,6 +5,7 @@
 // SUPABASE_SERVICE_ROLE_KEY.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { ensureAuthUser } from "./authUser.ts";
 
 type Payload = {
   idempotency_key: string;
@@ -16,6 +17,8 @@ type Payload = {
   business_phone?: string | null;
   address?: string | null;
   logo_url?: string | null;
+  plan_id?: string | null;
+  module_ids?: string[];
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -32,18 +35,6 @@ function jsonResponse(body: unknown, status = 200) {
 
 function clean(value: unknown, max = 320) {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
-}
-
-async function findAuthUserIdByEmail(admin, email: string): Promise<string | null> {
-  for (let page = 1; page <= 20; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
-    if (error) throw error;
-    const users = data?.users ?? [];
-    const match = users.find((user) => (user.email ?? "").toLowerCase() === email.toLowerCase());
-    if (match?.id) return match.id;
-    if (users.length < 200) return null;
-  }
-  return null;
 }
 
 Deno.serve(async (req) => {
@@ -82,6 +73,8 @@ Deno.serve(async (req) => {
       business_phone: clean(payload?.business_phone, 80) || null,
       address: clean(payload?.address, 500) || null,
       logo_url: clean(payload?.logo_url, 1000) || null,
+      plan_id: clean(payload?.plan_id, 80) || null,
+      module_ids: Array.isArray(payload?.module_ids) ? payload.module_ids.filter((id) => typeof id === "string").slice(0, 100) : [],
     };
 
     if (!normalized.idempotency_key || !normalized.name || !normalized.slug ||
@@ -94,22 +87,16 @@ Deno.serve(async (req) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized.admin_email)) {
       return jsonResponse({ success: false, error: "Email de administrador inválido" }, 400);
     }
-
-    const existingAuthUserId = await findAuthUserIdByEmail(adminClient, normalized.admin_email);
-    if (existingAuthUserId) {
-      createdAuthUserId = null;
-    } else {
-      const { data: invited, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(
-        normalized.admin_email,
-        { data: { nombre: normalized.admin_name } },
-      );
-      if (inviteError) {
-        const recovered = await findAuthUserIdByEmail(adminClient, normalized.admin_email);
-        if (!recovered) return jsonResponse({ success: false, error: "No se pudo invitar al administrador" }, 409);
-      } else {
-        createdAuthUserId = invited?.user?.id ?? null;
-      }
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (normalized.plan_id && !uuidPattern.test(normalized.plan_id)) {
+      return jsonResponse({ success: false, error: "Plan inválido" }, 400);
     }
+    if (normalized.module_ids.some((id) => !uuidPattern.test(id))) {
+      return jsonResponse({ success: false, error: "Módulo inválido" }, 400);
+    }
+
+    const authUser = await ensureAuthUser(adminClient, normalized.admin_email, normalized.admin_name);
+    if (authUser.created) createdAuthUserId = authUser.id;
 
     const { data, error: rpcError } = await userClient.rpc("platform_provision_tenant", {
       p_idempotency_key: normalized.idempotency_key,
@@ -118,10 +105,12 @@ Deno.serve(async (req) => {
       p_regional_code: normalized.regional_code,
       p_admin_email: normalized.admin_email,
       p_admin_name: normalized.admin_name,
-      p_auth_user_id: createdAuthUserId ?? existingAuthUserId,
+      p_auth_user_id: authUser.id,
       p_business_phone: normalized.business_phone,
       p_address: normalized.address,
       p_logo_url: normalized.logo_url,
+      p_plan_id: normalized.plan_id,
+      p_module_ids: normalized.module_ids,
     });
 
     if (rpcError || !data?.success) {
