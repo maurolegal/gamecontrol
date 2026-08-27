@@ -77,6 +77,45 @@ export async function editarVenta({ ventaId, items, idempotencyKey }) {
   }
 }
 
+export async function actualizarVentaAdmin({
+  ventaId,
+  cliente,
+  salaId,
+  estacion,
+  fechaInicio,
+  fechaCierre,
+  metodoPago,
+  montoEfectivo,
+  montoTransferencia,
+  montoTarjeta,
+  montoDigital,
+  total,
+  notas,
+}) {
+  const { data, error } = await supabase.rpc('actualizar_venta_admin', {
+    p_venta_id: ventaId,
+    p_cliente: cliente,
+    p_sala_id: salaId,
+    p_estacion: estacion,
+    p_fecha_inicio: fechaInicio,
+    p_fecha_cierre: fechaCierre,
+    p_metodo_pago: metodoPago,
+    p_monto_efectivo: montoEfectivo,
+    p_monto_transferencia: montoTransferencia,
+    p_monto_tarjeta: montoTarjeta,
+    p_monto_digital: montoDigital,
+    p_total: total,
+    p_notas: notas,
+  });
+
+  if (error) throw new Error(`Error actualizando la venta: ${error.message}`);
+  const result = data?.[0];
+  if (!result?.success) {
+    throw new Error(result?.mensaje || 'No se pudo actualizar la venta.');
+  }
+  return result;
+}
+
 /**
  * Corrige el método de pago de una venta directamente.
  * Permite cambiar metodo_pago y montos incluso en ventas cerradas.
@@ -107,13 +146,18 @@ export async function corregirMetodoPago({
     monto_digital: montoDigital,
   };
 
-  const { error } = await supabase
+  const { data: ventaActualizada, error } = await supabase
     .from('ventas')
     .update(payload)
-    .eq('id', ventaId);
+    .eq('id', ventaId)
+    .select('id')
+    .maybeSingle();
 
   if (error) {
     throw new Error(`Error corrigiendo método de pago: ${error.message}`);
+  }
+  if (!ventaActualizada) {
+    throw new Error('No se pudo corregir el método de pago. Verifique la sesión y los permisos del administrador.');
   }
 }
 

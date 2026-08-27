@@ -5,7 +5,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase }  from '../lib/supabaseClient';
 import * as db       from '../lib/databaseService';
-import { editarVenta, devolverVenta, corregirMetodoPago } from '../lib/ventasService';
+import { editarVenta, devolverVenta, actualizarVentaAdmin } from '../lib/ventasService';
 import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../components/ui/ConfirmProvider';
 import { usePermisos }      from '../hooks/usePermisos';
@@ -347,54 +347,22 @@ export default function Ventas() {
     try {
       // Extraer productos del formulario (con producto_id y cantidad)
       const productosForm = datos.productos ?? [];
-      delete datos._productosOriginales;
-      delete datos.productos; // No existe como columna en la tabla ventas
+      const productosOriginales = datos._productosOriginales ?? [];
+      const datosVenta = { ...datos };
+      delete datosVenta._productosOriginales;
+      delete datosVenta.productos; // No existe como columna en la tabla ventas
 
-      // ── 0. Actualizar campos metadata de la cabecera ──
-      //     (cliente, sala_id, estacion, fechas, notas)
-      //     Estos campos NO los manejan corregirMetodoPago ni editarVenta RPC.
-      //     El total se actualiza al FINAL (paso 3) para que no sea
-      //     sobrescrito por el recálculo de la RPC editar_venta.
-      const camposMetadata = {};
-      if (datos.cliente !== undefined)      camposMetadata.cliente = datos.cliente;
-      if (datos.sala_id !== undefined)      camposMetadata.sala_id = datos.sala_id;
-      if (datos.estacion !== undefined)     camposMetadata.estacion = datos.estacion;
-      if (datos.fecha_inicio !== undefined) camposMetadata.fecha_inicio = datos.fecha_inicio;
-      if (datos.fecha_cierre !== undefined) camposMetadata.fecha_cierre = datos.fecha_cierre;
-      if (datos.notas !== undefined)        camposMetadata.notas = datos.notas;
-
-      if (Object.keys(camposMetadata).length > 0) {
-        const { error: errMeta } = await supabase
-          .from('ventas')
-          .update(camposMetadata)
-          .eq('id', id);
-        if (errMeta) {
-          throw new Error(`Error actualizando datos de la venta: ${errMeta.message}`);
-        }
-      }
-
-      // ── 1. Corregir método de pago (siempre permitido, incluso en cerradas) ──
-      const metodoCambiado = datos.metodo_pago !== undefined;
-      if (metodoCambiado) {
-        await corregirMetodoPago({
-          ventaId: id,
-          metodoPago: datos.metodo_pago,
-          montoEfectivo: datos.monto_efectivo ?? null,
-          montoTransferencia: datos.monto_transferencia ?? null,
-          montoTarjeta: datos.monto_tarjeta ?? null,
-          montoDigital: datos.monto_digital ?? null,
-        });
-      }
-
-      // ── 2. Editar items via RPC (solo si hay items con producto_id) ──
+      // ── 1. Editar items via RPC (solo si hay items con producto_id) ──
       const items = productosForm
         .filter(p => p.producto_id && Number(p.cantidad) > 0)
         .map(p => ({
           producto_id: p.producto_id,
           cantidad: Number(p.cantidad),
         }));
+      const hayItemsGestionables = productosForm.some(p => p.producto_id)
+        || productosOriginales.some(p => p.producto_id);
 
-      if (items.length > 0) {
+      if (hayItemsGestionables) {
         try {
           const result = await editarVenta({
             ventaId: id,
@@ -414,54 +382,25 @@ export default function Ventas() {
         }
       }
 
-      // ── 3. Actualizar total manualmente (override del admin) ──
-      //     Se hace DESPUÉS de editarVenta RPC para que el recálculo
-      //     automático no sobrescriba el valor que el admin ingresó.
-      //     También sincroniza subtotal_tiempo para sesiones (consistencia).
-      if (datos.total !== undefined && datos.total !== null) {
-        const nuevoTotal = parseFloat(datos.total) || 0;
-        const updateTotal = { total: nuevoTotal, updated_at: new Date().toISOString() };
+      await actualizarVentaAdmin({
+        ventaId: id,
+        cliente: datosVenta.cliente,
+        salaId: datosVenta.sala_id,
+        estacion: datosVenta.estacion,
+        fechaInicio: datosVenta.fecha_inicio,
+        fechaCierre: datosVenta.fecha_cierre,
+        metodoPago: datosVenta.metodo_pago,
+        montoEfectivo: datosVenta.monto_efectivo,
+        montoTransferencia: datosVenta.monto_transferencia,
+        montoTarjeta: datosVenta.monto_tarjeta,
+        montoDigital: datosVenta.monto_digital,
+        total: datosVenta.total,
+        notas: datosVenta.notas,
+      });
 
-        // Para ventas de sesión: ajustar subtotal_tiempo = total - subtotal_productos
-        // Para ventas POS: ajustar descuento = subtotal_productos - total
-        // Esto mantiene consistencia entre los componentes y el total final.
-        const { data: ventaActual } = await supabase
-          .from('ventas')
-          .select('sesion_id, subtotal_productos, subtotal_tiempo, descuento')
-          .eq('id', id)
-          .single();
-
-        if (ventaActual) {
-          const subtotalProd = parseFloat(ventaActual.subtotal_productos) || 0;
-          if (ventaActual.sesion_id) {
-            // Sesión: subtotal_tiempo = total - subtotal_productos
-            updateTotal.subtotal_tiempo = Math.max(0, nuevoTotal - subtotalProd);
-          } else {
-            // POS: descuento = subtotal_productos - total
-            updateTotal.descuento = Math.max(0, subtotalProd - nuevoTotal);
-          }
-        }
-
-        const { error: errTotal } = await supabase
-          .from('ventas')
-          .update(updateTotal)
-          .eq('id', id);
-        if (errTotal) {
-          throw new Error(`Error actualizando total: ${errTotal.message}`);
-        }
-
-        // Si hay sesión vinculada, sincronizar total_general
-        if (ventaActual?.sesion_id) {
-          await supabase
-            .from('sesiones')
-            .update({ total_general: nuevoTotal, fecha_actualizacion: new Date().toISOString() })
-            .eq('id', ventaActual.sesion_id);
-        }
-      }
-
+      await cargar();
       exito('Venta actualizada correctamente.');
       setEditar(null);
-      cargar();
     } catch (err) {
       notifError(err.message);
     }
