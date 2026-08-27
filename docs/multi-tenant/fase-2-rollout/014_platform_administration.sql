@@ -65,6 +65,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Estado de tenant inválido');
   END IF;
 
+  IF p_tenant_id = '487e6c18-c75f-4661-9ffe-2a2cabf3faf2'::uuid THEN
+    RETURN jsonb_build_object('success', false, 'error', 'NEMESIS está protegido');
+  END IF;
+
   UPDATE public.tenants
   SET status = p_status, updated_at = now()
   WHERE id = p_tenant_id;
@@ -72,6 +76,13 @@ BEGIN
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Tenant no encontrado');
   END IF;
+
+  INSERT INTO public.auditoria (
+    usuario_id, actor_auth_user_id, tabla, registro_id, accion, datos_nuevos, actor_type, tenant_id
+  ) VALUES (
+    NULL, auth.uid(), 'tenants', p_tenant_id, 'UPDATE',
+    jsonb_build_object('status', p_status), 'user', p_tenant_id
+  );
 
   RETURN jsonb_build_object('success', true);
 END;
