@@ -150,7 +150,7 @@ const StationCardInner = memo(function StationCardInner({
       if (dispositivo?.id) {
         const { data: dj } = await supabase
           .from('dispositivo_juegos')
-          .select('juego_id, juegos(nombre, portada_url)')
+          .select('juego_id, juegos!dispositivo_juegos_juego_id_fkey(nombre, portada_url)')
           .eq('dispositivo_id', dispositivo.id);
         setJuegosData({
           dispositivoNombre: dispositivo.nombre,
