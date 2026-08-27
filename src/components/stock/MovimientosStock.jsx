@@ -158,7 +158,7 @@ export default function MovimientosStock() {
     setCargando(true);
     try {
       const data = await db.select('movimientos_stock', {
-        select: '*, producto:productos(nombre, imagen_url), usuario:usuarios!usuario_id(nombre,rol)',
+        select: '*, producto:productos!movimientos_stock_producto_id_fkey(nombre, imagen_url), usuario:usuarios!usuario_id(nombre,rol)',
         ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
         range: [0, LOTE_CARGA - 1],
       });
@@ -178,7 +178,7 @@ export default function MovimientosStock() {
     try {
       const desde = movimientos.length;
       const data = await db.select('movimientos_stock', {
-        select: '*, producto:productos(nombre, imagen_url), usuario:usuarios!usuario_id(nombre,rol)',
+        select: '*, producto:productos!movimientos_stock_producto_id_fkey(nombre, imagen_url), usuario:usuarios!usuario_id(nombre,rol)',
         ordenPor: { campo: 'fecha_movimiento', direccion: 'desc' },
         range: [desde, desde + LOTE_CARGA - 1],
       });

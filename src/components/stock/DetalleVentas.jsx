@@ -36,7 +36,7 @@ export default function DetalleVentas() {
       setEtiqueta(esHoy ? 'Hoy' : inicio.toLocaleDateString('es-CO'));
 
       const data = await db.select('movimientos_stock', {
-        select: '*, producto:productos(nombre)',
+        select: '*, producto:productos!movimientos_stock_producto_id_fkey(nombre)',
         filtros: {
           tipo: 'venta',
           fecha_movimiento: [

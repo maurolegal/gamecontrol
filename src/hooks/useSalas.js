@@ -90,7 +90,7 @@ function sesionAPayload(s, authUid) {
 }
 
 export function useSalas() {
-  const { salas, setSalas, sesiones, setSesiones } = useGameStore();
+  const { salas, setSalas, sesiones, setSesiones, usuario, perfil } = useGameStore();
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -194,10 +194,16 @@ export function useSalas() {
   const abrirSesion = useCallback(
     async ({ salaId, estacion, cliente, cliente_id, modo, tiempo, tarifa, notas }) => {
       const authUid = await getAuthUid();
+      const tenantId = await db.getTenantIdForUser({
+        usuarioId: perfil?.id,
+        email: usuario?.email,
+      });
+      const usuarioId = perfil?.id || authUid;
       const notaFinal = modo === 'libre' ? `[TIEMPO_LIBRE]${notas ? ' ' + notas : ''}` : (notas || null);
       const payload = {
+        tenant_id: tenantId,
         sala_id: salaId,
-        usuario_id: authUid || undefined,
+        usuario_id: usuarioId || undefined,
         estacion,
         cliente: cliente || 'Cliente',
         fecha_inicio: new Date().toISOString(),
@@ -238,7 +244,7 @@ export function useSalas() {
         throw e;
       }
     },
-    [getAuthUid]
+    [getAuthUid, perfil?.id, usuario?.email]
   );
 
   // ── Agregar tiempo extra ──────────────────────────────────────────
