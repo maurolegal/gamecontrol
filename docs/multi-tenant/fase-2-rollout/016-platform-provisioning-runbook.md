@@ -8,20 +8,23 @@ Esta entrega prepara el provisioning, pero **no crea TENANT TEST** ni ejecuta mi
 
 - `014_platform_administration.sql`: funciones de plataforma para listar, consultar y cambiar estado. La autorización se basa exclusivamente en `auth.jwt()->app_metadata->platform_role`.
 - `016_platform_provisioning.sql`: configuración por `tenant_id`, catálogo regional, idempotencia, auditoría y RPC `SECURITY DEFINER`.
+- `017_platform_billing_modules.sql`: planes, módulos, suscripciones y asignaciones tenant-scoped, sin datos iniciales.
+- `018_platform_console_rpcs.sql`: dashboard, catálogos, detalle, admins, auditoría, gating y mutaciones platform protegidas.
 - `supabase/functions/platform-provision-tenant`: valida el JWT, invita al usuario Auth, llama al RPC y elimina el usuario Auth recién creado si la transacción falla.
-- `/platform/tenants`: listado, detalle, activación/suspensión y modal de provisioning.
+- `/platform`: consola separada con inicio, tenants, suscripciones, módulos, facturación, admins, auditoría y configuración.
 
 ## Orden controlado de validación
 
 1. Generar snapshot de NEMESIS usando `01-SNAPSHOT-PRECHECK.sql` y conservar el resultado fuera del repositorio.
 2. Aplicar y revisar `014_platform_administration.sql` en staging.
 3. Aplicar y revisar `016_platform_provisioning.sql` en staging. No usar `supabase reset`.
-4. Verificar que la configuración existente conserva sus datos y `tenant_id`, que `configuracion.tenant_id` es único y que ya no existe `CHECK(id = 1)`.
-5. Desplegar la Edge Function con `SUPABASE_SERVICE_ROLE_KEY` únicamente como secreto del servidor.
-6. Confirmar que el usuario operador de plataforma tiene `app_metadata.platform_role = platform_admin`; no usar `user_metadata`, `localStorage` ni `usuarios.rol` para autorizar plataforma.
-7. Probar listado, detalle, suspensión/reactivación e idempotencia con un slug sintético en staging.
-8. Comparar el snapshot de NEMESIS después de las pruebas.
-9. Solo después de la aprobación interna, crear deliberadamente `TEST GAMING CENTER` desde la UI. No copiar datos de NEMESIS.
+4. Aplicar `017_platform_billing_modules.sql` y `018_platform_console_rpcs.sql` en staging.
+5. Verificar que la configuración existente conserva sus datos y `tenant_id`, que `configuracion.tenant_id` es único y que ya no existe `CHECK(id = 1)`.
+6. Desplegar la Edge Function con `SUPABASE_SERVICE_ROLE_KEY` únicamente como secreto del servidor.
+7. Confirmar que el usuario operador de plataforma tiene `app_metadata.platform_role = platform_admin`; no usar `user_metadata`, `localStorage` ni `usuarios.rol` para autorizar plataforma.
+8. Probar listado, detalle, suscripción, módulos, suspensión/reactivación e idempotencia con un slug sintético en staging.
+9. Comparar el snapshot de NEMESIS después de las pruebas.
+10. Solo después de la aprobación interna, crear deliberadamente `TEST GAMING CENTER` desde la UI. No copiar datos de NEMESIS.
 
 ## Contrato de provisioning
 
@@ -35,6 +38,7 @@ La RPC crea en una única transacción SQL:
 - una configuración inicial por `tenant_id`;
 - usuario interno administrador;
 - membership invitada;
+- suscripción opcional y módulos opcionales seleccionados;
 - auditoría.
 
 La RPC no crea filas en `auth.users`. La Edge Function es el único componente con `service_role` y aplica compensación si el SQL falla.
@@ -51,7 +55,7 @@ La RPC no crea filas en `auth.users`. La Edge Function es el único componente c
 
 ## Rollback
 
-`016_platform_provisioning.rollback.sql` es deliberadamente bloqueante: se detiene si encuentra tenants o configuraciones adicionales a NEMESIS. Ejecutarlo solo en staging o con aprobación explícita y snapshot.
+`016_platform_provisioning.rollback.sql` es deliberadamente bloqueante: se detiene si encuentra tenants o configuraciones adicionales a NEMESIS. `017_platform_billing_modules.rollback.sql` se detiene si existen datos de catálogo o asignaciones. Ejecutar ambos solo en staging o con aprobación explícita y snapshot.
 
 No ejecutar durante esta fase:
 
