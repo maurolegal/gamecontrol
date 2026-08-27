@@ -183,6 +183,7 @@ BEGIN
   INTO v_sesion
   FROM public.sesiones
   WHERE id = p_sesion_id
+    AND tenant_id = public.current_tenant_id()
   FOR UPDATE;
 
   IF NOT FOUND THEN
@@ -235,7 +236,9 @@ BEGIN
 
           SELECT COALESCE(SUM(subtotal), 0) INTO v_subtotal_productos
           FROM public.venta_items
-          WHERE venta_id = v_venta_id AND tipo = 'producto';
+          WHERE venta_id = v_venta_id
+            AND tenant_id = public.current_tenant_id()
+            AND tipo = 'producto';
 
           RETURN QUERY SELECT 'OK_IDEMPOTENTE'::TEXT, v_venta_id, p_sesion_id,
             v_idemp_existing, v_subtotal_productos,
@@ -256,6 +259,7 @@ BEGIN
   SELECT id, estado INTO v_venta
   FROM public.ventas
   WHERE sesion_id = p_sesion_id
+    AND tenant_id = public.current_tenant_id()
   FOR UPDATE;
 
   IF v_venta.id IS NOT NULL THEN
@@ -269,7 +273,7 @@ BEGIN
     v_venta_id := v_venta.id;
   ELSE
     -- 8. Crear venta abierta (INSERT ON CONFLICT para race safety)
-    --    Si dos procesos intentan crear simultáneamente, el UNIQUE(sesion_id)
+    --    Si dos procesos intentan crear simultáneamente, el UNIQUE(tenant_id, sesion_id)
     --    hace que uno gane y el otro haga DO NOTHING.
     INSERT INTO public.ventas (
     tenant_id,
@@ -283,7 +287,7 @@ BEGIN
       v_sesion.fecha_inicio, NOW(), 'efectivo', 'abierta',
       0, 0, 0, 0, NULL
     )
-    ON CONFLICT (sesion_id) DO NOTHING
+    ON CONFLICT (tenant_id, sesion_id) DO NOTHING
     RETURNING id INTO v_venta_id;
 
     -- Si v_venta_id es NULL (otro proceso ganó), recuperar
@@ -291,6 +295,7 @@ BEGIN
       SELECT id, estado INTO v_venta
       FROM public.ventas
       WHERE sesion_id = p_sesion_id
+        AND tenant_id = public.current_tenant_id()
       FOR UPDATE;
 
       v_venta_id := v_venta.id;
@@ -307,7 +312,8 @@ BEGIN
   -- 9. Obtener siguiente line_no
   SELECT COALESCE(MAX(line_no), 0) INTO v_line_no
   FROM public.venta_items
-  WHERE venta_id = v_venta_id;
+  WHERE venta_id = v_venta_id
+    AND tenant_id = public.current_tenant_id();
 
   -- 10. Procesar items: validar productos, recalcular precios (server-side),
   --     descontar stock, crear venta_items
@@ -327,6 +333,7 @@ BEGIN
     SELECT id, nombre, precio, activo, categoria INTO v_producto
     FROM public.productos
     WHERE id = v_producto_id
+      AND tenant_id = public.current_tenant_id()
     FOR UPDATE;
 
     IF NOT FOUND THEN
@@ -389,21 +396,25 @@ BEGIN
   -- 11. Recalcular total_productos de la venta (incluyendo items previos + nuevos)
   SELECT COALESCE(SUM(subtotal), 0) INTO v_subtotal_productos
   FROM public.venta_items
-  WHERE venta_id = v_venta_id AND tipo = 'producto';
+  WHERE venta_id = v_venta_id
+    AND tenant_id = public.current_tenant_id()
+    AND tipo = 'producto';
 
   -- 12. Actualizar venta abierta con nuevo subtotal
   UPDATE public.ventas
   SET subtotal_productos = v_subtotal_productos,
       total = v_subtotal_productos - descuento,
       updated_at = NOW()
-  WHERE id = v_venta_id;
+  WHERE id = v_venta_id
+    AND tenant_id = public.current_tenant_id();
 
   -- 13. Actualizar cache de sesión (condición 2: misma transacción)
   UPDATE public.sesiones
   SET productos = v_cache_productos,
       total_productos = v_subtotal_productos,
       fecha_actualizacion = NOW()
-  WHERE id = p_sesion_id;
+  WHERE id = p_sesion_id
+    AND tenant_id = public.current_tenant_id();
 
   -- 14. Retornar éxito
   RETURN QUERY SELECT 'OK'::TEXT, v_venta_id, p_sesion_id,
