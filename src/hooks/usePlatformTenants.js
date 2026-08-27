@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabaseClient';
 
 export function usePlatformTenants(enabled = false) {
   const [tenants, setTenants] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [modules, setModules] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
@@ -10,9 +12,18 @@ export function usePlatformTenants(enabled = false) {
     if (!enabled) return;
     setCargando(true);
     setError(null);
-    const { data, error: requestError } = await supabase.rpc('platform_list_tenants');
+    const [{ data: tenantData, error: tenantError }, { data: planData, error: planError }, { data: moduleData, error: moduleError }] = await Promise.all([
+      supabase.rpc('platform_list_tenants_console'),
+      supabase.rpc('platform_list_plans'),
+      supabase.rpc('platform_list_modules'),
+    ]);
+    const requestError = tenantError || planError || moduleError;
     if (requestError) setError(requestError.message);
-    else setTenants(data ?? []);
+    else {
+      setTenants(tenantData?.tenants ?? []);
+      setPlans(planData?.plans ?? []);
+      setModules(moduleData?.modules ?? []);
+    }
     setCargando(false);
   }, [enabled]);
 
@@ -38,5 +49,5 @@ export function usePlatformTenants(enabled = false) {
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  return { tenants, cargando, error, cargar, cambiarEstado, provisionar };
+  return { tenants, plans, modules, cargando, error, cargar, cambiarEstado, provisionar };
 }

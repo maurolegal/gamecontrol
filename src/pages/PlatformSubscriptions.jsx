@@ -1,0 +1,9 @@
+import { CreditCard } from 'lucide-react';
+import { usePlatformConsole } from '../hooks/usePlatformConsole';
+import { Header, Notice } from './PlatformHome';
+
+export default function PlatformSubscriptions({ billingOnly = false }) {
+  const { plans, loading, error, load } = usePlatformConsole();
+  return <div className="space-y-7"><Header eyebrow="REVENUE" title={billingOnly ? 'Facturación' : 'Suscripciones'} subtitle="Estructura preparada para planes y periodos de facturación." onRefresh={load} loading={loading} />{error && <Notice>{error}</Notice>}<div className="rounded-xl p-5" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}><div className="mb-4 flex items-center gap-2 text-sm font-medium text-white"><CreditCard size={16} className="text-[#8B7CFF]" /> Planes configurados</div>{plans.length ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{plans.map((plan) => <div key={plan.id} className="rounded-lg p-4" style={{ border: '1px solid var(--gc-border)' }}><div className="flex items-center justify-between"><span className="font-medium text-white">{plan.name}</span><span className={plan.active ? 'text-[#00D656]' : 'text-gray-600'}>{plan.active ? 'Activo' : 'Inactivo'}</span></div><div className="mt-2 text-xs text-gray-500">{plan.code} · {plan.price} {plan.currency} / {plan.billing_period}</div><p className="mt-3 text-xs text-gray-400">{plan.description || 'Sin descripción'}</p></div>)}</div> : <Empty text="No hay planes configurados todavía." />}</div><div className="rounded-xl p-5 text-xs text-gray-500" style={{ background: 'rgba(255,255,255,.02)', border: '1px solid var(--gc-border)' }}>No se han integrado pagos reales ni se almacenan tarjetas.</div></div>;
+}
+function Empty({ text }) { return <div className="py-12 text-center text-xs text-gray-500">{text}</div>; }

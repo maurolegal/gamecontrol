@@ -9,7 +9,7 @@ const STATUS_LABEL = { active: 'Activo', suspended: 'Suspendido', archived: 'Arc
 
 export default function PlatformTenants() {
   const [mostrarProvisioning, setMostrarProvisioning] = useState(false);
-  const { tenants, cargando, error, cargar, cambiarEstado, provisionar } = usePlatformTenants(true);
+  const { tenants, plans, modules, cargando, error, cargar, cambiarEstado, provisionar } = usePlatformTenants(true);
   const { exito, error: notifError } = useNotifications();
 
   async function toggleStatus(tenant) {
@@ -49,22 +49,23 @@ export default function PlatformTenants() {
       <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid var(--gc-border)', background: 'var(--gc-surface)' }}>
         <table className="w-full text-left text-[12px]">
           <thead><tr className="text-gray-500" style={{ borderBottom: '1px solid var(--gc-border)' }}>
-            <th className="px-4 py-3 font-medium">Tenant</th><th className="px-4 py-3 font-medium">Estado</th><th className="px-4 py-3 font-medium">País</th><th className="px-4 py-3 font-medium">Moneda</th><th className="px-4 py-3 font-medium">Timezone</th><th className="px-4 py-3 font-medium">Fecha</th><th className="px-4 py-3 font-medium">Usuarios</th><th className="px-4 py-3" />
+            <th className="px-4 py-3 font-medium">Tenant</th><th className="px-4 py-3 font-medium">Estado</th><th className="px-4 py-3 font-medium">País</th><th className="px-4 py-3 font-medium">Moneda</th><th className="px-4 py-3 font-medium">Timezone</th><th className="px-4 py-3 font-medium">Plan</th><th className="px-4 py-3 font-medium">Módulos</th><th className="px-4 py-3 font-medium">Fecha</th><th className="px-4 py-3 font-medium">Usuarios</th><th className="px-4 py-3" />
           </tr></thead>
           <tbody>
             {tenants.map((tenant) => <tr key={tenant.id} className="text-gray-300" style={{ borderBottom: '1px solid var(--gc-border)' }}>
               <td className="px-4 py-3"><div className="font-medium text-white">{tenant.name}</div><div className="text-gray-500">{tenant.slug}</div></td>
               <td className="px-4 py-3"><span className={tenant.status === 'active' ? 'text-[#00D656]' : 'text-amber-400'}>{STATUS_LABEL[tenant.status] || tenant.status}</span></td>
               <td className="px-4 py-3">{tenant.country || '—'}</td><td className="px-4 py-3">{tenant.currency || '—'}</td><td className="px-4 py-3">{tenant.timezone || '—'}</td>
+              <td className="px-4 py-3">{tenant.plan_name || '—'}</td><td className="px-4 py-3">{tenant.module_count ?? 0}</td>
               <td className="px-4 py-3">{tenant.created_at ? new Date(tenant.created_at).toLocaleDateString('es-MX') : '—'}</td>
               <td className="px-4 py-3"><span className="inline-flex items-center gap-1"><UserRound size={13} /> {tenant.user_count}</span></td>
               <td className="px-4 py-3 text-right"><div className="flex justify-end gap-2"><Link to={`/platform/tenants/${tenant.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] text-gray-300" style={{ border: '1px solid var(--gc-border-strong)' }}><ExternalLink size={12} /> Administrar</Link><button onClick={() => toggleStatus(tenant)} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px]" style={{ border: '1px solid var(--gc-border-strong)' }}><ShieldCheck size={12} /> {tenant.status === 'active' ? 'Suspender' : 'Activar'}</button></div></td>
             </tr>)}
-            {!cargando && tenants.length === 0 && <tr><td colSpan="8" className="px-4 py-10 text-center text-gray-500">No hay tenants disponibles.</td></tr>}
+            {!cargando && tenants.length === 0 && <tr><td colSpan="10" className="px-4 py-10 text-center text-gray-500">No hay tenants disponibles.</td></tr>}
           </tbody>
         </table>
       </div>
-      {mostrarProvisioning && <PlatformProvisioningModal onClose={() => setMostrarProvisioning(false)} onProvision={provisionar} />}
+      {mostrarProvisioning && <PlatformProvisioningModal onClose={() => setMostrarProvisioning(false)} onProvision={provisionar} plans={plans} modules={modules} />}
     </div>
   );
 }

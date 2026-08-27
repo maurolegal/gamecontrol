@@ -1,0 +1,8 @@
+import { Layers3 } from 'lucide-react';
+import { usePlatformConsole } from '../hooks/usePlatformConsole';
+import { Header, Notice } from './PlatformHome';
+
+export default function PlatformModules() {
+  const { modules, loading, error, load } = usePlatformConsole();
+  return <div className="space-y-7"><Header eyebrow="PRODUCT ENTITLEMENTS" title="Módulos Premium" subtitle="Catálogo de capacidades disponibles para tenants." onRefresh={load} loading={loading} />{error && <Notice>{error}</Notice>}<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{modules.map((module) => <article key={module.id} className="rounded-xl p-5" style={{ background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' }}><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2.5"><span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: 'rgba(168,85,247,.12)', color: '#C084FC' }}><Layers3 size={16} /></span><div><h2 className="text-sm font-medium text-white">{module.name}</h2><p className="text-[10px] uppercase tracking-wider text-gray-600">{module.code}</p></div></div><span className={module.active ? 'text-[11px] text-[#00D656]' : 'text-[11px] text-gray-600'}>{module.active ? 'Activo' : 'Inactivo'}</span></div><p className="mt-4 text-xs leading-5 text-gray-400">{module.description || 'Sin descripción'}</p><div className="mt-4 text-xs text-gray-500">{module.price} {module.currency} · {module.billing_period}</div></article>)}{!loading && modules.length === 0 && <div className="col-span-full rounded-xl py-16 text-center text-xs text-gray-500" style={{ border: '1px solid var(--gc-border)' }}>No hay módulos configurados todavía.</div>}</div></div>;
+}

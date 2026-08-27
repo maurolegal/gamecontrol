@@ -1,38 +1,39 @@
-import { ArrowLeft, Building2, CheckCircle2, ShieldAlert, Users } from 'lucide-react';
+import { ArrowLeft, Building2, CheckCircle2, Layers3, Save, ShieldAlert, Users } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { platformRpc, usePlatformConsole } from '../hooks/usePlatformConsole';
+import { Header, Notice } from './PlatformHome';
+
+const TABS = ['Resumen', 'Usuarios', 'Suscripción', 'Módulos', 'Configuración', 'Actividad'];
 
 export default function PlatformTenantDetail() {
   const { tenantId } = useParams();
+  const { plans, modules } = usePlatformConsole();
   const [data, setData] = useState(null);
+  const [tab, setTab] = useState('Resumen');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const { data: result, error: requestError } = await supabase.rpc('platform_get_tenant', { p_tenant_id: tenantId });
-    if (requestError) setError(requestError.message);
-    else if (!result?.success) setError(result?.error || 'No se pudo cargar el tenant');
-    else setData(result);
-    setLoading(false);
-  }, [tenantId]);
-
+  const load = useCallback(async () => { setLoading(true); setError(null); try { setData(await platformRpc('platform_get_tenant_console', { p_tenant_id: tenantId })); } catch (requestError) { setError(requestError.message); } finally { setLoading(false); } }, [tenantId]);
   useEffect(() => { load(); }, [load]);
 
-  if (loading) return <div className="py-16 text-center text-sm text-gray-500">Cargando tenant…</div>;
-  if (error) return <div className="space-y-4"><Link to="/platform/tenants" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white"><ArrowLeft size={14} /> Volver a tenants</Link><div className="rounded-lg px-4 py-3 text-sm text-red-300" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>{error}</div></div>;
+  async function saveSubscription(event) { event.preventDefault(); const form = new FormData(event.currentTarget); try { await platformRpc('platform_set_tenant_subscription', { p_tenant_id: tenantId, p_plan_id: form.get('plan_id'), p_status: form.get('status') }); await load(); } catch (requestError) { setError(requestError.message); } }
+  async function saveModule(module, event) { const form = new FormData(event.currentTarget); try { await platformRpc('platform_set_tenant_module', { p_tenant_id: tenantId, p_module_id: module.id, p_status: form.get('status'), p_starts_at: form.get('starts_at') || new Date().toISOString(), p_expires_at: form.get('expires_at') || null }); await load(); } catch (requestError) { setError(requestError.message); } }
 
+  if (loading) return <div className="py-16 text-center text-sm text-gray-500">Cargando tenant…</div>;
+  if (error && !data) return <div className="space-y-4"><Link to="/platform/tenants" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white"><ArrowLeft size={14} /> Volver a tenants</Link><Notice>{error}</Notice></div>;
   const tenant = data?.tenant;
-  return <div className="space-y-5">
-    <Link to="/platform/tenants" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-white"><ArrowLeft size={14} /> Volver a tenants</Link>
-    <div className="flex items-start justify-between gap-3 flex-wrap"><div><div className="flex items-center gap-2.5"><span className="inline-flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: 'rgba(139,124,255,0.12)', color: '#8B7CFF' }}><Building2 size={16} /></span><h1 className="text-xl font-bold text-white">{tenant.name}</h1></div><p className="mt-1 text-xs text-gray-500">{tenant.slug} · {tenant.id}</p></div><Status status={tenant.status} /></div>
-    <div className="grid gap-3 sm:grid-cols-3"><Info label="País" value={tenant.country || 'No definido'} /><Info label="Moneda" value={tenant.currency || 'No definida'} /><Info label="Timezone" value={tenant.timezone || 'No definido'} /></div>
-    <section className="rounded-xl p-5" style={{ border: '1px solid var(--gc-border)', background: 'var(--gc-surface)' }}><div className="mb-4 flex items-center gap-2 text-sm font-medium text-white"><Users size={16} className="text-[#8B7CFF]" /> Usuarios y memberships</div><div className="space-y-2">{(data?.users ?? []).map((user) => <div key={user.id} className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.03)' }}><div><div className="text-sm text-white">{user.name}</div><div className="text-xs text-gray-500">{user.email}</div></div><div className="text-right"><div className="text-xs text-gray-300">{user.role}</div><div className="text-[10px] text-gray-500">{user.status}</div></div></div>)}{data?.users?.length === 0 && <div className="py-6 text-center text-xs text-gray-500">No hay usuarios.</div>}</div></section>
-    <div className="flex items-center gap-2 text-xs text-gray-500">{data?.configuration_exists ? <CheckCircle2 size={14} className="text-[#00D656]" /> : <ShieldAlert size={14} className="text-amber-400" />} Configuración inicial {data?.configuration_exists ? 'creada' : 'pendiente'}</div>
-  </div>;
+  const assignedModules = data?.modules ?? [];
+  const subscription = data?.subscription ?? {};
+  return <div className="space-y-7"><Link to="/platform/tenants" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-white"><ArrowLeft size={14} /> Volver a tenants</Link><Header eyebrow="TENANT CONTROL" title={tenant?.name} subtitle={`${tenant?.slug} · ${tenant?.id}`} />{error && <Notice>{error}</Notice>}<div className="grid gap-3 sm:grid-cols-3"><Info label="Estado" value={tenant?.status} /><Info label="Regionalización" value={`${tenant?.country || '—'} · ${tenant?.currency || '—'}`} /><Info label="Creado" value={tenant?.created_at ? new Date(tenant.created_at).toLocaleDateString('es-MX') : '—'} /></div><div className="flex gap-1 overflow-x-auto border-b" style={{ borderColor: 'var(--gc-border)' }}>{TABS.map((item) => <button key={item} onClick={() => setTab(item)} className={`whitespace-nowrap px-3 py-3 text-xs ${tab === item ? 'text-[#C4BFFF]' : 'text-gray-500 hover:text-white'}`} style={tab === item ? { borderBottom: '2px solid #8B7CFF' } : undefined}>{item}</button>)}</div>{tab === 'Resumen' && <Summary data={data} />}{tab === 'Usuarios' && <UsersTab users={data?.users ?? []} />}{tab === 'Suscripción' && <form onSubmit={saveSubscription} className="rounded-xl p-5" style={panelStyle}><div className="mb-4 text-sm font-medium text-white">Suscripción</div><div className="grid gap-4 sm:grid-cols-2"><Field label="Plan"><select name="plan_id" defaultValue={subscription.plan_id || ''} className={inputClass}><option value="">Seleccionar plan</option>{plans.filter((plan) => plan.active).map((plan) => <option key={plan.id} value={plan.id}>{plan.name} · {plan.price} {plan.currency}</option>)}</select></Field><Field label="Estado"><select name="status" defaultValue={subscription.status || 'trialing'} className={inputClass}>{['trialing', 'active', 'past_due', 'cancelled', 'suspended', 'expired'].map((status) => <option key={status}>{status}</option>)}</select></Field></div><button className="mt-5 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-white" style={{ background: '#6D5CE7' }}><Save size={13} /> Guardar suscripción</button></form>}{tab === 'Módulos' && <div className="grid gap-3 md:grid-cols-2">{modules.map((module) => { const assigned = assignedModules.find((item) => item.module_id === module.id); return <form key={module.id} onSubmit={(event) => saveModule(module, event)} className="rounded-xl p-4" style={panelStyle}><div className="flex items-start justify-between gap-3"><div className="flex items-center gap-2"><Layers3 size={15} className="text-[#C084FC]" /><div><div className="text-sm text-white">{module.name}</div><div className="text-[10px] uppercase tracking-wider text-gray-600">{module.code}</div></div></div><select name="status" defaultValue={assigned?.status || 'suspended'} className="rounded-md bg-transparent px-2 py-1 text-[11px] text-gray-300" style={{ border: '1px solid var(--gc-border)' }}><option>active</option><option>suspended</option><option>expired</option></select></div><div className="mt-4 grid grid-cols-2 gap-2"><input name="starts_at" type="datetime-local" defaultValue={toInputDate(assigned?.starts_at)} className={inputClass} /><input name="expires_at" type="datetime-local" defaultValue={toInputDate(assigned?.expires_at)} className={inputClass} /></div><button className="mt-3 text-xs text-[#AFA6FF]">Guardar módulo</button></form>})}{!modules.length && <Empty text="No hay módulos en el catálogo." />}</div>}{tab === 'Configuración' && <div className="rounded-xl p-5 text-sm text-gray-300" style={panelStyle}>{data?.configuration_exists ? <><CheckCircle2 size={16} className="mr-2 inline text-[#00D656]" />Configuración tenant-scoped creada.</> : <><ShieldAlert size={16} className="mr-2 inline text-amber-400" />Configuración pendiente.</>}</div>}{tab === 'Actividad' && <Activity events={data?.activity ?? []} />}</div>;
 }
 
-function Info({ label, value }) { return <div className="rounded-xl p-4" style={{ border: '1px solid var(--gc-border)', background: 'var(--gc-surface)' }}><div className="text-[10px] uppercase tracking-wider text-gray-500">{label}</div><div className="mt-1 text-sm text-white">{value}</div></div>; }
-function Status({ status }) { return <span className={status === 'active' ? 'text-[#00D656]' : 'text-amber-400'}>{status === 'active' ? 'Activo' : status === 'suspended' ? 'Suspendido' : 'Archivado'}</span>; }
+const panelStyle = { background: 'var(--gc-surface)', border: '1px solid var(--gc-border)' };
+const inputClass = 'w-full rounded-lg px-3 py-2 text-xs text-white outline-none';
+function Summary({ data }) { return <div className="grid gap-3 sm:grid-cols-2"><Info label="Plan actual" value={data?.subscription?.plan_name || 'Sin plan'} /><Info label="Módulos activos" value={(data?.modules ?? []).filter((item) => item.status === 'active').length} /><Info label="Usuarios" value={(data?.users ?? []).length} /><Info label="Configuración" value={data?.configuration_exists ? 'Lista' : 'Pendiente'} /></div>; }
+function UsersTab({ users }) { return <div className="space-y-2">{users.map((user) => <div key={user.id} className="flex items-center justify-between rounded-lg px-4 py-3" style={panelStyle}><div><div className="text-sm text-white">{user.name}</div><div className="text-xs text-gray-500">{user.email}</div></div><span className="text-xs text-gray-400">{user.role} · {user.status}</span></div>)}{!users.length && <Empty text="No hay usuarios." />}</div>; }
+function Activity({ events }) { return <div className="space-y-2">{events.map((event) => <div key={event.id} className="rounded-lg px-4 py-3 text-xs text-gray-300" style={panelStyle}>{event.accion} · {event.tabla}<span className="float-right text-gray-600">{event.created_at ? new Date(event.created_at).toLocaleString('es-MX') : '—'}</span></div>)}{!events.length && <Empty text="No hay actividad." />}</div>; }
+function Field({ label, children }) { return <label className="block"><span className="mb-1.5 block text-[10px] uppercase tracking-wider text-gray-600">{label}</span>{children}</label>; }
+function Info({ label, value }) { return <div className="rounded-xl p-4" style={panelStyle}><div className="text-[10px] uppercase tracking-wider text-gray-600">{label}</div><div className="mt-1 text-sm text-white">{value}</div></div>; }
+function Empty({ text }) { return <div className="rounded-xl py-16 text-center text-xs text-gray-500" style={panelStyle}>{text}</div>; }
+function toInputDate(value) { return value ? new Date(value).toISOString().slice(0, 16) : ''; }

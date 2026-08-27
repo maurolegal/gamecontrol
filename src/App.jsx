@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth';
 import { usePermisos } from './hooks/usePermisos';
 import { ConfirmProvider } from './components/ui/ConfirmProvider';
 import Layout from './components/layout/Layout';
+import PlatformLayout from './components/platform/PlatformLayout';
 
 import Login      from './pages/Login';
 import Restablecer from './pages/Restablecer';
@@ -23,8 +24,6 @@ import Ajustes    from './pages/Ajustes';
 import Clientes   from './pages/Clientes';
 import CierreTurno from './pages/CierreTurno';
 import AuditoriaCierres from './pages/AuditoriaCierres';
-import PlatformTenants from './pages/PlatformTenants';
-import PlatformTenantDetail from './pages/PlatformTenantDetail';
 
 // ── Detectar hash de recuperación de Supabase y redirigir ───────────
 function RecoveryRedirect() {
@@ -73,7 +72,10 @@ export default function App() {
         <Route path="/tv"         element={<TVDisplay />} />
         <Route path="/event-live"  element={<EventLive />} />
 
-        {/* Privadas con Layout */}
+        {/* Console separada de Platform */}
+        <Route path="/platform/*" element={<PrivateRoute><PlatformRoute><PlatformLayout /></PlatformRoute></PrivateRoute>} />
+
+        {/* Privadas con Layout operativo de tenant */}
         <Route
           path="/*"
           element={
@@ -93,8 +95,6 @@ export default function App() {
                   <Route path="/dispositivos"  element={<ProtectedRoute modulo="dispositivos"><Dispositivos /></ProtectedRoute>} />
                   <Route path="/recetas"       element={<ProtectedRoute modulo="recetas"><Recetas /></ProtectedRoute>} />
                   <Route path="/ajustes"   element={<ProtectedRoute modulo="ajustes"><Ajustes /></ProtectedRoute>} />
-                  <Route path="/platform/tenants" element={<PlatformRoute><PlatformTenants /></PlatformRoute>} />
-                  <Route path="/platform/tenants/:tenantId" element={<PlatformRoute><PlatformTenantDetail /></PlatformRoute>} />
                 </Routes>
               </Layout>
             </PrivateRoute>
