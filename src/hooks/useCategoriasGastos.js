@@ -1,10 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import * as db from '../lib/databaseService';
 
 // ===================================================================
 // HOOK: Categorías de Gastos
 // Carga y guarda categorías desde la tabla configuracion (JSONB).
-// Compatible con el esquema singleton usado en el JS legacy.
 // ===================================================================
 
 export const CATEGORIAS_DEFAULT = [
@@ -23,27 +22,13 @@ export function useCategoriasGastos() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      // El JS legacy usa un singleton: primera fila de configuracion,
-      // leyendo row.datos.categorias_gastos (JSONB).
-      // Fallback: también revisamos row.valor.categorias_gastos (schema original).
-      const { data, error } = await supabase
-        .from('configuracion')
-        .select('*')
-        .limit(1);
+      const row = await db.getTenantConfiguration();
+      setConfigRow(row);
 
-      if (!error && data && data.length > 0) {
-        const row = data[0];
-        setConfigRow(row);
-
-        const cats =
-          row?.datos?.categorias_gastos ??
-          row?.valor?.categorias_gastos ??
-          (row?.clave === 'categorias_gastos' ? row?.valor : null);
-
-        if (Array.isArray(cats) && cats.length > 0) {
-          setCategorias(cats);
-          return;
-        }
+      const cats = row?.datos?.categorias_gastos;
+      if (Array.isArray(cats) && cats.length > 0) {
+        setCategorias(cats);
+        return;
       }
 
       // Sin datos → usar defaults
@@ -63,30 +48,12 @@ export function useCategoriasGastos() {
    */
   const guardar = useCallback(async (nuevas) => {
     try {
-      if (configRow?.id != null) {
-        // Actualizar fila existente manteniendo el resto del JSONB
-        const datosActuales = configRow?.datos ?? {};
-        const { error } = await supabase
-          .from('configuracion')
-          .update({
-            datos: { ...datosActuales, categorias_gastos: nuevas },
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', configRow.id);
-
-        if (error) throw error;
-      } else {
-        // Insertar nueva fila singleton
-        const { data, error } = await supabase
-          .from('configuracion')
-          .insert({ datos: { categorias_gastos: nuevas } })
-          .select()
-          .single();
-
-        if (error) throw error;
-        if (data) setConfigRow(data);
-      }
-
+      const datosActuales = configRow?.datos ?? {};
+      const data = await db.saveTenantConfiguration({
+        ...datosActuales,
+        categorias_gastos: nuevas,
+      });
+      if (data) setConfigRow(data);
       setCategorias(nuevas);
     } catch (err) {
       console.error('useCategoriasGastos: error al guardar', err);
