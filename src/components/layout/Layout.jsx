@@ -32,10 +32,10 @@ export default function Layout({ children }) {
     let cancelled = false;
     async function cargarConfig() {
       try {
-        const data = await db.select('configuracion', { limite: 1 });
+        const data = await db.getTenantConfiguration();
         if (cancelled) return;
-        if (data?.[0]?.datos) {
-          setConfiguracion(data[0].datos);
+        if (data?.datos) {
+          setConfiguracion(data.datos);
         }
       } catch (_) {}
     }

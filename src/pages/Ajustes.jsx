@@ -131,17 +131,17 @@ export default function Ajustes() {
   useEffect(() => {
     async function cargar() {
       try {
-        const data = await db.select('configuracion', { limite: 1 });
-        if (data?.[0]?.datos) {
-          setConfiguracion(data[0].datos);
-          setForm((prev) => ({ ...prev, ...data[0].datos }));
+        const data = await db.getTenantConfiguration();
+        if (data?.datos) {
+          setConfiguracion(data.datos);
+          setForm((prev) => ({ ...prev, ...data.datos }));
           // Cargar URL del QR si existe
-          if (data[0].datos.qr_imagen_url) {
-            setQrImagenUrl(data[0].datos.qr_imagen_url);
+          if (data.datos.qr_imagen_url) {
+            setQrImagenUrl(data.datos.qr_imagen_url);
           }
           // Cargar métodos disponibles si existen
-          if (data[0].datos.metodos_disponibles) {
-            setMetodosDisponibles(data[0].datos.metodos_disponibles);
+          if (data.datos.metodos_disponibles) {
+            setMetodosDisponibles(data.datos.metodos_disponibles);
           }
         }
       } catch (_) {}
@@ -185,16 +185,7 @@ export default function Ajustes() {
     try {
       const updated_by = await getUsuarioIdSimple();
       const nuevaConfig = { ...configuracion, ...form, metodos_disponibles: metodosDisponibles };
-      const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
-      if (existente?.[0]?.id) {
-        await db.update('configuracion', existente[0].id, {
-          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
-        });
-      } else {
-        await db.insert('configuracion', {
-          id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
-        });
-      }
+      await db.saveTenantConfiguration(nuevaConfig, updated_by);
       setConfiguracion(nuevaConfig);
       exito('Configuración guardada');
     } catch (err) {
@@ -209,12 +200,7 @@ export default function Ajustes() {
     try {
       const updated_by = await getUsuarioIdSimple();
       const nuevaConfig = { ...configuracion, metodos_disponibles: metodosDisponibles };
-      const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
-      if (existente?.[0]?.id) {
-        await db.update('configuracion', existente[0].id, {
-          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
-        });
-      }
+      await db.saveTenantConfiguration(nuevaConfig, updated_by);
       setConfiguracion(nuevaConfig);
       exito('Métodos de pago actualizados');
     } catch (err) {
@@ -315,17 +301,8 @@ export default function Ajustes() {
 
       // Guardar URL en configuración
       const nuevaConfig = { ...configuracion, qr_imagen_url: url };
-      const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
       const updated_by = await getUsuarioIdSimple();
-      if (existente?.[0]?.id) {
-        await db.update('configuracion', existente[0].id, {
-          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
-        });
-      } else {
-        await db.insert('configuracion', {
-          id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
-        });
-      }
+      await db.saveTenantConfiguration(nuevaConfig, updated_by);
       setConfiguracion(nuevaConfig);
       setQrImagenUrl(url);
       exito('Imagen QR guardada correctamente');
@@ -342,13 +319,8 @@ export default function Ajustes() {
     try {
       const nuevaConfig = { ...configuracion };
       delete nuevaConfig.qr_imagen_url;
-      const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
       const updated_by = await getUsuarioIdSimple();
-      if (existente?.[0]?.id) {
-        await db.update('configuracion', existente[0].id, {
-          datos: nuevaConfig, updated_at: new Date().toISOString(), updated_by,
-        });
-      }
+      await db.saveTenantConfiguration(nuevaConfig, updated_by);
       setConfiguracion(nuevaConfig);
       setQrImagenUrl(null);
       exito('Imagen QR eliminada');
@@ -851,16 +823,7 @@ export default function Ajustes() {
               try {
                 setCargando(true);
                 const nuevaConfig = { ...configuracion, ...datosRegionales };
-                const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
-                if (existente?.[0]?.id) {
-                  await db.update('configuracion', existente[0].id, {
-                    datos: nuevaConfig, updated_at: new Date().toISOString(),
-                  });
-                } else {
-                  await db.insert('configuracion', {
-                    id: 1, datos: nuevaConfig, updated_at: new Date().toISOString(),
-                  });
-                }
+                await db.saveTenantConfiguration(nuevaConfig);
                 setConfiguracion(nuevaConfig);
                 exito('Configuración regional guardada');
               } catch (err) {

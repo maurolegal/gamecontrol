@@ -65,9 +65,9 @@ export function useRegionalConfig() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await db.select('configuracion', { limite: 1 });
-      if (data?.[0]?.datos) {
-        setConfiguracion(data[0].datos);
+      const data = await db.getTenantConfiguration();
+      if (data?.datos) {
+        setConfiguracion(data.datos);
       }
     } catch (_e) {
       // fallback a defaults silenciosamente
@@ -79,19 +79,7 @@ export function useRegionalConfig() {
   // Actualizar campos regionales en DB + cache
   const updateRegional = useCallback(async (partial) => {
     const nuevaConfig = { ...configuracion, ...partial };
-    const existente = await db.select('configuracion', { limite: 1 }).catch(() => []);
-    if (existente?.[0]?.id) {
-      await db.update('configuracion', existente[0].id, {
-        datos: nuevaConfig,
-        updated_at: new Date().toISOString(),
-      });
-    } else {
-      await db.insert('configuracion', {
-        id: 1,
-        datos: nuevaConfig,
-        updated_at: new Date().toISOString(),
-      });
-    }
+    await db.saveTenantConfiguration(nuevaConfig);
     setConfiguracion(nuevaConfig);
   }, [configuracion, setConfiguracion]);
 

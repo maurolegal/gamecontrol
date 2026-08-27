@@ -75,9 +75,9 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
 
   const cargarQr = async () => {
     try {
-      const configRes = await db.select('configuracion', { limite: 1 });
-      if (configRes?.[0]?.datos?.qr_imagen_url) {
-        setQrImagenUrl(configRes[0].datos.qr_imagen_url);
+      const configRes = await db.getTenantConfiguration();
+      if (configRes?.datos?.qr_imagen_url) {
+        setQrImagenUrl(configRes.datos.qr_imagen_url);
       }
     } catch (_) {}
   };

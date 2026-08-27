@@ -84,11 +84,11 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
       try {
         const [data, configRes] = await Promise.all([
           db.select('medios_pago', { orderBy: 'created_at' }),
-          db.select('configuracion', { limite: 1 }),
+          db.getTenantConfiguration(),
         ]);
         setMediosPago(data || []);
-        if (configRes?.[0]?.datos?.qr_imagen_url) {
-          setQrImagenUrl(configRes[0].datos.qr_imagen_url);
+        if (configRes?.datos?.qr_imagen_url) {
+          setQrImagenUrl(configRes.datos.qr_imagen_url);
         }
       } catch (e) {
         console.error('Error cargando medios de pago:', e);

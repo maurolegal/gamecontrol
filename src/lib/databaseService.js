@@ -115,6 +115,31 @@ export async function getTenantIdForUser({ usuarioId, email } = {}) {
   return tenantIds[0];
 }
 
+export async function getCurrentTenantId() {
+  const { data, error } = await supabase.rpc('current_tenant_id');
+  if (error || !data) throw error || new Error('No se pudo resolver el tenant actual');
+  return data;
+}
+
+export async function getTenantConfiguration() {
+  const tenantId = await getCurrentTenantId();
+  const { data, error } = await supabase
+    .from('configuracion')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+export async function saveTenantConfiguration(datos, updatedBy = null) {
+  const tenantId = await getCurrentTenantId();
+  const existing = await getTenantConfiguration();
+  const payload = { datos, updated_at: new Date().toISOString(), updated_by: updatedBy, tenant_id: tenantId };
+  if (existing?.id) return update('configuracion', existing.id, payload);
+  return insert('configuracion', payload);
+}
+
 /**
  * Actualiza un registro por id.
  */
