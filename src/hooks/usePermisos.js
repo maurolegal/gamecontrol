@@ -26,8 +26,12 @@ export function usePermisos() {
   const puedeEditarProductos = esAdmin;
   const puedeEliminarProductos = esAdmin;
 
-  // Acceso a módulos según la matriz de permisos
-  const permisosMod = PERMISOS_ROL[rol] ?? PERMISOS_ROL.operador;
+  // Acceso a módulos: la matriz del rol es la base y los permisos guardados
+  // del usuario permiten ajustes específicos, incluyendo desactivar un módulo.
+  const permisosMod = {
+    ...(PERMISOS_ROL[rol] ?? PERMISOS_ROL.operador),
+    ...(perfil?.permisos ?? {}),
+  };
 
   const puedeCerrarTurno = !!permisosMod.cierre_turno;
   const puedeVerAuditoria = !!permisosMod.auditoria_cierres;
