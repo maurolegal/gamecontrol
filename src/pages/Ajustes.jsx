@@ -53,7 +53,7 @@ const inputCls =
 const labelCls = 'block text-[10px] font-medium text-gray-500 uppercase tracking-wider mb-1';
 
 export default function Ajustes() {
-  const { configuracion, setConfiguracion } = useGameStore();
+  const { configuracion, setConfiguracion, perfil } = useGameStore();
   const { salas, actualizarTarifasSala } = useSalas();
   const { exito, error: notifError } = useNotifications();
   const { confirm } = useConfirm();
@@ -386,11 +386,16 @@ export default function Ajustes() {
       notifError('El nombre del juego es obligatorio');
       return;
     }
+    if (!perfil?.tenant_id) {
+      notifError('No se pudo resolver el tenant activo');
+      return;
+    }
     setGuardandoJuego(true);
     try {
       const { data, error } = await supabase
         .from('juegos')
         .insert({
+          tenant_id: perfil?.tenant_id,
           nombre: nuevoJuego.nombre.trim(),
           portada_url: nuevoJuego.portada_url || null,
           estado: 'activo',
@@ -587,6 +592,10 @@ export default function Ajustes() {
   // ── Guardar asignación de juegos ──
   const handleGuardarAsignacion = async () => {
     if (!dispositivoEncontrado || !juegosInstalados) return;
+    if (!perfil?.tenant_id) {
+      notifError('No se pudo resolver el tenant activo');
+      return;
+    }
     setGuardandoAsignacion(true);
     try {
       // Eliminar relaciones existentes
@@ -594,6 +603,7 @@ export default function Ajustes() {
       // Insertar nuevas
       if (juegosInstalados.size > 0) {
         const rows = Array.from(juegosInstalados).map(juego_id => ({
+          tenant_id: perfil?.tenant_id,
           dispositivo_id: dispositivoEncontrado.id,
           juego_id,
         }));
