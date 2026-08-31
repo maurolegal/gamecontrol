@@ -115,15 +115,30 @@ function extraerPagoParcial(notas = '') {
   }
   return found ? m : null;
 }
-function obtenerMontosPago(row) {
+function obtenerMontosPago(row, total) {
   const m = {
     efectivo:      Number(row.monto_efectivo      ?? row.pago_efectivo      ?? 0),
     transferencia: Number(row.monto_transferencia  ?? row.pago_transferencia  ?? 0),
     tarjeta:       Number(row.monto_tarjeta        ?? row.pago_tarjeta        ?? 0),
     qr:            Number(row.monto_digital        ?? row.pago_digital        ?? row.pago_qr ?? 0),
   };
-  if (Object.values(m).some((v) => v > 0)) return m;
-  return extraerPagoParcial(row.notas || row.nota || row.observaciones || '') || m;
+  const montos = Object.values(m).map((v) => (Number.isFinite(v) && v > 0 ? v : 0));
+  const suma = montos.reduce((a, v) => a + v, 0);
+  const totalVenta = Number(total) || 0;
+
+  if (suma > 0) {
+    const factor = totalVenta > 0 ? totalVenta / suma : 0;
+    return Object.fromEntries(Object.keys(m).map((key, i) => [key, montos[i] * factor]));
+  }
+
+  const parcial = extraerPagoParcial(row.notas || row.nota || row.observaciones || '');
+  if (parcial) {
+    const sumaParcial = Object.values(parcial).reduce((a, v) => a + v, 0);
+    const factor = sumaParcial > 0 && totalVenta > 0 ? totalVenta / sumaParcial : 0;
+    return Object.fromEntries(Object.entries(parcial).map(([key, value]) => [key, value * factor]));
+  }
+
+  return m;
 }
 function asignarMetodo(metodo, total) {
   const raw = (metodo || 'efectivo').toLowerCase();
@@ -166,7 +181,7 @@ function calcSaldos(sesiones, ventas, gastos, rango, salaId) {
   const ing = { efectivo: 0, transferencia: 0, tarjeta: 0, qr: 0 };
 
   const acumular = (item, totalFn) => {
-    const m = obtenerMontosPago(item);
+    const m = obtenerMontosPago(item, totalFn(item));
     if (Object.values(m).some((v) => v > 0)) {
       ing.efectivo += m.efectivo; ing.transferencia += m.transferencia;
       ing.tarjeta  += m.tarjeta;  ing.qr += m.qr;
@@ -213,7 +228,7 @@ function calcMetodosPago(sesiones, ventas, rango, salaId) {
   const ven = filtrarSala(filtrarPorRango(ventas.filter(esVentaValida), 'fecha_cierre', rango), 'sala_id', salaId);
   const m = { efectivo: 0, transferencia: 0, tarjeta: 0, qr: 0 };
   const acumular = (item, totalFn) => {
-    const mp = obtenerMontosPago(item);
+    const mp = obtenerMontosPago(item, totalFn(item));
     if (Object.values(mp).some((v) => v > 0)) {
       m.efectivo += mp.efectivo; m.transferencia += mp.transferencia;
       m.tarjeta  += mp.tarjeta;  m.qr += mp.qr;

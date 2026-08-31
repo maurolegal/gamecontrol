@@ -2,7 +2,7 @@ import { Filter, X, ChevronDown, Calendar } from 'lucide-react';
 
 // ===================================================================
 // FILTROS DE GASTOS — Toolbar compacta (Design System GameControl)
-// Período | Categoría | Proveedor | Monto
+// Período | Categoría | Proveedor | Método de pago
 // ===================================================================
 
 const PERIODOS = [
@@ -14,11 +14,11 @@ const PERIODOS = [
   { value: 'rango',  label: 'Rango personalizado' },
 ];
 
-const MONTOS = [
-  { value: '0-50',    label: '$0 – $50k' },
-  { value: '50-200',  label: '$50k – $200k' },
-  { value: '200-500', label: '$200k – $500k' },
-  { value: '500+',    label: '$500k+' },
+const METODOS_PAGO = [
+  { value: 'efectivo',      label: 'Efectivo' },
+  { value: 'transferencia', label: 'Transferencia' },
+  { value: 'tarjeta',       label: 'Tarjeta' },
+  { value: 'cheque',        label: 'Cheque' },
 ];
 
 export default function FiltrosGastos({ filtros, setFiltros, categorias, proveedores, totalResultados, onLimpiar }) {
@@ -31,7 +31,7 @@ export default function FiltrosGastos({ filtros, setFiltros, categorias, proveed
     'transition-colors appearance-none cursor-pointer';
 
   const hayFiltros =
-    filtros.periodo !== 'hoy' || !!filtros.categoria || !!filtros.proveedor || !!filtros.monto;
+    filtros.periodo !== 'hoy' || !!filtros.categoria || !!filtros.proveedor || !!filtros.metodoPago;
 
   return (
     <div
@@ -98,17 +98,17 @@ export default function FiltrosGastos({ filtros, setFiltros, categorias, proveed
           <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
         </div>
 
-        {/* Monto */}
+        {/* Método de pago */}
         <div className="relative">
           <select
-            value={filtros.monto}
-            onChange={(e) => set('monto', e.target.value)}
+            value={filtros.metodoPago}
+            onChange={(e) => set('metodoPago', e.target.value)}
             className={`${inputCls} pr-8`}
-            aria-label="Rango de monto"
+            aria-label="Método de pago"
           >
-            <option value="">Todos los montos</option>
-            {MONTOS.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
+            <option value="">Todos los métodos</option>
+            {METODOS_PAGO.map((metodo) => (
+              <option key={metodo.value} value={metodo.value}>{metodo.label}</option>
             ))}
           </select>
           <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />

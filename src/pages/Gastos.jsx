@@ -110,18 +110,9 @@ function aplicarFiltros(gastos, filtros) {
     );
   }
 
-  // Rango de monto (en COP)
-  if (filtros.monto) {
-    resultado = resultado.filter((g) => {
-      const m = parseFloat(g.monto ?? 0);
-      switch (filtros.monto) {
-        case '0-50':    return m >= 0      && m <= 50000;
-        case '50-200':  return m >  50000  && m <= 200000;
-        case '200-500': return m >  200000 && m <= 500000;
-        case '500+':    return m >  500000;
-        default: return true;
-      }
-    });
+  // Método de pago
+  if (filtros.metodoPago) {
+    resultado = resultado.filter((g) => g.metodo_pago === filtros.metodoPago);
   }
 
   return resultado.sort((a, b) =>
@@ -137,7 +128,7 @@ const FILTROS_DEFAULT = {
   hasta:     '',
   categoria: '',
   proveedor: '',
-  monto:     '',
+  metodoPago: '',
 };
 
 export default function Gastos() {
@@ -235,7 +226,7 @@ export default function Gastos() {
 
   // ── ¿Hay filtros activos? (para empty state) ─────────────────────
   const hayFiltrosActivos = useMemo(
-    () => filtros.periodo !== 'hoy' || !!filtros.categoria || !!filtros.proveedor || !!filtros.monto,
+    () => filtros.periodo !== 'hoy' || !!filtros.categoria || !!filtros.proveedor || !!filtros.metodoPago,
     [filtros]
   );
 

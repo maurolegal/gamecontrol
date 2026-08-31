@@ -114,13 +114,31 @@ export default function Stock() {
   return (
     <>
       {/* Título de página + stats compactas */}
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Stock</h2>
-        <p className="text-xs text-gray-500 mt-0.5">
-          <span className="text-gray-300 font-semibold tabular-nums">{kpis.total}</span> productos ·{' '}
-          <span className="text-amber-400 font-semibold tabular-nums">{kpis.stockBajo}</span> stock bajo ·{' '}
-          <span className="text-red-400 font-semibold tabular-nums">{kpis.agotados}</span> agotados
-        </p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-white tracking-tight leading-tight">Gestión de Stock</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            <span className="text-gray-300 font-semibold tabular-nums">{kpis.total}</span> productos ·{' '}
+            <span className="text-amber-400 font-semibold tabular-nums">{kpis.stockBajo}</span> stock bajo ·{' '}
+            <span className="text-red-400 font-semibold tabular-nums">{kpis.agotados}</span> agotados
+          </p>
+        </div>
+        {puedeGestionarProductos && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setModalMercancia(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <Truck size={15} /> Ingresar mercancía
+            </button>
+            <button
+              onClick={() => setModalProducto({ abierto: true, producto: null })}
+              className="inline-flex items-center gap-2 rounded-lg bg-[#00D656] px-3 py-2 text-sm font-semibold text-black transition-colors hover:bg-[#00c94f]"
+            >
+              <Plus size={15} /> Nuevo producto
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── KPI Strip ── */}

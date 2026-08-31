@@ -13,6 +13,14 @@ function obtenerFechaLocal() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function obtenerTotalVenta(venta) {
+  const totalRegistrado = Number(venta.valor_total) || 0;
+  if (totalRegistrado > 0) return totalRegistrado;
+  const cantidad = Math.abs(Number(venta.cantidad) || 0);
+  const precio = Number(venta.precio_unitario ?? venta.costo_unitario ?? venta.producto?.precio) || 0;
+  return cantidad * precio;
+}
+
 export default function DetalleVentas() {
   const [ventas, setVentas] = useState([]);
   const [totalVentas, setTotalVentas] = useState(0);
@@ -36,7 +44,7 @@ export default function DetalleVentas() {
       setEtiqueta(esHoy ? 'Hoy' : inicio.toLocaleDateString('es-CO'));
 
       const data = await db.select('movimientos_stock', {
-        select: '*, producto:productos!movimientos_stock_producto_id_fkey(nombre)',
+        select: '*, producto:productos!movimientos_stock_producto_id_fkey(nombre, precio)',
         filtros: {
           tipo: 'venta',
           fecha_movimiento: [
@@ -50,13 +58,13 @@ export default function DetalleVentas() {
 
       // Filtrar ventas inválidas (monto/cantidad en 0) client-side.
       const ventasFiltradas = (data ?? []).filter(v => {
-        const total = Number(v.valor_total) || 0;
+        const total = obtenerTotalVenta(v);
         const cant = Number(v.cantidad) || 0;
         return !(total === 0 && cant === 0);
       });
 
       setVentas(ventasFiltradas);
-      setTotalVentas(ventasFiltradas.reduce((s, v) => s + (Number(v.valor_total) || 0), 0));
+      setTotalVentas(ventasFiltradas.reduce((s, v) => s + obtenerTotalVenta(v), 0));
     } catch (err) {
       console.error('Error cargando ventas:', err);
     } finally {
@@ -187,7 +195,7 @@ export default function DetalleVentas() {
                   hour: '2-digit', minute: '2-digit', hour12: true,
                 });
                 const nombreProd = v.producto?.nombre || 'Producto desconocido';
-                const total = Number(v.valor_total) || 0;
+                const total = obtenerTotalVenta(v);
 
                 return (
                   <tr
