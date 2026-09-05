@@ -16,6 +16,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import useGameStore from '../store/useGameStore';
+import sessionContext from '../lib/sessionContext';
 import * as db from '../lib/databaseService';
 import { getSuggestedRegional, getCountry } from '../lib/countries';
 import { getCurrency } from '../lib/currencies';
@@ -61,14 +62,21 @@ export function useRegionalConfig() {
     };
   }, [configuracion]);
 
-  // Cargar configuración desde DB (una sola vez al montar)
+  // Cargar configuración desde DB (usa cache sessionContext)
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await db.getTenantConfiguration();
-      if (data?.datos) {
-        setConfiguracion(data.datos);
+      // Configuración vacía también es una respuesta válida; no reintentarla.
+      const config = sessionContext.getTenantConfig();
+      if (config !== null) {
+        setConfiguracion(config);
+        return;
       }
+
+      // Si el contexto aún no está listo, esperar su promesa compartida.
+      await sessionContext.ensureActive();
+      const freshConfig = sessionContext.getTenantConfig();
+      if (freshConfig !== null) setConfiguracion(freshConfig);
     } catch (_e) {
       // fallback a defaults silenciosamente
     } finally {

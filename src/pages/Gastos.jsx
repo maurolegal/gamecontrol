@@ -143,12 +143,32 @@ export default function Gastos() {
   const [modalCats,   setModalCats]   = useState(false);
 
   // ── Cargar gastos desde Supabase ──────────────────────────────────
+  // Sprint Egress-Fix: filtro de fecha server-side + LIMIT 2000 + columnas explícitas.
+  // Antes: select('*, usuario...') sin filtro ni LIMIT → descargaba TODO el histórico.
+  // Ahora: el rango server-side se calcula desde el filtro `periodo` del cliente.
+  // Si el período es "hoy"/"ayer" → rango de 1 día. Si es "año" → rango de 1 año.
+  // Fallback: 90 días si no hay rango calculable.
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
+      // Calcular rango desde el filtro de período del cliente
+      const rango = calcRango(filtros.periodo, filtros.desde, filtros.hasta);
+      // Usar el rango del filtro, o fallback a 90 días si no hay rango
+      let desdeStr;
+      if (rango) {
+        desdeStr = rango.desde.toISOString().split('T')[0];
+      } else {
+        // Fallback: 90 días hacia atrás
+        const hace90dias = new Date();
+        hace90dias.setDate(hace90dias.getDate() - 90);
+        desdeStr = hace90dias.toISOString().split('T')[0];
+      }
+
       const data = await db.select('gastos', {
-        select: '*, usuario:usuarios!usuario_id(nombre,rol)',
+        select: 'id, fecha_gasto, monto, categoria, proveedor, descripcion, concepto, metodo_pago, usuario_id, fecha_creacion, usuario:usuarios!usuario_id(nombre,rol)',
+        filtros: { fecha_gasto: { operador: 'gte', valor: desdeStr } },
         ordenPor: { campo: 'fecha_gasto', direccion: 'desc' },
+        limite: 2000,
       });
       setGastos(data ?? []);
     } catch (err) {
@@ -156,7 +176,7 @@ export default function Gastos() {
     } finally {
       setCargando(false);
     }
-  }, [notifError]);
+  }, [notifError, filtros.periodo, filtros.desde, filtros.hasta]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

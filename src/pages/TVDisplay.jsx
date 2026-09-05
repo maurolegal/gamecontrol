@@ -4,7 +4,7 @@
 // Ruta: /tv  (sin login, sin Layout)
 // ===================================================================
 
-import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
+import { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import { User, Gamepad2, Joystick, Settings, X } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useSalas } from '../hooks/useSalas';
@@ -351,7 +351,6 @@ export default function TVDisplay() {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   });
   const [ultimaActualizacion, setUltimaActualizacion] = useState('');
-  const intervalRef = useRef(null);
 
   // ── Promos del ticker (editables via engranaje) ──
   const [promos, setPromos] = useState(loadPromos);
@@ -400,11 +399,13 @@ export default function TVDisplay() {
 
   // Sprint 0.3-C/D Fase 5: reloj eliminado — usa useGlobalTick (now)
 
-  // Polling cada 20s como fallback (Fase 4 eliminará esto)
+  // Sprint Egress-Fix: polling 20s eliminado.
+  // useSalas() ya activa el singleton manager con realtime + safety-net 60s.
+  // Antes: useSalas 30s + propio 20s = 2 intervalos redundantes.
+  // Ahora: 1 solo interval (60s safety-net) compartido via singleton.
+  // Carga inicial al montar:
   useEffect(() => {
     cargarSesionesActivas();
-    intervalRef.current = setInterval(cargarSesionesActivas, 20000);
-    return () => clearInterval(intervalRef.current);
   }, [cargarSesionesActivas]);
 
   const libres = sesionesEnriched.filter((s) => s.modo === 'libre').length;

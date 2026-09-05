@@ -64,7 +64,7 @@ export default function MovimientoDeHoyCC({ salas = [], sesionesActivas = [] }) 
       const [sesRes, venRes] = await Promise.all([
         supabase
           .from('sesiones')
-          .select('id, sala_id, estacion, cliente, fecha_inicio, fecha_fin, estado, finalizada, total_general, modo, tiempo, tarifa_base, metodo_pago')
+          .select('id, sala_id, estacion, cliente, fecha_inicio, fecha_fin, estado, finalizada, total_general, tarifa_base, metodo_pago, tiempo_contratado, notas')
           .gte('fecha_inicio', inicioHoy)
           .lt('fecha_inicio', finHoy)
           .order('fecha_inicio', { ascending: false })
@@ -78,7 +78,12 @@ export default function MovimientoDeHoyCC({ salas = [], sesionesActivas = [] }) 
           .limit(50),
       ]);
 
-      const sesionesHoy = sesRes.data ?? [];
+      const sesionesHoy = (sesRes.data ?? []).map((s) => ({
+        ...s,
+        // Derivar campos que NO existen en BD (evita PGRST204)
+        tiempo: s.tiempo_contratado ?? 60,
+        modo: (s.notas || '').includes('[TIEMPO_LIBRE]') ? 'libre' : 'fijo',
+      }));
       const ventasHoy = venRes.data ?? [];
 
       // ── Unificar en una sola lista de movimientos ──
@@ -165,12 +170,10 @@ export default function MovimientoDeHoyCC({ salas = [], sesionesActivas = [] }) 
     }
   }, []);
 
-  // ── Cargar al montar ─────────────────────────────────────────────
-  useEffect(() => {
-    cargar();
-  }, [cargar]);
-
-  // ── Recargar cuando cambien las sesiones activas (realtime/refresh) ──
+  // ── Cargar al montar + recargar cuando cambien las sesiones activas (realtime/refresh) ──
+  // Sprint Egress-Fix: un solo useEffect (antes eran dos → cargar() x2 en cada mount,
+  // x4 bajo StrictMode). Este efecto cubre tanto el mount inicial como las actualizaciones
+  // por realtime, porque sesionesKey cambia cuando llegan nuevas sesiones activas.
   const sesionesKey = sesionesActivas.length + '-' + (sesionesActivas[0]?.id ?? '');
   useEffect(() => {
     cargar();

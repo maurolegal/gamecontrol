@@ -20,6 +20,41 @@ import { useAuth } from '../hooks/useAuth';
 import { usePermisos } from '../hooks/usePermisos';
 import { useNotifications } from '../hooks/useNotifications';
 import { formatCOP } from '../lib/formatCurrency';
+import sessionContext from '../lib/sessionContext';
+// Sprint Egress-Fix: catálogos centralizados con in-flight dedup
+import catalogManager from '../lib/catalogManager';
+
+// ── In-flight dedup para ventas/gastos por turno ─────────────────
+// Si el effect re-fire (por cambio de deps) lanza calcularTotalesTurno
+// concurrentemente, comparten una única Promise → 1 HTTP por recurso.
+const _inFlightVentasTurno = new Map(); // turnoId → Promise
+const _inFlightGastosTurno = new Map(); // turnoId → Promise
+
+function fetchVentasTurno(turnoId) {
+  if (_inFlightVentasTurno.has(turnoId)) return _inFlightVentasTurno.get(turnoId);
+  const p = supabase
+    .from('ventas')
+    .select('id, total, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
+    .eq('turno_id', turnoId)
+    .not('estado', 'in', '(anulada,cancelada)')
+    .then(r => { if (r.error) throw r.error; return r.data ?? []; });
+  _inFlightVentasTurno.set(turnoId, p);
+  p.finally(() => _inFlightVentasTurno.delete(turnoId));
+  return p;
+}
+
+function fetchGastosTurno(turnoId) {
+  if (_inFlightGastosTurno.has(turnoId)) return _inFlightGastosTurno.get(turnoId);
+  const p = supabase
+    .from('gastos')
+    .select('id, monto, metodo_pago, fecha_gasto')
+    .eq('turno_id', turnoId)
+    .not('estado', 'in', '(anulado,anulada,cancelado,cancelada)')
+    .then(r => { if (r.error) throw r.error; return r.data ?? []; });
+  _inFlightGastosTurno.set(turnoId, p);
+  p.finally(() => _inFlightGastosTurno.delete(turnoId));
+  return p;
+}
 
 function formatFechaHora(iso) {
   if (!iso) return '—';
@@ -112,35 +147,30 @@ export default function CierreTurno() {
     async function cargar() {
       setCargando(true);
       try {
-        // 1) Cargar TODOS los productos activos + categorías
-        const [productosRes, categoriasRes] = await Promise.all([
-          supabase
-            .from('productos')
-            .select('id, nombre, precio, costo, stock, categoria, es_critico_arqueo')
-            .eq('activo', true)
-            .order('nombre', { ascending: true }),
-          supabase
-            .from('categorias_productos')
-            .select('id, nombre, estado')
-            .eq('estado', 'activa')
-            .order('nombre', { ascending: true }),
+        // 1) Cargar TODOS los productos activos + categorías (vía catalogManager)
+        // Sprint Egress-Fix: in-flight dedup — si otro componente ya pidió
+        // el mismo catálogo, comparten una única Promise → 1 HTTP.
+        const [lista, categoriasList] = await Promise.all([
+          catalogManager.getProductosArqueo(),
+          catalogManager.getCategoriasActivas(),
         ]);
 
-        if (productosRes.error) throw productosRes.error;
-        if (categoriasRes.error) throw categoriasRes.error;
-
-        const lista = productosRes.data ?? [];
         setProductos(lista);
-        setCategorias(categoriasRes.data ?? []);
+        setCategorias(categoriasList);
         const initConteos = Object.fromEntries(lista.map((p) => [p.id, '']));
         setConteosInventario(initConteos);
 
-        // 2) Resolver el turno activo compartido por el tenant
-        const { data: turnoData, error: turnoError } = await supabase.rpc('obtener_turno_caja_activo');
-        if (turnoError) throw turnoError;
-        if (turnoData?.success === false) throw new Error(turnoData.error || 'No se pudo resolver la caja activa');
-        const turno = turnoData?.turno;
-        if (!turno) throw new Error('No hay una caja activa para cerrar');
+        // 2) Resolver el turno desde el contexto centralizado.
+        // El backend ya validó el turno durante la inicialización de sesión.
+        await sessionContext.ensureActive();
+        const cajaState = sessionContext.getCajaState();
+        if (!cajaState.cajaAbierta) throw new Error('No hay una caja activa para cerrar');
+        const turno = {
+          id: cajaState.turno_id,
+          turno_desde: cajaState.turno_desde,
+          fondo_inicial: cajaState.fondo_inicial,
+        };
+        if (!turno.id) throw new Error('No se pudo identificar la caja activa');
 
         const desdeIso = turno.turno_desde;
         setTurnoDesde(desdeIso);
@@ -155,24 +185,12 @@ export default function CierreTurno() {
     }
 
     async function calcularTotalesTurno(desdeIso, fondoInicial = 0, turnoId) {
-      const [ventasRes, gastosRes] = await Promise.all([
-        supabase
-          .from('ventas')
-          .select('id, total, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
-          .eq('turno_id', turnoId)
-          .not('estado', 'in', '(anulada,cancelada)'),
-        supabase
-          .from('gastos')
-          .select('id, monto, metodo_pago, fecha_gasto')
-          .eq('turno_id', turnoId)
-          .not('estado', 'in', '(anulado,anulada,cancelado,cancelada)'),
+      // Sprint Egress-Fix: in-flight dedup — si el effect re-fire
+      // concurrentemente, comparten una única Promise por recurso.
+      const [ventasData, gastosData] = await Promise.all([
+        fetchVentasTurno(turnoId),
+        fetchGastosTurno(turnoId),
       ]);
-
-      if (ventasRes.error) throw ventasRes.error;
-      if (gastosRes.error) throw gastosRes.error;
-
-      const ventasData = ventasRes.data ?? [];
-      const gastosData = gastosRes.data ?? [];
 
       let ventasEfectivo = 0, ventasTransferencia = 0, ventasTarjeta = 0, ventasDigital = 0;
       let gastosEfectivo = 0, gastosTotal = 0;
@@ -701,6 +719,20 @@ export default function CierreTurno() {
       });
       if (cierreRpcError) throw cierreRpcError;
       if (!cierreData?.success) throw new Error(cierreData?.error || 'No se pudo cerrar el turno');
+
+      // Actualizar inmediatamente el estado central tras éxito del RPC.
+      sessionContext.setCajaState({
+        turno_id: null,
+        estado: 'cerrada',
+        usuario_apertura_id: null,
+        usuario_cierre_id: null,
+        turno_desde: null,
+        turno_hasta: null,
+        fondo_inicial: 0,
+        cajaAbierta: false,
+        fondoInicial: 0,
+        turnoInicio: null,
+      });
 
       const tenantId = perfil.tenant_id;
       const ventasEfectivo = numero(cierreData.ventas_efectivo);

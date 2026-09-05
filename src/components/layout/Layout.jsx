@@ -6,7 +6,7 @@ import ModalAperturaCaja from '../caja/ModalAperturaCaja';
 import { useAuth } from '../../hooks/useAuth';
 import { useCaja } from '../../hooks/useCaja';
 import useGameStore from '../../store/useGameStore';
-import * as db from '../../lib/databaseService';
+import sessionContext from '../../lib/sessionContext';
 
 // ===================================================================
 // APP SHELL — Layout global único para toda la aplicación
@@ -26,22 +26,21 @@ export default function Layout({ children }) {
   const setConfiguracion = useGameStore((s) => s.setConfiguracion);
   const [mostrarModalCaja, setMostrarModalCaja] = useState(false);
 
-  // Cargar configuración global al iniciar sesión (para metodos_disponibles, etc.)
+  // Activar sessionContext (singleton: tenant_id, config, perfil, caja)
   useEffect(() => {
     if (!usuario) return;
     let cancelled = false;
-    async function cargarConfig() {
+    async function activarContext() {
       try {
-        const data = await db.getTenantConfiguration();
+        const release = await sessionContext.ensureActive();
         if (cancelled) return;
-        if (data?.datos) {
-          setConfiguracion(data.datos);
-        }
+        // sessionContext ya sincroniza config/perfil/caja con Zustand
+        return release;
       } catch (_) {}
     }
-    cargarConfig();
+    activarContext();
     return () => { cancelled = true; };
-  }, [usuario, setConfiguracion]);
+  }, [usuario]);
 
   // Mostrar modal de apertura cuando el usuario está logueado pero no hay caja abierta
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { subscribe as realtimeSubscribe } from './realtimeService';
+import sessionContext from './sessionContext';
 
 // ===================================================================
 // OPERACIONES CRUD SOBRE SUPABASE
@@ -116,20 +117,17 @@ export async function getTenantIdForUser({ usuarioId, email } = {}) {
 }
 
 export async function getCurrentTenantId() {
-  const { data, error } = await supabase.rpc('current_tenant_id');
-  if (error || !data) throw error || new Error('No se pudo resolver el tenant actual');
-  return data;
+  if (!sessionContext.isReady()) await sessionContext.ensureActive();
+  const tenantId = sessionContext.getTenantId();
+  if (tenantId) return tenantId;
+  throw new Error('No se pudo resolver el tenant actual');
 }
 
 export async function getTenantConfiguration() {
-  const tenantId = await getCurrentTenantId();
-  const { data, error } = await supabase
-    .from('configuracion')
-    .select('*')
-    .eq('tenant_id', tenantId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
+  if (!sessionContext.isReady()) await sessionContext.ensureActive();
+  const config = sessionContext.getTenantConfig();
+  if (config !== null) return { datos: config };
+  throw new Error('No se pudo cargar la configuración del tenant actual');
 }
 
 export async function saveTenantConfiguration(datos, updatedBy = null) {

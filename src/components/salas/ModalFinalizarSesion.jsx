@@ -15,9 +15,9 @@ import { X, Clock, User, Wallet, MessageSquare, ChevronDown, ChevronUp, AlertTri
 import Modal from '../ui/Modal';
 import { useSalas } from '../../hooks/useSalas';
 import { useNotifications } from '../../hooks/useNotifications';
-import * as db from '../../lib/databaseService';
 import { finalizarSesion as finalizarSesionRPC, USE_FINALIZAR_SESION_RPC } from '../../lib/sessionService';
 import { formatCOP } from '../../lib/formatCurrency';
+import sessionContext from '../../lib/sessionContext';
 
 // Sub-componentes memoizados (Sprint 0.4-D)
 import {
@@ -82,13 +82,19 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
   useEffect(() => {
     async function cargar() {
       try {
-        const [data, configRes] = await Promise.all([
-          db.select('medios_pago', { orderBy: 'created_at' }),
-          db.getTenantConfiguration(),
-        ]);
+        // Medios de pago (query necesaria)
+        const data = await db.select('medios_pago', { orderBy: 'created_at' });
         setMediosPago(data || []);
-        if (configRes?.datos?.qr_imagen_url) {
-          setQrImagenUrl(configRes.datos.qr_imagen_url);
+
+        // QR desde config cacheada (evita RPC current_tenant_id + query configuracion)
+        const config = sessionContext.getTenantConfig();
+        if (config !== null) {
+          if (config.qr_imagen_url) setQrImagenUrl(config.qr_imagen_url);
+        } else {
+          // Si aún no está listo, esperar la promesa compartida.
+          await sessionContext.ensureActive();
+          const freshConfig = sessionContext.getTenantConfig();
+          if (freshConfig?.qr_imagen_url) setQrImagenUrl(freshConfig.qr_imagen_url);
         }
       } catch (e) {
         console.error('Error cargando medios de pago:', e);

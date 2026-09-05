@@ -17,6 +17,7 @@ import { CURRENCY_LIST, getCurrency } from '../lib/currencies';
 import { formatCurrency } from '../lib/formatCurrency';
 import { useRegionalConfig } from '../hooks/useRegionalConfig';
 import { formatCOP } from '../lib/formatCurrency';
+import sessionContext from '../lib/sessionContext';
 import {
   Settings, Building2, DollarSign, Save, TrendingDown, Award,
   Gamepad2, Lightbulb, Wallet, Trash2, Plus, Smartphone, CreditCard, QrCode, Upload, X,
@@ -127,22 +128,28 @@ export default function Ajustes() {
     cargarMediosPago();
   }, []);
 
-  // Cargar configuración
+  // Cargar configuración (usa cache sessionContext)
   useEffect(() => {
     async function cargar() {
       try {
-        const data = await db.getTenantConfiguration();
-        if (data?.datos) {
-          setConfiguracion(data.datos);
-          setForm((prev) => ({ ...prev, ...data.datos }));
-          // Cargar URL del QR si existe
-          if (data.datos.qr_imagen_url) {
-            setQrImagenUrl(data.datos.qr_imagen_url);
-          }
-          // Cargar métodos disponibles si existen
-          if (data.datos.metodos_disponibles) {
-            setMetodosDisponibles(data.datos.metodos_disponibles);
-          }
+        // Usar config cacheada en sessionContext (evita RPC current_tenant_id + query configuracion)
+        const config = sessionContext.getTenantConfig();
+        if (config !== null) {
+          setConfiguracion(config);
+          setForm((prev) => ({ ...prev, ...config }));
+          if (config.qr_imagen_url) setQrImagenUrl(config.qr_imagen_url);
+          if (config.metodos_disponibles) setMetodosDisponibles(config.metodos_disponibles);
+          return;
+        }
+
+        // Si aún no está listo, esperar la promesa compartida.
+        await sessionContext.ensureActive();
+        const freshConfig = sessionContext.getTenantConfig();
+        if (freshConfig !== null) {
+          setConfiguracion(freshConfig);
+          setForm((prev) => ({ ...prev, ...freshConfig }));
+          if (freshConfig.qr_imagen_url) setQrImagenUrl(freshConfig.qr_imagen_url);
+          if (freshConfig.metodos_disponibles) setMetodosDisponibles(freshConfig.metodos_disponibles);
         }
       } catch (_) {}
     }

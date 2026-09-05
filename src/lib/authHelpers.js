@@ -159,6 +159,12 @@ export async function resolverNombresUsuariosBatch(usuarioIds) {
 /**
  * Limpia el cache de identidad (útil al cerrar sesión).
  */
+export function hidratarCacheIdentidad(profile) {
+  if (!profile?.id || !profile?.email) return;
+  _cachedUsuarioId = profile.id;
+  _cachedEmail = profile.email;
+}
+
 export function limpiarCacheIdentidad() {
   _cachedUsuarioId = null;
   _cachedEmail = null;

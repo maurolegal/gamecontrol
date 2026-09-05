@@ -615,7 +615,6 @@ export default function EventLive() {
   const hora = new Date(now).toLocaleTimeString('es-CO', {
     hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
   });
-  const intervalRef = useRef(null);
 
   // ── Promos del ticker (editables via engranaje) ──
   const [promos, setPromos] = useState(loadPromos);
@@ -679,11 +678,13 @@ export default function EventLive() {
 
   // Sprint 0.3-C/D Fase 5: reloj eliminado — usa useGlobalTick (now)
 
-  // Polling cada 20s como fallback (Fase 4 eliminará esto)
+  // Sprint Egress-Fix: polling 20s eliminado.
+  // useSalas() ya activa el singleton manager con realtime + safety-net 60s.
+  // Antes: useSalas 30s + propio 20s = 2 intervalos redundantes.
+  // Ahora: 1 solo interval (60s safety-net) compartido via singleton.
+  // Carga inicial al montar:
   useEffect(() => {
     cargarSesionesActivas();
-    intervalRef.current = setInterval(cargarSesionesActivas, 20000);
-    return () => clearInterval(intervalRef.current);
   }, [cargarSesionesActivas]);
 
   // Distribuir estaciones: mitad izquierda, mitad derecha

@@ -14,7 +14,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Search, X, ShoppingCart, Check, DollarSign, Package } from 'lucide-react';
 import Modal from '../ui/Modal';
-import * as db from '../../lib/databaseService';
 import { supabase } from '../../lib/supabaseClient';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useSalas } from '../../hooks/useSalas';
@@ -22,6 +21,7 @@ import { registrarVentaPos, generarIdempotencyKey, USE_RPC_V3 } from '../../lib/
 import { agregarProductosSesion, generarIdempotencyKey as generarSessionKey, USE_SESSION_RPC_V4 } from '../../lib/sessionService';
 import { getUsuarioIdSimple } from '../../lib/authHelpers';
 import { formatCOP } from '../../lib/formatCurrency';
+import sessionContext from '../../lib/sessionContext';
 
 // Sub-componentes memoizados (Sprint 0.4-E)
 import {
@@ -75,10 +75,16 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
 
   const cargarQr = async () => {
     try {
-      const configRes = await db.getTenantConfiguration();
-      if (configRes?.datos?.qr_imagen_url) {
-        setQrImagenUrl(configRes.datos.qr_imagen_url);
+      // Usar config cacheada en sessionContext (evita RPC current_tenant_id + query configuracion)
+      const config = sessionContext.getTenantConfig();
+      if (config !== null) {
+        if (config.qr_imagen_url) setQrImagenUrl(config.qr_imagen_url);
+        return;
       }
+      // Si aún no está listo, esperar la promesa compartida.
+      await sessionContext.ensureActive();
+      const freshConfig = sessionContext.getTenantConfig();
+      if (freshConfig?.qr_imagen_url) setQrImagenUrl(freshConfig.qr_imagen_url);
     } catch (_) {}
   };
 

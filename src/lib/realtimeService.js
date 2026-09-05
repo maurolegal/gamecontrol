@@ -18,8 +18,13 @@ const state = globalThis[GLOBAL_RT_KEY] || {
   tenantId: null,
   generation: 0,
   authSubscription: null,
+  rebuildTimer: null,
+  // Tablas ya registradas en el canal actual (para evitar rebuild innecesario)
+  registeredTables: new Set(),
 };
 globalThis[GLOBAL_RT_KEY] = state;
+
+const REBUILD_DEBOUNCE_MS = 200;
 
 const TENANT_TABLES = new Set([
   'sesiones',
@@ -69,6 +74,7 @@ function removeChannel() {
   }
   state.channel = null;
   state.tenantId = null;
+  state.registeredTables.clear();
 }
 
 async function rebuildChannel() {
@@ -86,6 +92,7 @@ async function rebuildChannel() {
   if (!tenantId || state.subscriptions.size === 0) return;
 
   const channel = supabase.channel(`rt-svc-tenant-${tenantId}`);
+  state.registeredTables.clear();
   for (const [table, callbacks] of state.subscriptions) {
     channel.on(
       'postgres_changes',
@@ -97,13 +104,17 @@ async function rebuildChannel() {
       },
       (payload) => {
         if (state.tenantId !== tenantId || generation !== state.generation) return;
-        callbacks.forEach((callback) => {
+        // Usar los callbacks actuales del Set (pueden haber cambiado sin rebuild)
+        const currentCallbacks = state.subscriptions.get(table);
+        if (!currentCallbacks) return;
+        currentCallbacks.forEach((callback) => {
           try { callback(payload); } catch (error) {
             console.error(`[realtimeService] Error en callback de ${table}:`, error);
           }
         });
       }
     );
+    state.registeredTables.add(table);
   }
 
   state.channel = channel;
@@ -122,22 +133,50 @@ export function subscribe(tabla, callback) {
   }
 
   const callbacks = state.subscriptions.get(tabla) || new Set();
+  const wasEmpty = callbacks.size === 0;
   callbacks.add(callback);
   state.subscriptions.set(tabla, callbacks);
-  rebuildChannel();
+
+  // Solo reconstruir si:
+  // 1. No hay canal, o
+  // 2. La tabla es nueva (no estaba registrada en el canal actual)
+  // Si la tabla ya tenía callbacks y el canal ya la tiene registrada,
+  // el nuevo callback será llamado automáticamente (está en el Set).
+  const needsRebuild = !state.channel || (wasEmpty && !state.registeredTables.has(tabla));
+  if (needsRebuild) {
+    scheduleRebuild();
+  }
 
   return function unsubscribe() {
     const current = state.subscriptions.get(tabla);
     if (!current) return;
     current.delete(callback);
     if (current.size === 0) state.subscriptions.delete(tabla);
+
     if (state.subscriptions.size === 0) {
+      // No hay más suscriptores → detener todo
+      if (state.rebuildTimer) { clearTimeout(state.rebuildTimer); state.rebuildTimer = null; }
       state.generation += 1;
       removeChannel();
-    } else {
-      rebuildChannel();
+      state.registeredTables.clear();
     }
+    // NOTA: si queda la tabla sin callbacks pero con otros suscriptores,
+    // NO reconstruimos el canal. El postgres_changes extra es inofensivo
+    // (recibe eventos pero no hay callbacks que procesar). Esto evita
+    // el churn del WebSocket en cada mount/unmount de componentes.
   };
+}
+
+/**
+ * Rebuild debounced — agrupa múltiples subscribe() rápidos en 1 solo rebuild.
+ * Esto evita que 7 subscriuciones secuenciales causen 7 teardowns+creates.
+ */
+function scheduleRebuild() {
+  if (state.rebuildTimer) clearTimeout(state.rebuildTimer);
+  state.rebuildTimer = setTimeout(() => {
+    state.rebuildTimer = null;
+    rebuildChannel();
+  }, REBUILD_DEBOUNCE_MS);
 }
 
 export function getSubscriberCount(tabla) {
@@ -173,7 +212,8 @@ export function onTenantChange(callback) {
 
 if (!state.authSubscription) {
   const { data } = supabase.auth.onAuthStateChange(() => {
-    rebuildChannel();
+    // Debounced: si hay subscripciones iniciales simultáneas, se agrupan en 1 rebuild.
+    scheduleRebuild();
   });
   state.authSubscription = data?.subscription ?? null;
 }

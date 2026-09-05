@@ -377,19 +377,71 @@ export default function Reportes() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
+      // Sprint Egress-Fix: filtrar por fecha server-side + LIMIT + columnas explícitas.
+      // Antes: select('*') sin filtro ni LIMIT → descargaba TODO el histórico.
+      // Ahora: rango expandido (período actual + anterior para tendencias) + LIMIT 5000.
+      const rangoActual = calcRango(filtros.periodo, filtros.fechaInicio, filtros.fechaFin);
+      const rangoAnt = periodoAnterior(rangoActual);
+      // Rango expandido: desde el inicio del período anterior hasta el fin del actual
+      const fechaDesde = rangoAnt.ini.toISOString();
+      const fechaHasta = rangoActual.fin.toISOString();
+      const fechaDesdeDate = rangoAnt.ini.toISOString().split('T')[0];
+      const fechaHastaDate = rangoActual.fin.toISOString().split('T')[0];
+
+      // Columnas explícitas — solo las que usan las funciones calc*
+      // Esquema real de producción (production-schema.sql):
+      //   sesiones: total_tiempo, total_productos, total_general, descuento, monto_*
+      //     NO existe: total_sesion, total_pagar, subtotal, pago_*, sesion_id (sesion_id está en ventas)
+      //   ventas: total, subtotal_tiempo, subtotal_productos, descuento, monto_*
+      //     NO existe: pago_efectivo, pago_transferencia, pago_tarjeta, pago_digital, pago_qr
+      //   gastos: fecha_gasto, monto, fecha_creacion (sí existe en gastos)
+      // Las funciones JS (totalSesion, obtenerMontosPago) usan ?? fallback → seguras sin esas columnas.
+      const SESIONES_COLS =
+        'id, sala_id, estacion, cliente, fecha_inicio, fecha_fin, estado, ' +
+        'total_general, total_tiempo, total_productos, descuento, ' +
+        'metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, ' +
+        'monto_digital, notas, vendedor';
+
+      const VENTAS_COLS =
+        'id, sesion_id, sala_id, fecha_cierre, estado, total, subtotal_tiempo, subtotal_productos, ' +
+        'descuento, metodo_pago, monto_efectivo, monto_transferencia, ' +
+        'monto_tarjeta, monto_digital, notas';
+
+      const GASTOS_COLS =
+        'id, fecha_gasto, monto, categoria, proveedor, descripcion, concepto, ' +
+        'metodo_pago, numero_factura, numero_recibo, deducible, ' +
+        'recurrente, frecuencia, estado, comprobante_url, fecha_vencimiento, ' +
+        'aprobado_por, fecha_aprobacion, notas';
+
       const [{ data: ses }, { data: ven }, { data: gas }, { data: sal }, { data: vi }] = await Promise.all([
-        supabase.from('sesiones').select('*').order('fecha_inicio', { ascending: false }),
-        supabase.from('ventas').select('*').order('fecha_cierre', { ascending: false }),
-        supabase.from('gastos').select('*').order('fecha_gasto', { ascending: false }),
+        supabase.from('sesiones')
+          .select(SESIONES_COLS)
+          .gte('fecha_inicio', fechaDesde)
+          .lte('fecha_inicio', fechaHasta)
+          .order('fecha_inicio', { ascending: false })
+          .limit(5000),
+        supabase.from('ventas')
+          .select(VENTAS_COLS)
+          .gte('fecha_cierre', fechaDesde)
+          .lte('fecha_cierre', fechaHasta)
+          .order('fecha_cierre', { ascending: false })
+          .limit(5000),
+        supabase.from('gastos')
+          .select(GASTOS_COLS)
+          .gte('fecha_gasto', fechaDesdeDate)
+          .lte('fecha_gasto', fechaHastaDate)
+          .order('fecha_gasto', { ascending: false })
+          .limit(5000),
         supabase.from('salas').select('id,nombre').order('nombre', { ascending: true }),
         supabase.from('venta_items')
           .select(`
             producto_id, descripcion, cantidad, precio_unitario, subtotal, tipo,
-            venta:ventas ( id, sesion_id, sala_id, estado, fecha_cierre, total ),
-            producto:productos ( id, nombre, categoria )
+            venta:ventas!fk_venta_items_venta_tenant ( id, sesion_id, sala_id, estado, fecha_cierre, total ),
+            producto:productos!fk_venta_items_producto_tenant ( id, nombre, categoria )
           `)
           .eq('tipo', 'producto')
-          .not('producto_id', 'is', null),
+          .not('producto_id', 'is', null)
+          .limit(5000),
       ]);
       setData({ sesiones: ses ?? [], ventas: ven ?? [], gastos: gas ?? [], salas: sal ?? [], ventaItems: vi ?? [] });
     } catch (err) {
@@ -398,7 +450,7 @@ export default function Reportes() {
     } finally {
       setCargando(false);
     }
-  }, [notificar]);
+  }, [notificar, filtros.periodo, filtros.fechaInicio, filtros.fechaFin]);
 
   useEffect(() => { cargar(); }, [cargar]);
 

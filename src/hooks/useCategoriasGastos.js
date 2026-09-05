@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import * as db from '../lib/databaseService';
+import useGameStore from '../store/useGameStore';
+import sessionContext from '../lib/sessionContext';
 
 // ===================================================================
 // HOOK: Categorías de Gastos
@@ -22,17 +23,31 @@ export function useCategoriasGastos() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const row = await db.getTenantConfiguration();
-      setConfigRow(row);
-
-      const cats = row?.datos?.categorias_gastos;
-      if (Array.isArray(cats) && cats.length > 0) {
-        setCategorias(cats);
+      // Usar config cacheada en sessionContext (evita RPC current_tenant_id + query configuracion)
+      const config = sessionContext.getTenantConfig();
+      if (config !== null) {
+        const cats = config.categorias_gastos;
+        if (Array.isArray(cats) && cats.length > 0) {
+          setCategorias(cats);
+          setConfigRow({ datos: config });
+        } else {
+          setCategorias(CATEGORIAS_DEFAULT);
+          setConfigRow({ datos: config });
+        }
         return;
       }
 
-      // Sin datos → usar defaults
-      setCategorias(CATEGORIAS_DEFAULT);
+      // Si el contexto aún no está listo, esperar la misma promesa compartida.
+      await sessionContext.ensureActive();
+      const freshConfig = sessionContext.getTenantConfig();
+      const freshCats = freshConfig?.categorias_gastos;
+      if (Array.isArray(freshCats) && freshCats.length > 0) {
+        setCategorias(freshCats);
+        setConfigRow({ datos: freshConfig });
+      } else {
+        setCategorias(CATEGORIAS_DEFAULT);
+        setConfigRow(freshConfig ? { datos: freshConfig } : null);
+      }
     } catch (err) {
       console.warn('useCategoriasGastos: no se pudieron cargar categorías', err);
       setCategorias(CATEGORIAS_DEFAULT);

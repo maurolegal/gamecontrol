@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import useGameStore from '../store/useGameStore';
+import sessionContext from '../lib/sessionContext';
 
 // ===================================================================
 // HOOK DE AUTENTICACIÓN + ROL
@@ -21,17 +22,6 @@ function obtenerRolDeSesion(session) {
   return normalizarRol(rolMeta);
 }
 
-async function cargarPerfilPorEmail(email) {
-  if (!email) return null;
-  const { data, error } = await supabase
-    .from('usuarios')
-    .select('id, nombre, email, rol, permisos, estado, tenant_id')
-    .eq('email', String(email).trim().toLowerCase())
-    .limit(1);
-  if (error) throw error;
-  return data?.[0] ?? null;
-}
-
 export function useAuth() {
   const { usuario, setUsuario, setPerfil } = useGameStore();
   const [cargando, setCargando] = useState(true);
@@ -46,106 +36,36 @@ export function useAuth() {
   const esSupervisor = rol === 'supervisor';
   const canViewAdmin = esAdmin || esSupervisor;
 
-  // Carga sesión existente y perfil
+  // El contexto centralizado inicializa una sola vez por sesión/runtime.
+  // Todos los useAuth() comparten la misma initializationPromise interna.
   useEffect(() => {
     let cancelled = false;
 
-    async function init() {
-      setCargando(true);
-      setError(null);
+    const applyContext = () => {
+      if (cancelled) return;
+      const authUser = sessionContext.getAuthUser();
+      const profile = sessionContext.getUserProfile();
+      const role = sessionContext.getEffectiveRole() || obtenerRolDeSesion(sessionContext.getAuthSession());
+      setUsuario(authUser);
+      setPerfil(profile);
+      setRol(normalizarRol(role));
+      setEsPlatformAdmin(authUser?.app_metadata?.platform_role === 'platform_admin');
+      setCargando(false);
+    };
 
-      try {
-        const { data, error: sessionError } = await supabase.auth.getSession();
-        const session = data?.session ?? null;
+    setCargando(true);
+    sessionContext.ensureActive()
+      .then(applyContext)
+      .catch((error) => {
+        if (cancelled) return;
+        setError(error?.message ?? 'Error al cargar la sesión');
+        applyContext();
+      });
 
-        // Si hay error de sesión (refresh token inválido, etc.), limpiar y salir
-        if (sessionError) {
-          await supabase.auth.signOut({ scope: 'local' });
-          if (cancelled) return;
-          setUsuario(null);
-          setPerfil(null);
-          setRol(null);
-          setEsPlatformAdmin(false);
-          return;
-        }
-
-        setUsuario(session?.user ?? null);
-        setEsPlatformAdmin(session?.user?.app_metadata?.platform_role === 'platform_admin');
-
-        const rolMeta = obtenerRolDeSesion(session);
-        if (rolMeta) setRol(rolMeta);
-
-        // Fallback para perfil/rol desde tabla usuarios (nombre/permisos)
-        const email = session?.user?.email ?? null;
-        if (email) {
-          const perfil = await cargarPerfilPorEmail(email);
-          if (cancelled) return;
-          setPerfil(perfil);
-          if (!rolMeta && perfil?.rol) setRol(normalizarRol(perfil.rol));
-        } else if (!rolMeta) {
-          setRol(null);
-          setPerfil(null);
-        }
-      } catch (e) {
-        // Si el refresh token es inválido, limpiar la sesión local
-        const msg = e?.message ?? '';
-        if (msg.includes('Invalid Refresh Token') || msg.includes('Refresh Token Not Found') || msg.includes('Lock')) {
-          try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) {}
-        }
-        if (!cancelled) {
-          setError(e?.message ?? 'Error al cargar la sesión');
-          setUsuario(null);
-          setPerfil(null);
-          setRol(null);
-          setEsPlatformAdmin(false);
-        }
-      } finally {
-        if (!cancelled) setCargando(false);
-      }
-    }
-
-    init();
-
-    const { data: { subscription } = {} } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        // Si el refresh token falló, limpiar estado y dejar que el usuario re-login
-        if (event === 'TOKEN_REFRESH_FAILED' || (event === 'SIGNED_OUT' && !session)) {
-          setUsuario(null);
-          setPerfil(null);
-          setRol(null);
-          setEsPlatformAdmin(false);
-          return;
-        }
-
-        // Reseteo rápido
-        setUsuario(session?.user ?? null);
-        setEsPlatformAdmin(session?.user?.app_metadata?.platform_role === 'platform_admin');
-
-        const rolMeta = obtenerRolDeSesion(session);
-        if (rolMeta) setRol(rolMeta);
-
-        // Actualizar perfil (nombre/permisos). Fallback por email
-        const email = session?.user?.email ?? null;
-        if (!email) {
-          setPerfil(null);
-          if (!rolMeta) setRol(null);
-          return;
-        }
-        cargarPerfilPorEmail(email)
-          .then((perfil) => {
-            setPerfil(perfil);
-            if (!rolMeta && perfil?.rol) setRol(normalizarRol(perfil.rol));
-          })
-          .catch(() => {
-            setPerfil(null);
-            if (!rolMeta) setRol(null);
-          });
-      }
-    );
-
+    const unsubscribe = sessionContext.subscribe(applyContext);
     return () => {
       cancelled = true;
-      subscription?.unsubscribe?.();
+      unsubscribe();
     };
   }, [setUsuario, setPerfil]);
 

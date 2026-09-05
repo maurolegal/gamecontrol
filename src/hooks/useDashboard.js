@@ -14,6 +14,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import useGameStore from '../store/useGameStore';
 import { onTenantChange, subscribe as realtimeSubscribe } from '../lib/realtimeService';
+// Sprint Egress-Fix: salas + sesiones pasan por salasManager (inFlight dedup).
+// Esto elimina las consultas directas redundantes de useDashboard y centraliza
+// la carga en el singleton. Las funciones devuelven filas CRUDAS (snake_case).
+import { cargarSalas as managerCargarSalas, cargarSesionesActivas as managerCargarSesiones } from '../lib/salasManager';
 
 // ── Helpers de fecha ────────────────────────────────────────────────
 const HOY_DATE = () => new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
@@ -143,59 +147,61 @@ export function useDashboard() {
       const ayerEnd   = hoyEnd; // sobrecargamos y filtramos por fecha local
 
       // Ejecutar consultas en paralelo
+      // Sprint Egress-Fix: salas + sesiones pasan por salasManager (inFlight dedup).
+      // Si salasManager._activate() ya lanzó la carga, estas llamadas comparten
+      // la misma Promise → 0 peticiones extra. Si no, lanzan 1 y la cachean.
       const [
-        { data: ventasHoyRaw },
-        { data: ventasAyerRaw },
-        { data: salasRaw },
-        { data: sesionesRaw },
-        { data: gastosRaw },
-        { data: productosRaw },
-        { data: dispositivosRaw },
-        { data: turnoRaw },
+        ventasHoyRaw,
+        ventasAyerRaw,
+        salasRaw,
+        sesionesRaw,
+        gastosRaw,
+        productosRaw,
+        dispositivosRaw,
+        turnoRaw,
       ] = await Promise.all([
         // Ventas de hoy: tabla ventas, campo fecha_cierre (TIMESTAMP)
         supabase
           .from('ventas')
           .select('total, metodo_pago, fecha_cierre')
           .gte('fecha_cierre', hoyStart)
-          .lte('fecha_cierre', hoyEnd),
+          .lte('fecha_cierre', hoyEnd)
+          .then(r => r.data),
 
         // Ventas de ayer: rango amplio, filtro por fecha local en cliente
         supabase
           .from('ventas')
           .select('total, fecha_cierre')
           .gte('fecha_cierre', ayerStart)
-          .lt('fecha_cierre', hoyEnd),
+          .lt('fecha_cierre', hoyEnd)
+          .then(r => r.data),
 
-        // Todas las salas activas
-        supabase
-          .from('salas')
-          .select('id, nombre, tipo, num_estaciones, tarifas, equipamiento')
-          .eq('activa', true),
+        // Salas activas — vía salasManager (inFlight dedup con el singleton)
+        managerCargarSalas().then(rows => (rows ?? []).filter(s => s.activa !== false)),
 
-        // Sesiones activas — solo filtrar por estado, fecha_fin puede estar seteada en algunos flujos
-        supabase
-          .from('sesiones')
-          .select('id, sala_id, estacion, cliente, fecha_inicio, tiempo_contratado, tiempo_adicional, total_general, estado, notas')
-          .eq('estado', 'activa'),
+        // Sesiones activas — vía salasManager (inFlight dedup con el singleton)
+        managerCargarSesiones(),
 
         // Gastos de hoy (fecha_gasto es tipo DATE)
         supabase
           .from('gastos')
           .select('monto')
-          .eq('fecha_gasto', HOY_DATE()),
+          .eq('fecha_gasto', HOY_DATE())
+          .then(r => r.data),
 
         // Productos activos con stock
         supabase
           .from('productos')
           .select('id, nombre, stock, stock_minimo, categoria, imagen_url')
-          .eq('activo', true),
+          .eq('activo', true)
+          .then(r => r.data),
 
         // Dispositivos (excluyendo baja)
         supabase
           .from('dispositivos')
           .select('id, nombre, estado, tipo, codigo_interno')
-          .neq('estado', 'baja'),
+          .neq('estado', 'baja')
+          .then(r => r.data),
 
         // Último cierre/apertura del usuario actual para turno
         supabase
@@ -203,7 +209,8 @@ export function useDashboard() {
           .select('id, turno_desde, turno_hasta, observaciones, ticket_resumen, usuario_id, created_at')
           .order('created_at', { ascending: false })
           .limit(1)
-          .maybeSingle(),
+          .maybeSingle()
+          .then(r => r.data),
       ]);
 
       const sesionesVivas = sesionesRaw ?? [];
@@ -320,6 +327,9 @@ export function useDashboard() {
 
   // ── fetchGrafico ───────────────────────────────────────────────
   // ventas usa fecha_cierre (TIMESTAMP), gastos usa fecha_gasto (DATE)
+  // Sprint Egress-Fix: LIMIT 1000 + columnas ya específicas.
+  // Antes: sin LIMIT → descargaba TODO el histórico de ventas de 30 días
+  // en cada evento realtime. Ahora: máximo 1000 filas por consulta.
   const fetchGrafico = useCallback(async () => {
     try {
       const dias = periodo === 'hoy' ? 7 : periodo === 'semana' ? 7 : 30;
@@ -332,13 +342,15 @@ export function useDashboard() {
           .from('ventas')
           .select('total, fecha_cierre')
           .gte('fecha_cierre', desde)
-          .order('fecha_cierre', { ascending: true }),
+          .order('fecha_cierre', { ascending: true })
+          .limit(1000),
 
         supabase
           .from('gastos')
           .select('monto, fecha_gasto')
           .gte('fecha_gasto', desdeDate)
-          .order('fecha_gasto', { ascending: true }),
+          .order('fecha_gasto', { ascending: true })
+          .limit(1000),
       ]);
 
       // Agrupar por día
@@ -389,20 +401,45 @@ export function useDashboard() {
 
   // ── initRealtime ───────────────────────────────────────────────
   // Todas las tablas realtime usan el singleton filtrado por tenant.
+  // Sprint Egress-Fix: debounce de 500ms → múltiples eventos = 1 recarga.
+  // Antes: cada evento disparaba fetchKPIs (8 queries) + fetchGrafico (2 queries).
+  // Ahora: ventana de 500ms agrupa eventos → 1 sola actualización consolidada.
   const initRealtime = useCallback(() => {
+    let debounceKPIs = null;
+    let debounceGrafico = null;
+    const DEBOUNCE_MS = 500;
+
+    const debouncedFetchKPIs = () => {
+      if (debounceKPIs) clearTimeout(debounceKPIs);
+      debounceKPIs = setTimeout(() => {
+        debounceKPIs = null;
+        fetchKPIs();
+      }, DEBOUNCE_MS);
+    };
+
+    const debouncedFetchGrafico = () => {
+      if (debounceGrafico) clearTimeout(debounceGrafico);
+      debounceGrafico = setTimeout(() => {
+        debounceGrafico = null;
+        fetchGrafico();
+      }, DEBOUNCE_MS);
+    };
+
     const unsubVentas = realtimeSubscribe('ventas', () => {
-      fetchKPIs();
-      fetchGrafico();
+      debouncedFetchKPIs();
+      debouncedFetchGrafico();
     });
     const unsubGastos = realtimeSubscribe('gastos', () => {
-      fetchKPIs();
-      fetchGrafico();
+      debouncedFetchKPIs();
+      debouncedFetchGrafico();
     });
     const unsubSesiones = realtimeSubscribe('sesiones', () => {
-      fetchKPIs();
+      debouncedFetchKPIs();
     });
 
     return () => {
+      if (debounceKPIs) clearTimeout(debounceKPIs);
+      if (debounceGrafico) clearTimeout(debounceGrafico);
       unsubVentas();
       unsubGastos();
       unsubSesiones();
@@ -436,11 +473,10 @@ export function useDashboard() {
     return cleanup;
   }, [initRealtime]);
 
-  // ── Refresh automático cada 30 s ───────────────────────────────
-  useEffect(() => {
-    const id = setInterval(fetchKPIs, 30_000);
-    return () => clearInterval(id);
-  }, [fetchKPIs]);
+  // ── Refresh automático eliminado (Sprint Egress-Fix) ────────────
+  // Antes: setInterval(fetchKPIs, 30_000) → 8 queries cada 30s = 8.6 GB/mes.
+  // Ahora: solo realtime (con debounce de 500ms) actualiza los KPIs.
+  // fetchKPIs sigue expuesto como refetch para refresco manual.
 
   return {
     cargando,

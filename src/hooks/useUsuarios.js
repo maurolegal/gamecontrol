@@ -1,10 +1,42 @@
 // ===================================================================
 // HOOK: useUsuarios — CRUD de usuarios con Supabase Auth + tabla
+// Sprint Egress-Fix: in-flight dedup para usuarios select=*
 // ===================================================================
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useNotifications } from './useNotifications';
+import { onTenantChange } from '../lib/realtimeService';
+
+// ── In-flight dedup a nivel módulo ───────────────────────────────
+// Si múltiples componentes (Usuarios.jsx + ModalCrearUsuario) montan
+// useUsuarios() concurrentemente, comparten una única Promise.
+let _inFlightUsuarios = null;
+let _cachedUsuarios = null;
+
+// Limpiar cache al cambiar/logout de tenant
+onTenantChange(() => {
+  _inFlightUsuarios = null;
+  _cachedUsuarios = null;
+});
+
+async function _fetchUsuariosAll() {
+  if (_inFlightUsuarios) return _inFlightUsuarios;
+  _inFlightUsuarios = (async () => {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .order('fecha_creacion', { ascending: false });
+    if (error) throw error;
+    _cachedUsuarios = data ?? [];
+    return _cachedUsuarios;
+  })();
+  _inFlightUsuarios.finally(() => { _inFlightUsuarios = null; });
+  return _inFlightUsuarios;
+}
+
+// Exportar para que Usuarios.jsx pueda reutilizar la misma Promise dedup
+export { _fetchUsuariosAll as fetchUsuariosAll };
 
 export function useUsuarios() {
   const [usuarios, setUsuarios] = useState([]);
@@ -13,16 +45,16 @@ export function useUsuarios() {
 
   const cargar = useCallback(async () => {
     setCargando(true);
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .order('fecha_creacion', { ascending: false });
-    if (error) {
-      notifError('Error cargando usuarios: ' + error.message);
-    } else {
-      setUsuarios(data || []);
+    try {
+      // Sprint Egress-Fix: in-flight dedup — si ModalCrearUsuario ya
+      // lanzó la misma consulta, compartimos esa Promise.
+      const data = await _fetchUsuariosAll();
+      setUsuarios(data);
+    } catch (err) {
+      notifError('Error cargando usuarios: ' + err.message);
+    } finally {
+      setCargando(false);
     }
-    setCargando(false);
   }, [notifError]);
 
   useEffect(() => { cargar(); }, [cargar]);

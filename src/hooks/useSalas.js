@@ -2,8 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import * as db from '../lib/databaseService';
 import useGameStore from '../store/useGameStore';
-import { onTenantChange, subscribe as realtimeSubscribe } from '../lib/realtimeService';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
+import salasManager, {
+  cargarSalas as managerCargarSalas,
+  cargarSesionesActivas as managerCargarSesiones,
+  mapearSala,
+  mapearSesion,
+} from '../lib/salasManager';
 
 // ===================================================================
 // FEATURE FLAGS — Sprint 0.3-A
@@ -14,52 +19,10 @@ const USE_ANULAR_SESION_RPC = true;  // true = RPC atómica; false = legacy (fal
 // ===================================================================
 // HOOK DE SALAS
 // Migrado desde js/salas.js – gestiona salas, sesiones y CRUD completo
+// Sprint Egress-Fix: delega carga + realtime + polling a salasManager
+// (singleton con ref-counting). Ya no crea interval ni subscriptions
+// por instancia → elimina la amplificación de egress.
 // ===================================================================
-
-// Mapeo DB → UI: fila de salas
-function mapearSala(row) {
-  return {
-    id: row.id,
-    nombre: row.nombre,
-    tipo: (row.equipamiento?.tipo_consola || row.tipo || '').toLowerCase() || 'pc',
-    numEstaciones: row.num_estaciones ?? 4,
-    prefijo: row.equipamiento?.prefijo || 'EST',
-    icono_url: row.equipamiento?.icono_url || null,
-    tarifa: row.tarifas?.base || 0,
-    tarifas: row.tarifas || { t30: 0, t60: 0, t90: 0, t120: 0 },
-    activo: row.activa ?? true,
-  };
-}
-
-// Mapeo DB → UI: fila de sesiones
-function mapearSesion(row) {
-  const notas = row.notas || '';
-  return {
-    id: row.id,
-    salaId: row.sala_id,
-    estacion: row.estacion,
-    cliente: row.cliente,
-    fecha_inicio: row.fecha_inicio,
-    fecha_fin: row.fecha_fin ?? null,
-    tarifa: row.tarifa_base ?? row.tarifa ?? 0,
-    tarifa_base: row.tarifa_base ?? row.tarifa ?? 0,
-    tiempo: row.tiempo_contratado ?? 60,
-    tiempoOriginal: row.tiempo_contratado ?? 60,
-    tiempoAdicional: row.tiempo_adicional ?? 0,
-    costoAdicional: row.costo_adicional ?? 0,
-    productos: row.productos || [],
-    tiemposAdicionales: row.tiempos_adicionales || [],
-    descuento: row.descuento ?? 0,
-    totalProductos: row.total_productos ?? 0,
-    totalGeneral: row.total_general ?? 0,
-    metodoPago: row.metodo_pago === 'digital' ? 'qr' : (row.metodo_pago ?? 'efectivo'),
-    notas,
-    modo: notas.includes('[TIEMPO_LIBRE]') ? 'libre' : 'fijo',
-    estado: row.estado || (row.finalizada ? 'finalizada' : 'activa'),
-    finalizada: row.finalizada || row.estado === 'finalizada' || !!row.fecha_fin,
-    vendedor: row.vendedor || null,
-  };
-}
 
 // Mapeo UI sesión → payload DB
 function sesionAPayload(s, authUid) {
@@ -104,91 +67,34 @@ export function useSalas() {
     }
   }, []);
 
-  // ── Cargar salas desde DB con mapeo correcto ──────────────────────
+  // ── Cargar salas (delegado al singleton manager) ─────────────────
   const cargarSalas = useCallback(async () => {
     setCargando(true);
-    setError(null);
     try {
-      const res = await db.select('salas', {
-        ordenPor: { campo: 'nombre', direccion: 'asc' },
-      });
-      setSalas((res ?? []).map(mapearSala));
+      await managerCargarSalas();
     } catch (e) {
       setError(e.message);
     } finally {
       setCargando(false);
     }
-  }, [setSalas]);
+  }, []);
 
-  // ── Cargar sesiones activas desde DB ─────────────────────────────
+  // ── Cargar sesiones activas (delegado al singleton manager) ──────
   const cargarSesionesActivas = useCallback(async () => {
     try {
-      const res = await db.select('sesiones', {
-        filtros: { estado: 'activa' },
-        ordenPor: { campo: 'fecha_inicio', direccion: 'asc' },
-      });
-      setSesiones((res ?? []).map(mapearSesion));
+      await managerCargarSesiones();
     } catch (e) {
       setError(e.message);
     }
-  }, [setSesiones]);
+  }, []);
 
-  // ── Suscripción realtime ──────────────────────────────────────────
-  // Sprint 0.3-C/D Fase 2: usa realtimeService (1 canal compartido)
+  // ── Activar singleton manager (ref-counting) ─────────────────────
+  // El primer consumidor activa carga + realtime + safety-net polling.
+  // El último en desmontar detiene todo. No hay interval por instancia.
   useEffect(() => {
-    let unsubSesiones = null;
-    let unsubSalas = null;
-
-    async function init() {
-      // Cargar datos inmediatamente
-      cargarSalas();
-      cargarSesionesActivas();
-
-      // Esperar a que auth esté listo antes de suscribir realtime
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session) {
-          console.log('[useSalas] ✅ Auth listo, suscribiendo realtime...');
-        } else {
-          console.log('[useSalas] ⚠️ Sin sesión auth, realtime puede fallar');
-        }
-      } catch (e) {
-        console.warn('[useSalas] Error verificando auth:', e.message);
-      }
-
-      // Suscribirse via realtimeService (canal compartido)
-      unsubSesiones = realtimeSubscribe('sesiones', (payload) => {
-        console.log('[useSalas] 📡 realtime sesiones → recargando', payload?.eventType);
-        cargarSesionesActivas();
-      });
-
-      unsubSalas = realtimeSubscribe('salas', () => {
-        console.log('[useSalas] 📡 realtime salas → recargando');
-        cargarSalas();
-      });
-    }
-
-    init();
-
-    // ── Safety net: polling cada 30s por si realtime falla silenciosamente ──
-    // Esto NO reemplaza el realtime, solo garantiza que los cambios
-    // hechos desde otro dispositivo (ej: celular) se reflejen en el PC
-    const pollInterval = setInterval(() => {
-      cargarSesionesActivas();
-    }, 30000);
-
-    // Cleanup: desuscribir al desmontar
-    return () => {
-      if (unsubSesiones) unsubSesiones();
-      if (unsubSalas) unsubSalas();
-      clearInterval(pollInterval);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => onTenantChange(() => {
-    setSalas([]);
-    setSesiones([]);
-  }), [setSalas, setSesiones]);
+    const release = salasManager.ensureActive();
+    return release;
+  }, []);
 
   // ── Abrir sesión completa ─────────────────────────────────────────
   const abrirSesion = useCallback(

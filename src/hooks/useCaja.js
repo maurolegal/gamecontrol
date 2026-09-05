@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import useGameStore from '../store/useGameStore';
+import sessionContext from '../lib/sessionContext';
 
 // ===================================================================
 // HOOK DE CAJA / TURNO
@@ -18,63 +19,52 @@ export function useCaja() {
   const [estadoPerfil, setEstadoPerfil] = useState('idle');
   const [errorPerfil, setErrorPerfil] = useState(null);
 
-  const resolverPerfil = useCallback(async () => {
-    if (perfil?.id && perfil?.tenant_id) {
-      setEstadoPerfil('ready');
-      setErrorPerfil(null);
-      return perfil;
-    }
-
-    if (!usuario?.email) {
-      const error = new Error('No hay una sesión autenticada');
-      setEstadoPerfil('error');
-      setErrorPerfil(error.message);
-      return null;
-    }
-
-    setEstadoPerfil('loading');
-    setErrorPerfil(null);
-    try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('id, nombre, email, rol, permisos, estado, tenant_id')
-        .eq('email', String(usuario.email).trim().toLowerCase())
-        .limit(1);
-
-      if (error) throw error;
-      const perfilResuelto = data?.[0] ?? null;
-      if (!perfilResuelto?.id || !perfilResuelto?.tenant_id) {
-        throw new Error('No se encontró el perfil interno o su tenant activo');
+  // Sincronizar perfil y caja desde sessionContext. Todos los consumidores
+  // observan la misma transición ready, sin fallbacks concurrentes.
+  useEffect(() => {
+    let cancelled = false;
+    const syncContext = () => {
+      if (cancelled) return;
+      const cachedProfile = sessionContext.getUserProfile();
+      const cajaState = sessionContext.getCajaState();
+      if (cachedProfile?.id && cachedProfile?.tenant_id) {
+        if (!perfil?.id || perfil.id !== cachedProfile.id) setPerfil(cachedProfile);
+        setEstadoPerfil('ready');
       }
+      setCajaAbierta(cajaState.cajaAbierta);
+      setFondoInicial(cajaState.fondoInicial);
+      setTurnoInicio(cajaState.turnoInicio);
+      setCargando(!sessionContext.isReady());
+    };
+    syncContext();
+    const unsubscribe = sessionContext.subscribe(syncContext);
+    sessionContext.ensureActive().then(syncContext).catch(() => syncContext());
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [perfil, setPerfil]);
 
-      setPerfil(perfilResuelto);
-      setEstadoPerfil('ready');
-      return perfilResuelto;
-    } catch (error) {
-      const message = error?.message ?? 'No se pudo cargar el perfil interno';
-      setEstadoPerfil('error');
-      setErrorPerfil(message);
-      console.error('Error resolviendo perfil de caja:', message);
-      return null;
-    }
-  }, [perfil, usuario?.email, setPerfil]);
-
-  // Verificar si hay turno abierto al cargar
+  // Verificar si hay turno abierto (usa cache sessionContext + fallback RPC)
   const verificarCaja = useCallback(async () => {
     if (!usuario?.id) {
-      setEstadoPerfil('idle');
       setCargando(false);
       return;
     }
 
     setCargando(true);
     try {
-      const perfilActual = await resolverPerfil();
-      if (!perfilActual) {
-        setCajaAbierta(false);
+      // Primero intentar desde cache
+      const cachedCaja = sessionContext.getCajaState();
+      if (cachedCaja.cajaAbierta && cachedCaja.turnoInicio) {
+        setCajaAbierta(true);
+        setFondoInicial(cachedCaja.fondoInicial);
+        setTurnoInicio(cachedCaja.turnoInicio);
+        setCargando(false);
         return;
       }
 
+      // Fallback: RPC si no hay cache válido
       const { data, error } = await supabase.rpc('obtener_turno_caja_activo');
       if (error) throw error;
       if (data?.success === false) throw new Error(data.error || 'No se pudo resolver la caja activa');
@@ -84,19 +74,24 @@ export function useCaja() {
         setCajaAbierta(false);
         setFondoInicial(0);
         setTurnoInicio(null);
+        sessionContext.setCajaState({ cajaAbierta: false, fondoInicial: 0, turnoInicio: null });
       } else {
         setCajaAbierta(true);
         setFondoInicial(Number(turno.fondo_inicial) || 0);
         setTurnoInicio(turno.turno_desde);
+        sessionContext.setCajaState({
+          cajaAbierta: true,
+          fondoInicial: Number(turno.fondo_inicial) || 0,
+          turnoInicio: turno.turno_desde,
+        });
       }
     } catch (err) {
       console.error('Error verificando caja:', err);
-      // En caso de error, permitir acceso (no bloquear)
-      setCajaAbierta(true);
+      setCajaAbierta(true); // Permitir acceso en caso de error
     } finally {
       setCargando(false);
     }
-  }, [usuario?.id, resolverPerfil]);
+  }, [usuario?.id]);
 
   // Abrir caja con fondo inicial
   const abrirCaja = useCallback(async (monto) => {
@@ -104,9 +99,6 @@ export function useCaja() {
       setErrorPerfil('No hay una sesión autenticada');
       return false;
     }
-
-    const perfilActual = await resolverPerfil();
-    if (!perfilActual) return false;
 
     try {
       const { data, error } = await supabase.rpc('abrir_turno_caja', {
@@ -116,9 +108,22 @@ export function useCaja() {
       if (!data?.success) throw new Error(data?.error || 'No se pudo abrir la caja');
 
       const turno = data.turno;
+      const newState = {
+        turno_id: turno?.id ?? turno?.turno_id ?? null,
+        estado: turno?.estado ?? 'abierta',
+        usuario_apertura_id: turno?.usuario_apertura_id ?? turno?.usuario_id ?? null,
+        usuario_cierre_id: null,
+        turno_desde: turno?.turno_desde ?? new Date().toISOString(),
+        turno_hasta: null,
+        fondo_inicial: Number(turno?.fondo_inicial) || Number(monto) || 0,
+        cajaAbierta: true,
+        fondoInicial: Number(turno?.fondo_inicial) || Number(monto) || 0,
+        turnoInicio: turno?.turno_desde ?? new Date().toISOString(),
+      };
       setCajaAbierta(true);
-      setFondoInicial(Number(turno?.fondo_inicial) || Number(monto) || 0);
-      setTurnoInicio(turno?.turno_desde ?? new Date().toISOString());
+      setFondoInicial(newState.fondoInicial);
+      setTurnoInicio(newState.turnoInicio);
+      sessionContext.setCajaState(newState);
       return true;
     } catch (err) {
       const message = err?.message ?? 'No se pudo abrir la caja';
@@ -126,11 +131,23 @@ export function useCaja() {
       console.error('Error abriendo caja:', message);
       return false;
     }
-  }, [usuario?.id, usuario?.email, resolverPerfil]);
+  }, [usuario?.id]);
 
-  useEffect(() => {
-    verificarCaja();
-  }, [verificarCaja]);
+  // Cerrar caja
+  const cerrarCaja = useCallback(async () => {
+    try {
+      const { error } = await supabase.rpc('cerrar_turno_caja');
+      if (error) throw error;
+      sessionContext.setCajaState({ cajaAbierta: false, fondoInicial: 0, turnoInicio: null });
+      setCajaAbierta(false);
+      setFondoInicial(0);
+      setTurnoInicio(null);
+      return true;
+    } catch (err) {
+      console.error('Error cerrando caja:', err);
+      return false;
+    }
+  }, []);
 
   return {
     cajaAbierta,
@@ -141,5 +158,6 @@ export function useCaja() {
     errorPerfil,
     verificarCaja,
     abrirCaja,
+    cerrarCaja,
   };
 }

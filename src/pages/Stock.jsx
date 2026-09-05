@@ -41,9 +41,18 @@ export default function Stock() {
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
+      // Sprint Egress-Fix: columnas explícitas según esquema real de producción
+      // productos: NO existe created_at/updated_at (usa fecha_creacion/fecha_actualizacion)
+      // categorias_productos: NO existe descripcion (usa nombre, color, icono, estado, fecha_creacion)
       const [prods, cats] = await Promise.all([
-        db.select('productos', { ordenPor: { campo: 'nombre', direccion: 'asc' } }),
-        db.select('categorias_productos', { ordenPor: { campo: 'nombre', direccion: 'asc' } }),
+        db.select('productos', {
+          select: 'id, nombre, descripcion, categoria, precio, costo, stock, stock_minimo, activo, imagen_url, fecha_creacion, fecha_actualizacion',
+          ordenPor: { campo: 'nombre', direccion: 'asc' },
+        }),
+        db.select('categorias_productos', {
+          select: 'id, nombre, color, icono, estado, fecha_creacion',
+          ordenPor: { campo: 'nombre', direccion: 'asc' },
+        }),
       ]);
       setProductos(prods ?? []);
       setCategorias(cats ?? []);

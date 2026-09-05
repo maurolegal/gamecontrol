@@ -10,6 +10,7 @@ import { UserPlus, RefreshCw, Shield } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../components/ui/ConfirmProvider';
+import { fetchUsuariosAll } from '../hooks/useUsuarios';
 
 import KpiUsuarios        from '../components/usuarios/KpiUsuarios';
 import TablaUsuarios      from '../components/usuarios/TablaUsuarios';
@@ -31,15 +32,13 @@ export default function Usuarios() {
   const [pwdUser,    setPwdUser]    = useState(null);  // usuario cambiar pwd
 
   // ── Cargar usuarios ─────────────────────────────────────────────
+  // Sprint Egress-Fix: usa fetchUsuariosAll (in-flight dedup compartida
+  // con useUsuarios hook) → 1 sola HTTP aunque ambos monten concurrentemente.
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('*')
-        .order('fecha_creacion', { ascending: false });
-      if (error) throw error;
-      setUsuarios(data ?? []);
+      const data = await fetchUsuariosAll();
+      setUsuarios(data);
     } catch (err) {
       notifError('Error cargando usuarios: ' + err.message);
     } finally {
