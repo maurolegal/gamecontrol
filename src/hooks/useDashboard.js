@@ -425,14 +425,13 @@ export function useDashboard() {
       }, DEBOUNCE_MS);
     };
 
-    const unsubVentas = realtimeSubscribe('ventas', () => {
-      debouncedFetchKPIs();
-      debouncedFetchGrafico();
-    });
-    const unsubGastos = realtimeSubscribe('gastos', () => {
-      debouncedFetchKPIs();
-      debouncedFetchGrafico();
-    });
+    // Sprint Realtime-Fix: ventas y gastos eliminados de Realtime.
+    // Los KPIs del dashboard no requieren actualización instantánea;
+    // fetchKPIs ya consulta ventas/gastos via HTTP en cada refresh.
+    // Sesiones sigue en realtime porque CommandCenter/TVDisplay dependen
+    // de actualización en vivo del estado de las salas. Al finalizar una
+    // sesión, el evento de sesiones dispara fetchKPIs que consulta las
+    // ventas nuevas via HTTP → el dashboard se actualiza igual.
     const unsubSesiones = realtimeSubscribe('sesiones', () => {
       debouncedFetchKPIs();
     });
@@ -440,8 +439,6 @@ export function useDashboard() {
     return () => {
       if (debounceKPIs) clearTimeout(debounceKPIs);
       if (debounceGrafico) clearTimeout(debounceGrafico);
-      unsubVentas();
-      unsubGastos();
       unsubSesiones();
     };
   }, [fetchKPIs, fetchGrafico]);

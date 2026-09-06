@@ -21,10 +21,13 @@ const state = globalThis[GLOBAL_RT_KEY] || {
   rebuildTimer: null,
   // Tablas ya registradas en el canal actual (para evitar rebuild innecesario)
   registeredTables: new Set(),
+  // Contador de reintentos para backoff exponencial
+  reconnectAttempts: 0,
 };
 globalThis[GLOBAL_RT_KEY] = state;
 
 const REBUILD_DEBOUNCE_MS = 200;
+const MAX_RECONNECT_DELAY_MS = 60_000;
 
 const TENANT_TABLES = new Set([
   'sesiones',
@@ -82,6 +85,18 @@ async function rebuildChannel() {
   const tenantId = await resolveTenantId();
   if (generation !== state.generation) return;
 
+  // EARLY-RETURN: canal sano para el mismo tenant con todas las tablas
+  // registradas. Evita teardown+create innecesarios disparados por eventos
+  // de auth que no cambian el tenant (p.ej. TOKEN_REFRESHED ya filtrado,
+  // pero también USER_UPDATED u otros que lleguen aquí via scheduleRebuild).
+  if (state.channel && state.tenantId === tenantId && state.registeredTables.size > 0) {
+    let allTablesRegistered = true;
+    for (const table of state.subscriptions.keys()) {
+      if (!state.registeredTables.has(table)) { allTablesRegistered = false; break; }
+    }
+    if (allTablesRegistered) return;
+  }
+
   const previousTenantId = state.tenantId;
   removeChannel();
   if (previousTenantId !== tenantId) {
@@ -120,8 +135,32 @@ async function rebuildChannel() {
   state.channel = channel;
   state.tenantId = tenantId;
   channel.subscribe((status) => {
+    // ── Guard contra callbacks de canales obsoletos ──────────────
+    // Un canal viejo puede recibir CLOSED después de removeChannel().
+    // Ese callback NO debe ejecutar rebuild ni programar reconnect.
+    // Solo el canal actualmente activo puede disparar acciones.
+    if (state.channel !== channel) return;
+    if (generation !== state.generation) return;
+    if (state.tenantId !== tenantId) return;
+
+    if (status === 'SUBSCRIBED') {
+      state.reconnectAttempts = 0;
+      return;
+    }
+
     if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-      if (state.tenantId === tenantId) rebuildChannel();
+      state.reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, state.reconnectAttempts), MAX_RECONNECT_DELAY_MS);
+      console.warn(
+        `[realtimeService] Canal ${status}, reconnect en ${delay}ms (intento ${state.reconnectAttempts})`
+      );
+      setTimeout(() => {
+        // Re-verificar antes de reconectar: el canal pudo haber sido
+        // reemplazado o cerrado limpiamente mientras esperábamos.
+        if (state.channel !== channel) return;
+        if (generation !== state.generation) return;
+        rebuildChannel();
+      }, delay);
     }
   });
 }
@@ -211,7 +250,11 @@ export function onTenantChange(callback) {
 }
 
 if (!state.authSubscription) {
-  const { data } = supabase.auth.onAuthStateChange(() => {
+  const { data } = supabase.auth.onAuthStateChange((event) => {
+    // TOKEN_REFRESHED no cambia el tenant ni invalida el canal existente.
+    // Sin este filtro, cada refresh horario del JWT provoca un teardown+create
+    // del WebSocket → 24 rebuilds/día innecesarios por pestaña.
+    if (event === 'TOKEN_REFRESHED') return;
     // Debounced: si hay subscripciones iniciales simultáneas, se agrupan en 1 rebuild.
     scheduleRebuild();
   });
