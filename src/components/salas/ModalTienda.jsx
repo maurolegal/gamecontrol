@@ -15,6 +15,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Search, X, ShoppingCart, Check, DollarSign, Package } from 'lucide-react';
 import Modal from '../ui/Modal';
 import { supabase } from '../../lib/supabaseClient';
+import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useSalas } from '../../hooks/useSalas';
 import { registrarVentaPos, generarIdempotencyKey, USE_RPC_V3 } from '../../lib/posService';
