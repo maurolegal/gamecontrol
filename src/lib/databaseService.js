@@ -132,10 +132,25 @@ export async function getTenantConfiguration() {
 
 export async function saveTenantConfiguration(datos, updatedBy = null) {
   const tenantId = await getCurrentTenantId();
-  const existing = await getTenantConfiguration();
-  const payload = { datos, updated_at: new Date().toISOString(), updated_by: updatedBy, tenant_id: tenantId };
-  if (existing?.id) return update('configuracion', existing.id, payload);
-  return insert('configuracion', payload);
+  const payload = { datos, updated_at: new Date().toISOString(), updated_by: updatedBy };
+
+  // La fila se identifica por tenant_id (UNIQUE). Antes se buscaba un `id`
+  // que la caché de sesión no guarda, así que SIEMPRE se intentaba un INSERT
+  // y fallaba con "duplicate key ... configuracion_pkey".
+  const { data: actualizada, error: errUpdate } = await supabase
+    .from('configuracion')
+    .update(payload)
+    .eq('tenant_id', tenantId)
+    .select()
+    .maybeSingle();
+  if (errUpdate) throw new Error(`Error actualizando configuracion: ${errUpdate.message}`);
+
+  // Primera vez del tenant: no existía fila → crearla
+  const guardada = actualizada ?? await insert('configuracion', { ...payload, tenant_id: tenantId });
+
+  // Mantener la caché de sesión al día (QR de la Tienda, tarifas, etc.)
+  sessionContext.setTenantConfig(guardada?.datos ?? datos);
+  return guardada;
 }
 
 /**

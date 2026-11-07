@@ -281,6 +281,12 @@ const sessionContext = {
   getUserProfile() { return _userProfile; },
   getEffectiveRole() { return _effectiveRole; },
   getTenantConfig() { return _tenantConfig; },
+  /** Actualiza la configuración cacheada tras guardarla en la BD. */
+  setTenantConfig(datos) {
+    _tenantConfig = datos ?? {};
+    useGameStore.getState().setConfiguracion(_tenantConfig);
+    notify();
+  },
   getCajaState() { return _cajaState; },
   setCajaState(next) {
     _cajaState = { ..._cajaState, ...next };
