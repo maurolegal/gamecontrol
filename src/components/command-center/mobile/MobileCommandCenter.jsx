@@ -1,28 +1,40 @@
 // ===================================================================
-// MOBILE COMMAND CENTER — Layout mobile nativo
-// Sprint 0.4-D — Mobile Native Experience
+// MOBILE COMMAND CENTER — /salas en celular (experiencia app nativa)
+// -------------------------------------------------------------------
+// • Header propio con safe-area, menú (drawer global), alertas y refresh
+// • Pull-to-refresh, filtros por consola, resumen en vivo
+// • Estaciones en grid 2 columnas: libre → iniciar, ocupada → detalle
+// • Bottom sheet de estación con todas las acciones
+// • Un solo juego de modales; solo los componentes con reloj se
+//   re-renderizan cada segundo (no toda la pantalla)
 // ===================================================================
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useMemo, useCallback, useRef, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Menu, Bell, RefreshCw, MoreHorizontal, Store, Pencil, ChevronDown,
+  Plus, Tv2, Radio, DollarSign, Trash2, AlertTriangle,
+} from 'lucide-react';
+
 import { useSalas } from '../../../hooks/useSalas';
 import { usePermisos } from '../../../hooks/usePermisos';
-import { useAuth } from '../../../hooks/useAuth';
 import useGlobalTick from '../../../hooks/useGlobalTick';
 import { useAlertaSonoraVencidas } from '../../../hooks/useAlertaSonoraVencidas';
+import { haptic } from '../../../hooks/useIsMobile';
+import useUIStore from '../../../store/useUIStore';
+import { formatCOP } from '../../../lib/formatCurrency';
 
-import MobileTopBar from './MobileTopBar';
-import MobileKPISummary from './MobileKPISummary';
-import MobileAttentionCenter from './MobileAttentionCenter';
-import MobileRoomSection from './MobileRoomSection';
-import MobileStationDetail from './MobileStationDetail';
-import MobileBottomNav from './MobileBottomNav';
+import MobileStationTile from './MobileStationTile';
+import MobileStationSheet from './MobileStationSheet';
+import { esSesionActiva, estadoTiempo, totalSesion } from './tiempo';
 
 import ModalSesion from '../../salas/ModalSesion';
 import ModalAgregarTiempo from '../../salas/ModalAgregarTiempo';
 import ModalTienda from '../../salas/ModalTienda';
 import ModalFinalizarSesion from '../../salas/ModalFinalizarSesion';
 import ModalTrasladarSesion from '../../salas/ModalTrasladarSesion';
+import ModalEditarSesion from '../../salas/ModalEditarSesion';
+import ModalAnularSesion from '../../salas/ModalAnularSesion';
 import ModalEditarSala from '../../salas/ModalEditarSala';
 import ModalNuevaSala from '../../salas/ModalNuevaSala';
 import ModalAnadirEstacion from '../../salas/ModalAnadirEstacion';
@@ -30,460 +42,551 @@ import ModalEliminarEstacion from '../../salas/ModalEliminarEstacion';
 import ModalTiempoCumplido from '../../salas/ModalTiempoCumplido';
 import MovimientoDeHoyCC from '../MovimientoDeHoyCC';
 
-import { ICONOS_TIPO, COLORES_SALA, TIPOS_SALA, VISTAS } from '../constants';
+import { ICONOS_TIPO, COLORES_SALA, TIPOS_SALA } from '../constants';
 
-// ── Prioridad de ordenamiento (reutilizada del desktop) ──────────
-function calcularPrioridad(sesion, now) {
-  if (!sesion) return 99;
-  if (sesion.modo === 'libre') return 5;
-  const inicio = new Date(sesion.fecha_inicio).getTime();
-  const tiempoTotalMin = (sesion.tiempoOriginal || sesion.tiempo || 60) + (sesion.tiempoAdicional || 0);
-  const finMs = inicio + tiempoTotalMin * 60 * 1000;
-  const restanteMs = finMs - now;
-  if (restanteMs <= 0) {
-    const excedidoMin = Math.floor(-restanteMs / 60000);
-    const tieneConsumo = (sesion?.productos?.length || 0) > 0 || (sesion?.tiemposAdicionales?.length || 0) > 0;
-    if (excedidoMin > 10) return 1;
-    if (tieneConsumo && excedidoMin > 0) return 2;
-    return 3;
+const PULL_UMBRAL = 70;
+
+// ── Resumen en vivo (único bloque con reloj en la cabecera) ─────────
+const ResumenVivo = memo(function ResumenVivo({ activas, totalEstaciones, onVerAlertas }) {
+  const now = useGlobalTick();
+  let porVencer = 0;
+  let vencidas = 0;
+  let enJuego = 0;
+  for (const s of activas) {
+    const { estado } = estadoTiempo(s, now);
+    if (estado === 'por_vencer') porVencer++;
+    else if (estado === 'vencida' || estado === 'critica' || estado === 'excedida') vencidas++;
+    enJuego += totalSesion(s);
   }
-  if (restanteMs <= 10 * 60 * 1000) return 4;
-  return 5;
+  const libres = Math.max(0, totalEstaciones - activas.length);
+
+  const items = [
+    { label: 'Libres', valor: libres, color: '#00D656' },
+    { label: 'En juego', valor: activas.length, color: '#4D8DFF' },
+    { label: 'Por vencer', valor: porVencer, color: '#F59E0B', alerta: porVencer > 0 },
+    { label: 'Vencidas', valor: vencidas, color: '#EF4B5F', alerta: vencidas > 0 },
+  ];
+
+  return (
+    <div className="px-4 pt-3">
+      <div className="grid grid-cols-4 gap-2">
+        {items.map((it) => (
+          <button
+            key={it.label}
+            type="button"
+            onClick={it.alerta ? onVerAlertas : undefined}
+            className="gc-pressable rounded-2xl py-2.5 px-1 text-center"
+            style={{
+              background: it.alerta ? `${it.color}17` : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${it.alerta ? `${it.color}45` : 'var(--gc-border)'}`,
+            }}
+          >
+            <p className="text-[22px] leading-none font-bold tabular-nums" style={{ color: it.valor ? it.color : '#4B5563' }}>
+              {it.valor}
+            </p>
+            <p className="mt-1 text-[10px] font-semibold text-gray-500">{it.label}</p>
+          </button>
+        ))}
+      </div>
+      <div
+        className="mt-2 flex items-center justify-between rounded-2xl px-4 py-2.5"
+        style={{ background: 'rgba(0,214,86,0.06)', border: '1px solid rgba(0,214,86,0.18)' }}
+      >
+        <span className="flex items-center gap-2 text-xs text-gray-400">
+          <span className="relative flex h-2 w-2">
+            {activas.length > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D656] opacity-60" />}
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#00D656]" />
+          </span>
+          Valor en juego
+        </span>
+        <span className="text-base font-bold text-[#00D656] tabular-nums">{formatCOP(enJuego)}</span>
+      </div>
+    </div>
+  );
+});
+
+// ── Lista de atención (vencidas / por vencer) ───────────────────────
+const Atencion = memo(function Atencion({ activas, salasMap, onAbrir }) {
+  const now = useGlobalTick();
+  const items = [];
+  for (const s of activas) {
+    const t = estadoTiempo(s, now);
+    if (t.estado === 'normal' || t.estado === 'libre_tiempo') continue;
+    items.push({ s, t });
+  }
+  if (items.length === 0) return null;
+  items.sort((a, b) => a.t.restanteMs - b.t.restanteMs);
+
+  return (
+    <section className="px-4 pt-4" aria-label="Requieren atención">
+      <h3 className="flex items-center gap-1.5 px-1 mb-2 text-[11px] font-bold uppercase tracking-wider text-red-400">
+        <AlertTriangle size={13} /> Requieren atención · {items.length}
+      </h3>
+      <div className="rounded-2xl overflow-hidden divide-y divide-white/[0.06]" style={{ background: 'rgba(239,75,95,0.06)', border: '1px solid rgba(239,75,95,0.22)' }}>
+        {items.slice(0, 5).map(({ s, t }) => (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => { haptic(); onAbrir(s.salaId, s.estacion); }}
+            className="gc-pressable w-full flex items-center gap-3 px-4 py-3 text-left"
+          >
+            <span className="w-1 self-stretch rounded-full" style={{ background: t.color }} />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white truncate">
+                {s.estacion} · {s.cliente || 'Cliente'}
+              </p>
+              <p className="text-[11px] text-gray-500 truncate">{salasMap.get(s.salaId)?.nombre ?? ''}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-sm font-bold tabular-nums" style={{ color: t.color }}>{t.display}</p>
+              <p className="text-[10px] font-bold tracking-wider" style={{ color: t.color }}>{t.label}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+});
+
+// ── Vigilante de vencimientos: sonido + popup al cruzar 0 ───────────
+function VigilanteVencidas({ activas, onVencida }) {
+  const now = useGlobalTick();
+  useAlertaSonoraVencidas(activas, true);
+  const prevRef = useRef(new Map()); // id → restanteMs anterior
+
+  const prev = prevRef.current;
+  const vistos = new Set();
+  for (const s of activas) {
+    if (s.modo === 'libre') continue;
+    vistos.add(s.id);
+    const { restanteMs } = estadoTiempo(s, now);
+    const anterior = prev.get(s.id);
+    // Solo avisa cuando se cruza el cero con la pantalla abierta
+    // (no dispara popups en cadena por sesiones que ya estaban vencidas).
+    if (anterior !== undefined && anterior > 0 && restanteMs <= 0) {
+      queueMicrotask(() => onVencida(s));
+    }
+    prev.set(s.id, restanteMs);
+  }
+  for (const id of prev.keys()) if (!vistos.has(id)) prev.delete(id);
+  return null;
 }
 
+// ── Sección de sala ─────────────────────────────────────────────────
+const SalaSection = memo(function SalaSection({ sala, sesionesSala, puedeEditar, onIniciar, onAbrir, onEditarSala }) {
+  const [abierta, setAbierta] = useState(true);
+  const color = COLORES_SALA[sala.tipo] || '#00D656';
+  const num = sala.numEstaciones || 0;
+  const prefijo = sala.prefijo || 'EST';
+  const ocupadas = sesionesSala.size;
+
+  return (
+    <section className="pt-5" aria-label={`Sala ${sala.nombre}`}>
+      <div className="flex items-center gap-2 px-4 mb-2.5">
+        <button
+          type="button"
+          onClick={() => { haptic(); setAbierta((v) => !v); }}
+          className="gc-pressable flex-1 min-w-0 flex items-center gap-3 text-left"
+          aria-expanded={abierta}
+        >
+          <span
+            className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center overflow-hidden text-lg"
+            style={{ background: `${color}14`, border: `1px solid ${color}30` }}
+          >
+            {sala.icono_url
+              ? <img src={sala.icono_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+              : (ICONOS_TIPO[sala.tipo] || '🎮')}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-bold text-white truncate">{sala.nombre}</span>
+            <span className="block text-[11px] text-gray-500">
+              <span className="text-[#00D656] font-semibold">
+                {Math.max(0, num - ocupadas)} {num - ocupadas === 1 ? 'libre' : 'libres'}
+              </span>
+              {' · '}{ocupadas} en juego
+            </span>
+          </span>
+          <ChevronDown size={18} className={`shrink-0 text-gray-500 transition-transform ${abierta ? '' : '-rotate-90'}`} />
+        </button>
+        {puedeEditar && (
+          <button
+            type="button"
+            onClick={() => onEditarSala(sala)}
+            className="gc-pressable w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-blue-400"
+            style={{ background: 'rgba(77,141,255,0.10)', border: '1px solid rgba(77,141,255,0.22)' }}
+            aria-label={`Editar ${sala.nombre}`}
+          >
+            <Pencil size={16} />
+          </button>
+        )}
+      </div>
+
+      {abierta && (
+        <div className="grid grid-cols-2 gap-2.5 px-4">
+          {Array.from({ length: num }, (_, i) => {
+            const estacionId = `${prefijo}${i + 1}`;
+            return (
+              <MobileStationTile
+                key={estacionId}
+                sala={sala}
+                estacionId={estacionId}
+                sesion={sesionesSala.get(estacionId) || null}
+                onIniciar={onIniciar}
+                onAbrir={onAbrir}
+              />
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+});
+
+// ── Hoja de opciones (⋯) ────────────────────────────────────────────
+function OpcionesSheet({ puedeEditar, onCerrar, onAccion }) {
+  const opciones = [
+    puedeEditar && { key: 'nueva', label: 'Nueva sala', icon: Plus, color: '#00D656' },
+    puedeEditar && { key: 'anadir', label: 'Añadir estación', icon: Plus, color: '#4D8DFF' },
+    puedeEditar && { key: 'eliminar', label: 'Eliminar estación', icon: Trash2, color: '#EF4B5F' },
+    { key: 'tarifas', label: 'Tarifas', icon: DollarSign, color: '#F59E0B' },
+    { key: 'tv', label: 'Ver TV', icon: Tv2, color: '#8B7CFF' },
+    { key: 'live', label: 'Event Live', icon: Radio, color: '#EF4B5F' },
+  ].filter(Boolean);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" role="dialog" aria-modal="true" aria-label="Opciones de salas">
+      <div className="absolute inset-0 bg-black/60 gc-fade-in" onClick={onCerrar} aria-hidden="true" />
+      <div
+        className="relative w-full rounded-t-[28px] gc-sheet-in px-4 pt-2.5"
+        style={{ background: 'var(--gc-surface)', borderTop: '1px solid var(--gc-border)', paddingBottom: 'calc(var(--gc-safe-bottom) + 16px)' }}
+      >
+        <div className="flex justify-center pb-3"><div className="w-10 h-1.5 rounded-full bg-white/20" /></div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {opciones.map(({ key, label, icon: Icon, color }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => { haptic(); onAccion(key); }}
+              className="gc-pressable flex flex-col items-center justify-center gap-2 h-24 rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--gc-border)' }}
+            >
+              <span className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: `${color}1a`, color }}>
+                <Icon size={19} />
+              </span>
+              <span className="text-[12px] font-medium text-gray-200 text-center leading-tight px-1">{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════
 export default function MobileCommandCenter() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { puedeEditar, esAdmin } = usePermisos();
-  const { usuario, rol } = useAuth();
-
-  // Vista y filtro desde URL
-  const vistaActual = searchParams.get('view') || 'normal';
-  const filtroTipo = searchParams.get('tipo') || 'todas';
-
-  // useSalas: única fuente de verdad
   const { salas, sesiones, cargando, error, cargarSalas, cargarSesionesActivas } = useSalas();
+  const abrirMenuMovil = useUIStore((s) => s.abrirMenuMovil);
 
-  // Estado local para modales
-  const [iniciarSesionData, setIniciarSesionData] = useState(null);
-  const [agregarTiempoData, setAgregarTiempoData] = useState(null);
-  const [agregarProductosData, setAgregarProductosData] = useState(null);
-  const [tiendaPOSData, setTiendaPOSData] = useState(null);
+  const [filtroTipo, setFiltroTipo] = useState('todas');
+  const [refrescando, setRefrescando] = useState(false);
+  const [opcionesAbiertas, setOpcionesAbiertas] = useState(false);
+
+  // Modales
+  const [estacionAbierta, setEstacionAbierta] = useState(null); // { salaId, estacionId }
+  const [iniciarData, setIniciarData] = useState(null);
+  const [tiempoData, setTiempoData] = useState(null);
+  const [productosData, setProductosData] = useState(null);
+  const [tiendaPOS, setTiendaPOS] = useState(false);
   const [finalizarData, setFinalizarData] = useState(null);
   const [trasladarData, setTrasladarData] = useState(null);
+  const [editarSesionData, setEditarSesionData] = useState(null);
+  const [anularData, setAnularData] = useState(null);
   const [editarSala, setEditarSala] = useState(null);
-  const [nuevaSalaAbierto, setNuevaSalaAbierto] = useState(false);
-  const [anadirEstacionAbierto, setAnadirEstacionAbierto] = useState(false);
-  const [eliminarEstacionAbierto, setEliminarEstacionAbierto] = useState(false);
+  const [nuevaSala, setNuevaSala] = useState(false);
+  const [anadirEstacion, setAnadirEstacion] = useState(false);
+  const [eliminarEstacion, setEliminarEstacion] = useState(false);
   const [colaVencidas, setColaVencidas] = useState([]);
-  const [stationDetailData, setStationDetailData] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Realtime status
-  const [ultimoRealtime, setUltimoRealtime] = useState(Date.now());
-  const [realtimeConnected, setRealtimeConnected] = useState(true);
+  // ── Datos derivados (solo cambian cuando cambian salas/sesiones) ──
+  const salasMap = useMemo(() => new Map(salas.map((s) => [s.id, s])), [salas]);
 
-  // Estación enfocada
-  const [focusedEstacion, setFocusedEstacion] = useState(null);
+  const activas = useMemo(() => sesiones.filter(esSesionActiva), [sesiones]);
 
-  // ── Alertas sonoras ──
-  const { hayVencidas } = useAlertaSonoraVencidas(sesiones, true);
+  // salaId → Map(estacion → sesion); referencias estables por sala
+  const sesionesPorSala = useMemo(() => {
+    const m = new Map();
+    for (const s of activas) {
+      if (!m.has(s.salaId)) m.set(s.salaId, new Map());
+      m.get(s.salaId).set(s.estacion, s);
+    }
+    return m;
+  }, [activas]);
 
-  // ── Handlers ──
-  const handleRefresh = useCallback(() => {
-    cargarSalas();
-    cargarSesionesActivas();
-    setUltimoRealtime(Date.now());
+  const tiposPresentes = useMemo(() => {
+    const set = new Set(salas.map((s) => s.tipo));
+    return TIPOS_SALA.filter((t) => t.value === 'todas' || set.has(t.value));
+  }, [salas]);
+
+  const salasVisibles = useMemo(
+    () => (filtroTipo === 'todas' ? salas : salas.filter((s) => s.tipo === filtroTipo)),
+    [salas, filtroTipo],
+  );
+
+  const totalEstaciones = useMemo(() => salas.reduce((t, s) => t + (s.numEstaciones || 0), 0), [salas]);
+  const SIN_SESIONES = useMemo(() => new Map(), []);
+
+  // ── Handlers estables ──
+  const refrescar = useCallback(async () => {
+    setRefrescando(true);
+    haptic(12);
+    try {
+      await Promise.allSettled([cargarSalas(), cargarSesionesActivas()]);
+    } finally {
+      setRefrescando(false);
+    }
   }, [cargarSalas, cargarSesionesActivas]);
 
-  const handleViewChange = useCallback((params) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (params.vistaActual) newParams.set('view', params.vistaActual);
-    if (params.filtroTipo) newParams.set('tipo', params.filtroTipo);
-    setSearchParams(newParams);
-    setMobileMenuOpen(false);
-  }, [searchParams, setSearchParams]);
-
-  const handleAbrirTiendaPOS = useCallback(() => setTiendaPOSData({}), []);
-  const handleNuevaSala = useCallback(() => { setNuevaSalaAbierto(true); setMobileMenuOpen(false); }, []);
-  const handleAnadirEstacion = useCallback(() => { setAnadirEstacionAbierto(true); setMobileMenuOpen(false); }, []);
-  const handleEliminarEstacion = useCallback(() => { setEliminarEstacionAbierto(true); setMobileMenuOpen(false); }, []);
-
-  const encontrarSala = useCallback((salaId) => salas.find((s) => s.id === salaId), [salas]);
-
   const handleIniciar = useCallback((salaId, estacion) => {
-    const sala = encontrarSala(salaId);
-    if (sala) setIniciarSesionData({ sala, estacion });
-  }, [encontrarSala]);
+    const sala = salasMap.get(salaId);
+    if (sala) setIniciarData({ sala, estacion });
+  }, [salasMap]);
 
-  const handleAgregarTiempo = useCallback((sesion) => {
-    const sala = encontrarSala(sesion.salaId);
-    if (sala) setAgregarTiempoData({ sesion, sala });
-  }, [encontrarSala]);
+  const handleAbrir = useCallback((salaId, estacionId) => setEstacionAbierta({ salaId, estacionId }), []);
+  const handleEditarSala = useCallback((sala) => setEditarSala(sala), []);
+  const handleVencida = useCallback((s) => {
+    setColaVencidas((prev) => (prev.some((x) => x.id === s.id) ? prev : [...prev, s]));
+  }, []);
+  const cerrarVencida = useCallback(() => setColaVencidas((prev) => prev.slice(1)), []);
 
-  const handleAgregarProducto = useCallback((sesion) => {
-    const sala = encontrarSala(sesion.salaId);
-    if (sala) setAgregarProductosData({ sesion, sala });
-  }, [encontrarSala]);
+  // Estación abierta: datos SIEMPRE frescos del store (no snapshot)
+  const salaAbierta = estacionAbierta ? salasMap.get(estacionAbierta.salaId) : null;
+  const sesionAbierta = estacionAbierta
+    ? sesionesPorSala.get(estacionAbierta.salaId)?.get(estacionAbierta.estacionId) ?? null
+    : null;
 
-  const handleFinalizar = useCallback((sesion) => {
-    const sala = encontrarSala(sesion.salaId);
-    if (sala) setFinalizarData({ sesion, sala });
-  }, [encontrarSala]);
+  const desdeSheet = (setter) => () => {
+    if (!sesionAbierta || !salaAbierta) return;
+    const payload = { sesion: sesionAbierta, sala: salaAbierta };
+    setEstacionAbierta(null);
+    setter(payload);
+  };
 
-  const handleTrasladar = useCallback((sesion) => {
-    const sala = encontrarSala(sesion.salaId);
-    if (sala) setTrasladarData({ sesion, sala });
-  }, [encontrarSala]);
+  const accionOpcion = (key) => {
+    setOpcionesAbiertas(false);
+    if (key === 'nueva') setNuevaSala(true);
+    else if (key === 'anadir') setAnadirEstacion(true);
+    else if (key === 'eliminar') setEliminarEstacion(true);
+    else if (key === 'tarifas') navigate('/ajustes', { state: { seccion: 'tarifas' } });
+    else if (key === 'tv') window.open('/tv', '_blank');
+    else if (key === 'live') window.open('/event-live', '_blank');
+  };
 
-  const handleEditarSala = useCallback((sala) => {
-    if (puedeEditar) setEditarSala(sala);
-  }, [puedeEditar]);
+  // ── Pull-to-refresh (manipula el DOM directo: 0 renders mientras arrastra) ──
+  const scrollRef = useRef(null);
+  const pullRef = useRef(null);
+  const pull = useRef({ y0: null, d: 0 });
 
-  const handleVencido = useCallback((sesion) => {
-    setColaVencidas((prev) => {
-      const yaEsta = prev.some((s) => s.id === sesion.id);
-      return yaEsta ? prev : [...prev, sesion];
-    });
+  const setPullVisual = (d) => {
+    const el = pullRef.current;
+    if (!el) return;
+    el.style.height = `${d}px`;
+    el.style.opacity = String(Math.min(1, d / PULL_UMBRAL));
+    const icon = el.firstElementChild;
+    if (icon) icon.style.transform = `rotate(${d * 4}deg)`;
+  };
+  const onTouchStart = (e) => {
+    if ((scrollRef.current?.scrollTop ?? 1) <= 0) pull.current = { y0: e.touches[0].clientY, d: 0 };
+  };
+  const onTouchMove = (e) => {
+    const p = pull.current;
+    if (p.y0 == null) return;
+    const delta = e.touches[0].clientY - p.y0;
+    if (delta <= 0) { p.d = 0; setPullVisual(0); return; }
+    p.d = Math.min(delta * 0.45, 96);
+    setPullVisual(p.d);
+  };
+  const onTouchEnd = () => {
+    const { d } = pull.current;
+    pull.current = { y0: null, d: 0 };
+    setPullVisual(0);
+    if (d >= PULL_UMBRAL) refrescar();
+  };
+
+  const verAlertas = useCallback(() => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const cerrarAlertaVencida = useCallback(() => {
-    setColaVencidas((prev) => prev.slice(1));
-  }, []);
+  const subtitulo = `${activas.length} en juego · ${Math.max(0, totalEstaciones - activas.length)} libres`;
 
-  const handleFocusEstacion = useCallback((estacionId) => {
-    setFocusedEstacion(estacionId);
-  }, []);
-
-  const handleStationClick = useCallback((estacionId, salaId) => {
-    const sala = encontrarSala(salaId);
-    const sesionActiva = sesiones.find(s => s.salaId === salaId && s.estacion === estacionId && !s.finalizada && s.estado !== 'cancelada');
-    if (sala) {
-      setStationDetailData({ estacionId, sala, sesion: sesionActiva || null });
-    }
-  }, [encontrarSala, sesiones]);
-
-  // ── Filtrar salas por tipo ──
-  const salasFiltradas = useMemo(() => {
-    if (!salas) return [];
-    if (filtroTipo === 'todas') return salas;
-    return salas.filter(s => s.tipo === filtroTipo);
-  }, [salas, filtroTipo]);
-
-  // ── Sesiones de salas filtradas ──
-  const sesionesFiltradas = useMemo(() => {
-    if (!sesiones) return [];
-    const salaIds = new Set(salasFiltradas.map(s => s.id));
-    return sesiones.filter(s => salaIds.has(s.salaId) && !s.finalizada && s.estado !== 'cancelada');
-  }, [sesiones, salasFiltradas]);
-
-  // ── Agrupar estaciones por sala ──
-  const now = useGlobalTick();
-  const salasConEstaciones = useMemo(() => {
-    const resultado = [];
-    for (const sala of salasFiltradas) {
-      const prefijo = sala.prefijo || 'EST';
-      const num = sala.numEstaciones || 1;
-      const estaciones = [];
-      for (let i = 1; i <= num; i++) {
-        const estacionId = `${prefijo}${i}`;
-        const key = `${sala.id}:${estacionId}`;
-        const sesion = sesionesFiltradas.find(s => s.salaId === sala.id && s.estacion === estacionId) || null;
-        estaciones.push({ estacionId, sesion });
-      }
-
-      // Separar activas y libres
-      const activas = [];
-      const libres = [];
-      for (const est of estaciones) {
-        if (est.sesion && !est.sesion.finalizada && est.sesion.estado !== 'cancelada') {
-          activas.push(est);
-        } else {
-          libres.push(est);
-        }
-      }
-
-      // Ordenar activas por prioridad
-      activas.sort((a, b) => {
-        const pa = a.sesion ? calcularPrioridad(a.sesion, now) : 99;
-        const pb = b.sesion ? calcularPrioridad(b.sesion, now) : 99;
-        return pa - pb;
-      });
-
-      const ordenadas = [...activas, ...libres];
-      resultado.push({
-        sala,
-        estaciones: ordenadas,
-        countActivas: activas.length,
-        countLibres: libres.length,
-      });
-    }
-    return resultado;
-  }, [salasFiltradas, sesionesFiltradas, now]);
-
-  // ── KPIs ──
-  const kpis = useMemo(() => {
-    const estacionesTotales = salas?.reduce((acc, s) => acc + (s.numEstaciones || 1), 0) || 0;
-    const sesionesActivas = sesiones?.filter(s => !s.finalizada && s.estado !== 'cancelada') || [];
-    const jugando = sesionesActivas.filter(s => s.modo !== 'libre').length;
-    const libres = sesionesActivas.filter(s => s.modo === 'libre').length;
-    const ocupadas = sesionesActivas.length - libres;
-    const alertas = sesionesActivas.filter(s => {
-      if (!s.fecha_inicio || s.modo === 'libre') return false;
-      const inicio = new Date(s.fecha_inicio).getTime();
-      const tiempoTotalMin = (s.tiempoOriginal || s.tiempo || 60) + (s.tiempoAdicional || 0);
-      const finMs = inicio + tiempoTotalMin * 60 * 1000;
-      return finMs - now <= 10 * 60 * 1000 && finMs - now > 0;
-    }).length;
-    const vencidas = sesionesActivas.filter(s => {
-      if (!s.fecha_inicio || s.modo === 'libre') return false;
-      const inicio = new Date(s.fecha_inicio).getTime();
-      const tiempoTotalMin = (s.tiempoOriginal || s.tiempo || 60) + (s.tiempoAdicional || 0);
-      const finMs = inicio + tiempoTotalMin * 60 * 1000;
-      return finMs - now <= 0;
-    }).length;
-    const ocupacionPct = estacionesTotales > 0 ? Math.round((ocupadas / estacionesTotales) * 100) : 0;
-    const tiempoVendidoActivo = sesionesActivas
-      .filter(s => s.modo !== 'libre')
-      .reduce((acc, s) => acc + (s.tiempoOriginal || s.tiempo || 60) + (s.tiempoAdicional || 0), 0);
-    const consumoActivo = sesionesActivas.reduce((acc, s) => acc + (s.productos?.length || 0), 0);
-    const ingresosActivos = sesionesActivas.reduce((acc, s) => acc + (s.totalGeneral || 0), 0);
-
-    return {
-      totalEstaciones: estacionesTotales,
-      ocupadas,
-      libres,
-      alertas,
-      vencidas,
-      sesionesActivas: sesionesActivas.length,
-      ocupacionPct,
-      tiempoVendidoActivo,
-      consumoActivo,
-      ingresosActivos,
-    };
-  }, [salas, sesiones, now]);
-
-  // ── Loading state ──
-  if (cargando && salas.length === 0) {
-    return (
-      <div className="flex flex-col h-screen" style={{ background: '#080A10' }}>
-        <MobileTopBar
-          onOpenMenu={() => {}}
-          onOpenAlerts={() => {}}
-          alertasCount={0}
-        />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin w-12 h-12 border-4 border-[#00D656] border-t-transparent rounded-full mx-auto mb-4" />
-            <p className="text-gray-400 text-lg">Cargando Command Center...</p>
-          </div>
-        </div>
-        <MobileBottomNav />
-      </div>
-    );
-  }
-
-  // ── Render ──
   return (
-    <div className="flex flex-col h-screen" style={{ background: '#080A10', fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-      {/* ── TOP BAR ── */}
-      <MobileTopBar
-        onOpenMenu={() => setMobileMenuOpen(true)}
-        onOpenAlerts={() => {}} // TODO: abrir sheet de alertas
-        onViewChange={handleViewChange}
-        vistaActual={vistaActual}
-        filtroTipo={filtroTipo}
-        alertasCount={kpis.alertas + kpis.vencidas}
-      />
-
-      {/* ── CONTENT ── */}
-      <main className="flex-1 overflow-y-auto -webkit-overflow-scrolling-touch" style={{ paddingBottom: '96px' }}>
-        {/* KPI Summary */}
-        <MobileKPISummary
-          kpis={kpis}
-          alertasCount={kpis.alertas}
-          vencidasCount={kpis.vencidas}
-        />
-
-        {/* Attention Center */}
-        <MobileAttentionCenter
-          sesiones={sesionesFiltradas}
-          salas={salasFiltradas}
-          onFocusEstacion={handleFocusEstacion}
-          maxVisible={3}
-        />
-
-        {/* Salas - Room Sections */}
-        {salasConEstaciones.length === 0 ? (
-          <div className="px-4 py-16 text-center">
-            <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-4xl mx-auto mb-4">
-              {salasFiltradas.length === 0 ? '🏗' : '🎮'}
-            </div>
-            <h2 className="text-xl font-bold text-white mb-2">
-              {salasFiltradas.length === 0 ? 'No hay salas configuradas' : `No hay estaciones ${filtroTipo !== 'todas' ? filtroTipo.toUpperCase() : ''}`}
-            </h2>
-            <p className="text-gray-500 mb-6 max-w-md">
-              {salasFiltradas.length === 0
-                ? 'Crea tu primera sala para empezar a operar.'
-                : 'No se encontraron estaciones con ese filtro.'}
-            </p>
-            {salasFiltradas.length === 0 && puedeEditar && (
-              <button
-                onClick={handleNuevaSala}
-                className="px-6 py-3 rounded-xl bg-[#00D656]/15 hover:bg-[#00D656]/25 border border-[#00D656]/30 hover:border-[#00D656]/50 text-[#00D656] font-bold text-lg transition-all"
-              >
-                + CREAR SALA
-              </button>
-            )}
-            {filtroTipo !== 'todas' && (
-              <button
-                onClick={() => handleViewChange({ filtroTipo: 'todas' })}
-                className="mt-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all"
-              >
-                Ver todas las estaciones
-              </button>
-            )}
+    <div className="relative flex flex-col flex-1 min-h-0" style={{ background: 'var(--gc-bg)' }}>
+      {/* ── HEADER ── */}
+      <header
+        className="shrink-0 z-30"
+        style={{
+          paddingTop: 'var(--gc-safe-top)',
+          background: 'rgba(9,13,20,0.92)',
+          backdropFilter: 'saturate(160%) blur(18px)',
+          WebkitBackdropFilter: 'saturate(160%) blur(18px)',
+          borderBottom: '1px solid var(--gc-border)',
+        }}
+      >
+        <div className="flex items-center gap-1 h-14 px-2">
+          <button type="button" onClick={abrirMenuMovil} className="gc-pressable w-11 h-11 rounded-full flex items-center justify-center text-gray-300" aria-label="Abrir menú">
+            <Menu size={22} />
+          </button>
+          <div className="flex-1 min-w-0 px-1">
+            <h1 className="text-[17px] font-bold text-white leading-tight">Salas</h1>
+            <p className="text-[11px] text-gray-500 leading-tight truncate">{subtitulo}</p>
           </div>
-        ) : (
-          <div className="px-4 pb-4 space-y-2">
-            {salasConEstaciones.map(({ sala, estaciones, countActivas, countLibres }) => (
-              <MobileRoomSection
-                key={sala.id}
-                sala={sala}
-                estaciones={estaciones}
-                countActivas={countActivas}
-                countLibres={countLibres}
-                onIniciar={handleIniciar}
-                onAgregarTiempo={handleAgregarTiempo}
-                onAgregarProducto={handleAgregarProducto}
-                onFinalizar={handleFinalizar}
-                onTrasladar={handleTrasladar}
-                onEditarSala={handleEditarSala}
-                onFocusEstacion={handleFocusEstacion}
-                onOpenDetail={handleStationClick}
-                puedeEditar={puedeEditar}
-                puedeAnular={esAdmin}
-                focusedEstacion={focusedEstacion}
-                defaultExpanded={countActivas > 0}
-              />
-            ))}
+          <button type="button" onClick={verAlertas} className="gc-pressable relative w-11 h-11 rounded-full flex items-center justify-center text-gray-300" aria-label="Alertas">
+            <Bell size={20} />
+            <AlertBadge activas={activas} />
+          </button>
+          <button
+            type="button"
+            onClick={refrescar}
+            className="gc-pressable w-11 h-11 rounded-full flex items-center justify-center text-gray-300"
+            aria-label="Actualizar"
+          >
+            <RefreshCw size={19} className={refrescando || cargando ? 'animate-spin' : ''} />
+          </button>
+          <button type="button" onClick={() => setOpcionesAbiertas(true)} className="gc-pressable w-11 h-11 rounded-full flex items-center justify-center text-gray-300" aria-label="Más opciones">
+            <MoreHorizontal size={22} />
+          </button>
+        </div>
+
+        {tiposPresentes.length > 2 && (
+          <div className="flex gap-2 overflow-x-auto px-4 pb-2.5 no-scrollbar" role="tablist" aria-label="Filtrar por consola">
+            {tiposPresentes.map((t) => {
+              const activo = filtroTipo === t.value;
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={activo}
+                  onClick={() => { haptic(); setFiltroTipo(t.value); }}
+                  className="gc-pressable shrink-0 h-8 px-3.5 rounded-full text-[13px] font-semibold"
+                  style={activo
+                    ? { background: '#00D656', color: '#04140A' }
+                    : { background: 'rgba(255,255,255,0.05)', color: '#AAB2C0', border: '1px solid var(--gc-border)' }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </header>
+
+      {/* ── CONTENIDO ── */}
+      <div
+        ref={scrollRef}
+        data-scroll="salas"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+        style={{ paddingBottom: 'calc(var(--gc-tabbar-height) + var(--gc-safe-bottom) + 88px)' }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div ref={pullRef} className="flex items-end justify-center overflow-hidden text-[#00D656]" style={{ height: 0, opacity: 0 }} aria-hidden="true">
+          <RefreshCw size={20} className="mb-2" />
+        </div>
+
+        {error && (
+          <div className="mx-4 mt-3 rounded-2xl px-4 py-3 text-sm text-red-300" style={{ background: 'rgba(239,75,95,0.1)', border: '1px solid rgba(239,75,95,0.3)' }}>
+            {error}
           </div>
         )}
 
-        {/* Movimiento de Hoy */}
-        <MovimientoDeHoyCC salas={salasFiltradas} className="mx-4 mb-4" />
-      </main>
+        {cargando && salas.length === 0 ? (
+          <SkeletonSalas />
+        ) : (
+          <>
+            <ResumenVivo activas={activas} totalEstaciones={totalEstaciones} onVerAlertas={verAlertas} />
+            <Atencion activas={activas} salasMap={salasMap} onAbrir={handleAbrir} />
 
-      {/* ── BOTTOM NAV ── */}
-      <MobileBottomNav />
-
-      {/* ── MOBILE MENU (Action Sheet) ── */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex items-end" onClick={() => setMobileMenuOpen(false)}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} aria-hidden="true" />
-          <div className="relative w-full max-h-[80vh] bg-[var(--gc-surface)] border-t border-white/10 rounded-t-2xl shadow-2xl overflow-hidden animate-slide-up" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-              <div className="font-bold text-white">Menú</div>
-              <button onClick={() => setMobileMenuOpen(false)} className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white" aria-label="Cerrar">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-              </button>
-            </div>
-            <div className="px-4 py-3 space-y-2">
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">VISTA</div>
-              <div className="space-y-1">
-                {['normal', 'compact', 'kiosk'].map(v => (
-                  <button
-                    key={v}
-                    onClick={() => handleViewChange({ vistaActual: v })}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${vistaActual === v ? 'bg-[#00D656]/15 border-[#00D656]/30 text-[#00D656]' : 'text-gray-300'}`}
-                  >
-                    <span className="font-medium">{v.charAt(0).toUpperCase() + v.slice(1)}</span>
-                    {vistaActual === v && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00D656" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>}
+            {salasVisibles.length === 0 ? (
+              <div className="px-6 py-16 text-center">
+                <div className="mx-auto mb-4 w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-3xl">🎮</div>
+                <p className="text-white font-semibold">{salas.length === 0 ? 'Aún no hay salas' : 'Sin salas de este tipo'}</p>
+                {salas.length === 0 && puedeEditar && (
+                  <button type="button" onClick={() => setNuevaSala(true)} className="gc-pressable mt-5 h-12 px-6 rounded-2xl bg-[#00D656] text-black font-bold">
+                    Crear primera sala
                   </button>
-                ))}
+                )}
               </div>
+            ) : (
+              salasVisibles.map((sala) => (
+                <SalaSection
+                  key={sala.id}
+                  sala={sala}
+                  sesionesSala={sesionesPorSala.get(sala.id) || SIN_SESIONES}
+                  puedeEditar={puedeEditar}
+                  onIniciar={handleIniciar}
+                  onAbrir={handleAbrir}
+                  onEditarSala={handleEditarSala}
+                />
+              ))
+            )}
 
-              <div className="border-t border-white/10 my-2" />
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">FILTRAR</div>
-              <div className="space-y-1 max-h-48 overflow-y-auto">
-                {[
-                  { value: 'todas', label: 'Todas' },
-                  { value: 'ps5', label: 'PS5' },
-                  { value: 'ps4', label: 'PS4' },
-                  { value: 'xbox', label: 'Xbox' },
-                  { value: 'nintendo', label: 'Nintendo' },
-                  { value: 'pc', label: 'PC' },
-                ].map(f => (
-                  <button
-                    key={f.value}
-                    onClick={() => handleViewChange({ filtroTipo: f.value })}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all ${filtroTipo === f.value ? 'bg-[#00D656]/15 border-[#00D656]/30 text-[#00D656]' : 'text-gray-300'}`}
-                  >
-                    <span className="text-lg">{f.value === 'ps5' ? '🎮' : f.value === 'ps4' ? '🎮' : f.value === 'xbox' ? '🎮' : f.value === 'nintendo' ? '🕹' : f.value === 'pc' ? '🖥' : '🎮'}</span>
-                    <span className="font-medium">{f.label}</span>
-                    {filtroTipo === f.value && <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00D656" strokeWidth="2"><polyline points="20 6 9 17 4 12" /></svg>}
-                  </button>
-                ))}
-              </div>
-
-              <div className="border-t border-white/10 my-2" />
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">CUENTA</div>
-              <div className="space-y-1">
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                  <span className="font-medium">Perfil</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
-                  <span className="font-medium">Configuración</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                  <span className="font-medium">Cerrar sesión</span>
-                </button>
-              </div>
+            <div className="px-4 pt-6">
+              <MovimientoDeHoyCC salas={salasVisibles} sesionesActivas={activas} />
             </div>
-            <div className="h-8" style={{ height: 'env(safe-area-inset-bottom, 8px)' }} />
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </div>
 
-      {/* ── STATION DETAIL MOBILE ── */}
-      {stationDetailData && (
-        <MobileStationDetail
-          estacionId={stationDetailData.estacionId}
-          sala={stationDetailData.sala}
-          sesion={stationDetailData.sesion}
-          salas={salas}
-          sesiones={sesiones}
-          puedeEditar={puedeEditar}
+      {/* ── FAB: Tienda / POS ── */}
+      <button
+        type="button"
+        onClick={() => { haptic(); setTiendaPOS(true); }}
+        className="gc-pressable absolute right-4 z-30 h-14 pl-4 pr-5 rounded-full flex items-center gap-2 font-bold text-black"
+        style={{
+          bottom: 'calc(var(--gc-tabbar-height) + var(--gc-safe-bottom) + 14px)',
+          background: '#00D656',
+          boxShadow: '0 10px 30px rgba(0,214,86,0.35), 0 2px 8px rgba(0,0,0,0.4)',
+        }}
+        aria-label="Abrir tienda"
+      >
+        <Store size={20} /> Tienda
+      </button>
+
+      <VigilanteVencidas activas={activas} onVencida={handleVencida} />
+
+      {/* ── HOJAS ── */}
+      {estacionAbierta && salaAbierta && sesionAbierta && (
+        <MobileStationSheet
+          sala={salaAbierta}
+          estacionId={estacionAbierta.estacionId}
+          sesion={sesionAbierta}
           esAdmin={esAdmin}
-          onCerrar={() => setStationDetailData(null)}
+          onCerrar={() => setEstacionAbierta(null)}
+          onAgregarTiempo={desdeSheet(setTiempoData)}
+          onAgregarProducto={desdeSheet(setProductosData)}
+          onFinalizar={desdeSheet(setFinalizarData)}
+          onTrasladar={desdeSheet(setTrasladarData)}
+          onEditar={desdeSheet(setEditarSesionData)}
+          onAnular={desdeSheet(setAnularData)}
         />
       )}
+      {opcionesAbiertas && (
+        <OpcionesSheet puedeEditar={puedeEditar} onCerrar={() => setOpcionesAbiertas(false)} onAccion={accionOpcion} />
+      )}
 
-      {/* Modales compartidos */}
-      <ModalSesion
-        sesion={iniciarSesionData?.sala ?? null}
-        estacion={iniciarSesionData?.estacion ?? null}
-        onCerrar={() => setIniciarSesionData(null)}
-      />
-      <ModalAgregarTiempo
-        sesion={agregarTiempoData?.sesion ?? null}
-        sala={agregarTiempoData?.sala ?? null}
-        onCerrar={() => setAgregarTiempoData(null)}
-      />
+      {/* ── MODALES (una sola instancia de cada uno) ── */}
+      <ModalSesion sala={iniciarData?.sala ?? null} estacion={iniciarData?.estacion ?? null} onCerrar={() => setIniciarData(null)} />
+      <ModalAgregarTiempo sesion={tiempoData?.sesion ?? null} sala={tiempoData?.sala ?? null} onCerrar={() => setTiempoData(null)} />
       <ModalTienda
-        abierto={!!tiendaPOSData || !!agregarProductosData}
-        sesion={agregarProductosData?.sesion ?? null}
-        sala={agregarProductosData?.sala ?? null}
-        onCerrar={() => { setTiendaPOSData(null); setAgregarProductosData(null); }}
+        abierto={tiendaPOS || !!productosData}
+        sesion={productosData?.sesion ?? null}
+        sala={productosData?.sala ?? null}
+        onCerrar={() => { setTiendaPOS(false); setProductosData(null); }}
       />
-      <ModalFinalizarSesion
-        sesion={finalizarData?.sesion ?? null}
-        sala={finalizarData?.sala ?? null}
-        onCerrar={() => setFinalizarData(null)}
-      />
+      <ModalFinalizarSesion sesion={finalizarData?.sesion ?? null} sala={finalizarData?.sala ?? null} onCerrar={() => setFinalizarData(null)} />
       <ModalTrasladarSesion
         sesion={trasladarData?.sesion ?? null}
         sala={trasladarData?.sala ?? null}
@@ -491,29 +594,54 @@ export default function MobileCommandCenter() {
         sesiones={sesiones}
         onCerrar={() => setTrasladarData(null)}
       />
+      <ModalEditarSesion sesion={editarSesionData?.sesion ?? null} sala={editarSesionData?.sala ?? null} onCerrar={() => setEditarSesionData(null)} />
+      <ModalAnularSesion sesion={anularData?.sesion ?? null} sala={anularData?.sala ?? null} onCerrar={() => setAnularData(null)} />
       <ModalTiempoCumplido
         sesion={colaVencidas[0] ?? null}
-        sala={colaVencidas[0] ? encontrarSala(colaVencidas[0].salaId) : null}
-        onCerrar={cerrarAlertaVencida}
-        onAgregarTiempo={(s) => { cerrarAlertaVencida(); handleAgregarTiempo(s); }}
-        onFinalizar={(s) => { cerrarAlertaVencida(); handleFinalizar(s); }}
+        sala={colaVencidas[0] ? salasMap.get(colaVencidas[0].salaId) : null}
+        onCerrar={cerrarVencida}
+        onAgregarTiempo={(s) => { cerrarVencida(); const sala = salasMap.get(s.salaId); if (sala) setTiempoData({ sesion: s, sala }); }}
+        onFinalizar={(s) => { cerrarVencida(); const sala = salasMap.get(s.salaId); if (sala) setFinalizarData({ sesion: s, sala }); }}
       />
-      <ModalEditarSala
-        sala={editarSala}
-        onCerrar={() => setEditarSala(null)}
-      />
-      <ModalNuevaSala
-        abierto={nuevaSalaAbierto}
-        onCerrar={() => setNuevaSalaAbierto(false)}
-      />
-      <ModalAnadirEstacion
-        abierto={anadirEstacionAbierto}
-        onCerrar={() => setAnadirEstacionAbierto(false)}
-      />
-      <ModalEliminarEstacion
-        abierto={eliminarEstacionAbierto}
-        onCerrar={() => setEliminarEstacionAbierto(false)}
-      />
+      <ModalEditarSala sala={editarSala} onCerrar={() => setEditarSala(null)} />
+      <ModalNuevaSala abierto={nuevaSala} onCerrar={() => setNuevaSala(false)} />
+      <ModalAnadirEstacion abierto={anadirEstacion} onCerrar={() => setAnadirEstacion(false)} />
+      <ModalEliminarEstacion abierto={eliminarEstacion} onCerrar={() => setEliminarEstacion(false)} />
+    </div>
+  );
+}
+
+// Badge de alertas con su propio reloj (no re-renderiza el header)
+const AlertBadge = memo(function AlertBadge({ activas }) {
+  const now = useGlobalTick();
+  let n = 0;
+  for (const s of activas) {
+    const { estado } = estadoTiempo(s, now);
+    if (estado !== 'normal' && estado !== 'libre_tiempo') n++;
+  }
+  if (!n) return null;
+  return (
+    <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#EF4B5F] text-white text-[10px] font-bold flex items-center justify-center">
+      {n > 9 ? '9+' : n}
+    </span>
+  );
+});
+
+function SkeletonSalas() {
+  return (
+    <div className="px-4 pt-3 space-y-3 animate-pulse" aria-label="Cargando salas">
+      <div className="grid grid-cols-4 gap-2">
+        {[0, 1, 2, 3].map((i) => <div key={i} className="h-16 rounded-2xl bg-white/[0.04]" />)}
+      </div>
+      <div className="h-11 rounded-2xl bg-white/[0.04]" />
+      {[0, 1].map((i) => (
+        <div key={i} className="pt-3 space-y-2.5">
+          <div className="h-10 w-48 rounded-xl bg-white/[0.04]" />
+          <div className="grid grid-cols-2 gap-2.5">
+            {[0, 1, 2, 3].map((j) => <div key={j} className="h-28 rounded-2xl bg-white/[0.04]" />)}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

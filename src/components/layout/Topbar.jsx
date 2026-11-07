@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import HeaderWidgets from '../dashboard/HeaderWidgets';
 import { useSalas } from '../../hooks/useSalas';
 import { formatCOP } from '../../lib/formatCurrency';
+import useUIStore from '../../store/useUIStore';
 
 // ===================================================================
 // TOPBAR GLOBAL — Fijo en la parte superior de Main Content
@@ -12,6 +13,7 @@ import { formatCOP } from '../../lib/formatCurrency';
 
 export default function Topbar() {
   const { sesiones } = useSalas();
+  const abrirMenuMovil = useUIStore((s) => s.abrirMenuMovil);
 
   // Valor en juego = suma de tarifa_base + costo_adicional + productos
   const ingresosActivos = useMemo(() => {
@@ -28,7 +30,7 @@ export default function Topbar() {
 
   return (
     <header
-      className="fixed top-0 right-0 z-40 flex items-center justify-between px-4 md:px-6 h-[var(--gc-shell-header-height)]"
+      className="gc-topbar fixed top-0 right-0 z-40 flex items-center justify-between px-4 md:px-6 h-[var(--gc-shell-header-height)]"
       style={{
         left: 'var(--gc-sidebar-width)',
         background: 'var(--gc-header)',
@@ -39,12 +41,13 @@ export default function Topbar() {
       {/* ── Brand / Título de la app ── */}
       <div className="flex items-center gap-3 shrink-0">
         <button
+          onClick={abrirMenuMovil}
           className="w-10 h-10 rounded-xl flex items-center justify-center text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#00D656]/30 transition-all md:hidden"
           aria-label="Abrir menú"
         >
           <Menu size={20} />
         </button>
-        <h1 className="font-black text-white text-sm leading-tight tracking-tight hidden sm:block">
+        <h1 className="font-black text-white text-base md:text-sm leading-tight tracking-tight">
           GameControl
         </h1>
       </div>
@@ -72,7 +75,10 @@ export default function Topbar() {
           </div>
         )}
 
-        <HeaderWidgets />
+        {/* Clima y hora no caben en un celular */}
+        <div className="hidden md:block">
+          <HeaderWidgets />
+        </div>
       </div>
     </header>
   );

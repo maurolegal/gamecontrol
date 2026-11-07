@@ -27,7 +27,11 @@
 
     /* ═══ APP SHELL TOKENS ═══ */
     --gc-sidebar-width: 256px;
+    --gc-sidebar-drawer-width: 256px;
     --gc-shell-header-height: 64px;
+    --gc-tabbar-height: 0px;
+    --gc-safe-top: env(safe-area-inset-top, 0px);
+    --gc-safe-bottom: env(safe-area-inset-bottom, 0px);
 
     /* Legacy aliases (compatibilidad) */
     --bg-dark-primary: var(--gc-bg);
@@ -277,3 +281,87 @@
   }
 }
 
+
+
+/* ══════════════════════════════════════════════════════════════
+   APP NATIVA MÓVIL (< 768px)
+   Sidebar → drawer, tab bar inferior, safe-areas, feedback táctil.
+   Desktop (>= 768px) no cambia.
+   ══════════════════════════════════════════════════════════════ */
+
+.gc-app-shell {
+  height: 100vh;
+  height: 100dvh; /* evita el salto de la barra de direcciones en iOS/Android */
+}
+
+.gc-pressable {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 120ms ease, background-color 150ms ease, opacity 150ms ease;
+}
+.gc-pressable:active {
+  transform: scale(0.965);
+}
+
+.gc-tabbar {
+  padding-bottom: var(--gc-safe-bottom);
+  background: rgba(9, 13, 20, 0.92);
+  backdrop-filter: saturate(160%) blur(18px);
+  -webkit-backdrop-filter: saturate(160%) blur(18px);
+  border-top: 1px solid var(--gc-border);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --gc-sidebar-width: 0px;
+    --gc-sidebar-drawer-width: min(300px, 84vw);
+    --gc-shell-header-height: calc(56px + var(--gc-safe-top));
+    --gc-tabbar-height: 60px;
+  }
+
+  html, body {
+    overscroll-behavior-y: none; /* sin "rebote" del documento completo */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .gc-sidebar {
+    transform: translateX(-100%);
+    transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1);
+    padding-top: var(--gc-safe-top);
+    box-shadow: none;
+  }
+  .gc-sidebar--open {
+    transform: translateX(0);
+    box-shadow: 24px 0 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .gc-topbar {
+    padding-top: var(--gc-safe-top);
+  }
+
+  .gc-main-scroll {
+    padding-bottom: calc(var(--gc-tabbar-height) + var(--gc-safe-bottom));
+    overscroll-behavior-y: contain;
+  }
+}
+
+@keyframes gc-sheet-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes gc-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.gc-sheet-in { animation: gc-sheet-in 280ms cubic-bezier(0.32, 0.72, 0, 1); }
+.gc-fade-in  { animation: gc-fade-in 200ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gc-sheet-in, .gc-fade-in { animation: none; }
+  .gc-pressable:active { transform: none; }
+}
+
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
