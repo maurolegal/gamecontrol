@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_conversaciones (
   tenant_id                 uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   telefono                  text NOT NULL CHECK (telefono ~ '^[0-9]{8,15}$'),
   nombre                    text,
-  cliente_id                uuid REFERENCES public.clientes(id) ON DELETE SET NULL,
+  cliente_id                bigint REFERENCES public.clientes(id) ON DELETE SET NULL,  -- clientes.id es bigint en producción
   ultimo_mensaje_at         timestamptz,
   ultimo_mensaje_texto      text,
   ultimo_mensaje_direccion  text CHECK (ultimo_mensaje_direccion IN ('entrante', 'saliente')),
@@ -263,7 +263,7 @@ AS $$
 DECLARE
   v_tel text := public.whatsapp_normalizar_telefono(p_telefono);
   v_conv uuid;
-  v_cliente uuid;
+  v_cliente bigint;
   v_insertado integer;
 BEGIN
   IF v_tel IS NULL THEN RETURN 'invalido'; END IF;
