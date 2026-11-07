@@ -51,6 +51,11 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
   const [procesandoPago, setProcesandoPago] = useState(false);
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [carritoMobileAbierto, setCarritoMobileAbierto] = useState(false);
+  // En celulares no se enfoca la búsqueda al abrir: el teclado empujaba
+  // todo el modal hacia arriba. Solo con mouse/trackpad (puntero fino).
+  const puedeAutoFocus = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches;
+  // Si el carrito queda vacío (venta cobrada o vaciado), cerrar la hoja
+  useEffect(() => { if (carrito.length === 0) setCarritoMobileAbierto(false); }, [carrito.length]);
   const [qrImagenUrl, setQrImagenUrl] = useState(null);
   const { exito, error: notifError } = useNotifications();
   const { agregarProductos, cargarSesionesActivas } = useSalas();
@@ -393,8 +398,8 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
 
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <Modal abierto={abierto} titulo="" onCerrar={onCerrar} size="full">
-      <div className="flex flex-col h-[calc(100dvh-2rem)] sm:h-[85vh]">
+    <Modal abierto={abierto} titulo="" onCerrar={onCerrar} size="full" bare>
+      <div className="relative flex flex-col flex-1 min-h-0">
         {/* ── HEADER compacto ── */}
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-white/5 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -412,10 +417,10 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
           </div>
           <button
             onClick={onCerrar}
-            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
+            className="w-10 h-10 sm:w-7 sm:h-7 rounded-xl sm:rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors flex-shrink-0"
             aria-label="Cerrar"
           >
-            <X size={14} className="text-gray-400" />
+            <X size={18} className="text-gray-400" />
           </button>
         </div>
 
@@ -428,7 +433,7 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               placeholder="Buscar producto o código..."
-              autoFocus
+              autoFocus={puedeAutoFocus}
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-[#00D656]/40 focus:ring-1 focus:ring-[#00D656]/20 transition-all"
             />
           </div>
@@ -440,9 +445,12 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
         </div>
 
         {/* ── BODY: Productos + Carrito ── */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
           {/* ── PRODUCTOS (65-70%) ── */}
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+          <div
+            className="flex-1 overflow-y-auto overscroll-contain px-4 pt-3 lg:pb-3"
+            style={{ paddingBottom: carrito.length > 0 ? 'calc(var(--gc-safe-bottom) + 88px)' : 'calc(var(--gc-safe-bottom) + 12px)' }}
+          >
             {cargando ? (
               <div className="flex flex-col items-center justify-center py-12 text-gray-500">
                 <div className="animate-spin mb-2 w-8 h-8 border-2 border-[#00D656] border-t-transparent rounded-full" />
@@ -491,20 +499,24 @@ export default function ModalTienda({ abierto, onCerrar, sesion = null, sala = n
             {/* Botón flotante */}
             <button
               onClick={() => setCarritoMobileAbierto(true)}
-              className="lg:hidden fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#00D656] to-[#00A844] text-white font-bold text-sm shadow-lg shadow-[#00D656]/30"
+              className="gc-pressable lg:hidden absolute left-4 right-4 z-20 flex items-center justify-center gap-2 h-14 rounded-2xl bg-gradient-to-r from-[#00D656] to-[#00A844] text-black font-bold text-[15px] shadow-lg shadow-[#00D656]/30"
+              style={{ bottom: 'calc(var(--gc-safe-bottom) + 12px)' }}
             >
               <ShoppingCart size={16} />
-              {totalItems} items · {formatCOP(totalCarrito)}
+              Ver carrito · {totalItems} {totalItems === 1 ? 'ítem' : 'ítems'} · {formatCOP(totalCarrito)}
             </button>
 
             {/* Bottom sheet */}
             {carritoMobileAbierto && (
-              <div className="lg:hidden fixed inset-0 z-50 flex items-end">
+              <div className="lg:hidden absolute inset-0 z-30 flex items-end">
                 <div
-                  className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                  className="absolute inset-0 bg-black/70 backdrop-blur-sm gc-fade-in"
                   onClick={() => setCarritoMobileAbierto(false)}
                 />
-                <div className="relative w-full max-h-[80vh] bg-[var(--gc-surface)] rounded-t-2xl border-t border-white/10 flex flex-col">
+                <div
+                  className="relative w-full max-h-[88%] bg-[var(--gc-surface)] rounded-t-2xl border-t border-white/10 flex flex-col gc-sheet-in"
+                  style={{ paddingBottom: 'var(--gc-safe-bottom)' }}
+                >
                   <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
                     <div className="w-10 h-1 rounded-full bg-white/20" />
                   </div>

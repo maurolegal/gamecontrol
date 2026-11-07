@@ -20,7 +20,10 @@ export default function Modal({
   onCerrar, 
   children, 
   size = 'md',
-  ancho = null
+  ancho = null,
+  // bare: el contenido ocupa todo el panel, sin padding ni scroll propio.
+  // Para pantallas que gestionan su propio layout (p. ej. Tienda/POS).
+  bare = false,
 }) {
   // Bloquear scroll del body cuando el modal está abierto
   useEffect(() => {
@@ -47,7 +50,10 @@ export default function Modal({
       <div
         className={`relative z-10 w-full ${anchoClase}
           rounded-t-2xl sm:rounded-2xl shadow-2xl gc-sheet-in sm:animate-none
-          max-h-[calc(100dvh-var(--gc-safe-top)-8px)] sm:max-h-[90vh] overflow-hidden flex flex-col`}
+          ${bare
+            ? 'h-[calc(100dvh-var(--gc-safe-top)-8px)] sm:h-[85vh]'
+            : 'max-h-[calc(100dvh-var(--gc-safe-top)-8px)] sm:max-h-[90vh]'}
+          overflow-hidden flex flex-col`}
         style={{
           background: 'var(--gc-surface)',
           border: '1px solid var(--gc-border)',
@@ -84,13 +90,17 @@ export default function Modal({
           </div>
         )}
 
-        {/* Contenido con scroll */}
-        <div
-          className="px-4 sm:px-6 pt-4 sm:py-5 flex-1 overflow-y-auto overscroll-contain"
-          style={{ paddingBottom: 'max(16px, calc(var(--gc-safe-bottom) + 12px))' }}
-        >
-          {children}
-        </div>
+        {/* Contenido */}
+        {bare ? (
+          <div className="relative flex-1 min-h-0 flex flex-col">{children}</div>
+        ) : (
+          <div
+            className="px-4 sm:px-6 pt-4 sm:py-5 flex-1 overflow-y-auto overscroll-contain"
+            style={{ paddingBottom: 'max(16px, calc(var(--gc-safe-bottom) + 12px))' }}
+          >
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );
