@@ -16,6 +16,7 @@ import {
   Radio,
   Cpu,
   Building2,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermisos } from '../../hooks/usePermisos';
@@ -40,6 +41,7 @@ const COLOR_MODULO = {
   stock:            '#4D8DFF', // azul
   cierre_turno:     '#EAB308', // amarillo
   clientes:         '#A855F7', // violeta
+  chats:            '#25D366', // verde WhatsApp
   reportes:         '#06B6D4', // cyan
   auditoria_cierres:'#EF4B5F', // rojo suave
   dispositivos:     '#3B82F6', // azul
@@ -66,6 +68,7 @@ const GRUPOS = [
     titulo: 'Gestión',
     items: [
       { to: '/clientes',          label: 'Clientes',          Icon: UserCheck,   modulo: 'clientes' },
+      { to: '/chats',             label: 'Chats WhatsApp',    Icon: MessageCircle, modulo: 'chats' },
       { to: '/reportes',          label: 'Reportes',          Icon: BarChart2,   modulo: 'reportes' },
       { to: '/auditoria-cierres', label: 'Auditoría Cierres', Icon: ShieldAlert, modulo: 'auditoria_cierres' },
       { to: '/dispositivos',      label: 'Dispositivos',      Icon: Cpu,         modulo: 'dispositivos' },

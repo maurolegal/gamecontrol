@@ -4,7 +4,7 @@
 
 import { memo } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Gamepad2, Receipt, Package, Menu } from 'lucide-react';
+import { LayoutDashboard, Gamepad2, Receipt, MessageCircle, Menu } from 'lucide-react';
 import { usePermisos } from '../../hooks/usePermisos';
 import useUIStore from '../../store/useUIStore';
 import { haptic } from '../../hooks/useIsMobile';
@@ -12,8 +12,8 @@ import { haptic } from '../../hooks/useIsMobile';
 const TABS = [
   { to: '/',       label: 'Inicio', Icon: LayoutDashboard, modulo: 'dashboard' },
   { to: '/salas',  label: 'Salas',  Icon: Gamepad2,        modulo: 'salas' },
+  { to: '/chats',  label: 'Chats',  Icon: MessageCircle,   modulo: 'chats' },
   { to: '/ventas', label: 'Ventas', Icon: Receipt,         modulo: 'ventas' },
-  { to: '/stock',  label: 'Stock',  Icon: Package,         modulo: 'stock' },
 ];
 
 function MobileTabBar() {

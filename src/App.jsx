@@ -24,6 +24,7 @@ const Dispositivos = lazy(() => import('./pages/Dispositivos'));
 const Recetas = lazy(() => import('./pages/Recetas'));
 const Ajustes = lazy(() => import('./pages/Ajustes'));
 const Clientes = lazy(() => import('./pages/Clientes'));
+const Chats = lazy(() => import('./pages/Chats'));
 const CierreTurno = lazy(() => import('./pages/CierreTurno'));
 const AuditoriaCierres = lazy(() => import('./pages/AuditoriaCierres'));
 
@@ -109,6 +110,7 @@ export default function App() {
                   <Route path="/gastos"    element={<ProtectedRoute modulo="gastos"><Gastos /></ProtectedRoute>} />
                   <Route path="/stock"     element={<ProtectedRoute modulo="stock"><Stock /></ProtectedRoute>} />
                   <Route path="/clientes"  element={<ProtectedRoute modulo="clientes"><Clientes /></ProtectedRoute>} />
+                  <Route path="/chats"     element={<ProtectedRoute modulo="chats"><Chats /></ProtectedRoute>} />
                   <Route path="/cierre-turno" element={<ProtectedRoute modulo="cierre_turno"><CierreTurno /></ProtectedRoute>} />
                   <Route path="/auditoria-cierres" element={<ProtectedRoute modulo="auditoria_cierres"><AuditoriaCierres /></ProtectedRoute>} />
                   <Route path="/reportes"  element={<ProtectedRoute modulo="reportes"><Reportes /></ProtectedRoute>} />
