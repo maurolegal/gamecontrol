@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermisos } from '../../hooks/usePermisos';
+import useUIStore from '../../store/useUIStore';
 
 // ===================================================================
 // SIDEBAR – Navegación principal FIJA
@@ -118,6 +119,8 @@ export default function Sidebar() {
   const { usuario, rol, esPlatformAdmin, cerrarSesion } = useAuth();
   const { puedeAccederModulo } = usePermisos();
   const navigate = useNavigate();
+  const menuMovilAbierto = useUIStore((s) => s.menuMovilAbierto);
+  const cerrarMenuMovil = useUIStore((s) => s.cerrarMenuMovil);
 
   async function handleLogout() {
     await cerrarSesion();
@@ -134,10 +137,21 @@ export default function Sidebar() {
     .filter((g) => g.items.length > 0);
 
   return (
+    <>
+    {/* Backdrop del drawer (solo móvil) */}
+    <div
+      className={`md:hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-[2px] transition-opacity duration-200 ${
+        menuMovilAbierto ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      }`}
+      onClick={cerrarMenuMovil}
+      aria-hidden="true"
+    />
     <aside
-      className="fixed inset-y-0 left-0 z-50 flex flex-col text-white md:shrink-0"
+      className={`gc-sidebar fixed inset-y-0 left-0 z-[61] md:z-50 flex flex-col text-white md:shrink-0 ${
+        menuMovilAbierto ? 'gc-sidebar--open' : ''
+      }`}
       style={{
-        width: 'var(--gc-sidebar-width)',
+        width: 'var(--gc-sidebar-drawer-width)',
         background: 'var(--gc-sidebar)',
         borderRight: '1px solid var(--gc-border)',
       }}
@@ -277,5 +291,6 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

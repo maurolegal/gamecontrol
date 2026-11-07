@@ -1,29 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { usePermisos } from './hooks/usePermisos';
 import { ConfirmProvider } from './components/ui/ConfirmProvider';
 import Layout from './components/layout/Layout';
 import PlatformLayout from './components/platform/PlatformLayout';
 
-import Login      from './pages/Login';
-import Restablecer from './pages/Restablecer';
-import Landing    from './pages/Landing';
-import TVDisplay  from './pages/TVDisplay';
-import EventLive  from './pages/EventLive';
-import Dashboard       from './pages/Dashboard';
-import CommandCenter   from './pages/CommandCenter';
-import Ventas     from './pages/Ventas';
-import Gastos     from './pages/Gastos';
-import Stock      from './pages/Stock';
-import Reportes   from './pages/Reportes';
-import Usuarios   from './pages/Usuarios';
-import Dispositivos   from './pages/Dispositivos';
-import Recetas    from './pages/Recetas';
-import Ajustes    from './pages/Ajustes';
-import Clientes   from './pages/Clientes';
-import CierreTurno from './pages/CierreTurno';
-import AuditoriaCierres from './pages/AuditoriaCierres';
+// Páginas con carga diferida: cada pantalla se descarga solo al abrirla
+// (bundle inicial mucho más liviano, clave en celulares).
+const Login = lazy(() => import('./pages/Login'));
+const Restablecer = lazy(() => import('./pages/Restablecer'));
+const Landing = lazy(() => import('./pages/Landing'));
+const TVDisplay = lazy(() => import('./pages/TVDisplay'));
+const EventLive = lazy(() => import('./pages/EventLive'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const CommandCenter = lazy(() => import('./pages/CommandCenter'));
+const Ventas = lazy(() => import('./pages/Ventas'));
+const Gastos = lazy(() => import('./pages/Gastos'));
+const Stock = lazy(() => import('./pages/Stock'));
+const Reportes = lazy(() => import('./pages/Reportes'));
+const Usuarios = lazy(() => import('./pages/Usuarios'));
+const Dispositivos = lazy(() => import('./pages/Dispositivos'));
+const Recetas = lazy(() => import('./pages/Recetas'));
+const Ajustes = lazy(() => import('./pages/Ajustes'));
+const Clientes = lazy(() => import('./pages/Clientes'));
+const CierreTurno = lazy(() => import('./pages/CierreTurno'));
+const AuditoriaCierres = lazy(() => import('./pages/AuditoriaCierres'));
 
 // ── Detectar hash de recuperación de Supabase y redirigir ───────────
 function RecoveryRedirect() {
@@ -59,11 +61,29 @@ function PlatformRoute({ children }) {
   return esPlatformAdmin ? children : <Navigate to="/" replace />;
 }
 
+function PantallaCarga() {
+  return (
+    <div className="flex items-center justify-center" style={{ height: '100dvh', background: 'var(--gc-bg)' }}>
+      <div className="w-9 h-9 rounded-full border-[3px] border-[#00D656] border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
+// Dentro del Layout: solo el área de contenido muestra el indicador
+function CargaContenido() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <div className="w-8 h-8 rounded-full border-[3px] border-[#00D656] border-t-transparent animate-spin" />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <ConfirmProvider>
     <BrowserRouter>
       <RecoveryRedirect />
+      <Suspense fallback={<PantallaCarga />}>
       <Routes>
         {/* Pública */}
         <Route path="/login" element={<Login />} />
@@ -81,6 +101,7 @@ export default function App() {
           element={
             <PrivateRoute>
               <Layout>
+                <Suspense fallback={<CargaContenido />}>
                 <Routes>
                   <Route path="/"          element={<Dashboard />} />
                   <Route path="/salas"     element={<ProtectedRoute modulo="salas"><CommandCenter /></ProtectedRoute>} />
@@ -96,11 +117,13 @@ export default function App() {
                   <Route path="/recetas"       element={<ProtectedRoute modulo="recetas"><Recetas /></ProtectedRoute>} />
                   <Route path="/ajustes"   element={<ProtectedRoute modulo="ajustes"><Ajustes /></ProtectedRoute>} />
                 </Routes>
+                </Suspense>
               </Layout>
             </PrivateRoute>
           }
         />
       </Routes>
+      </Suspense>
     </BrowserRouter>
     </ConfirmProvider>
   );

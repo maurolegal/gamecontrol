@@ -38,7 +38,7 @@ export default function Modal({
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
       {/* Overlay */}
       <div
-        className="absolute inset-0 backdrop-blur-[6px]"
+        className="absolute inset-0 backdrop-blur-[6px] gc-fade-in"
         style={{ background: 'rgba(0,0,0,0.7)' }}
         onClick={onCerrar}
       />
@@ -46,8 +46,8 @@ export default function Modal({
       {/* Panel — fullscreen en mobile, centrado en desktop */}
       <div
         className={`relative z-10 w-full ${anchoClase}
-          rounded-t-2xl sm:rounded-2xl shadow-2xl
-          max-h-[100dvh] sm:max-h-[90vh] overflow-hidden flex flex-col`}
+          rounded-t-2xl sm:rounded-2xl shadow-2xl gc-sheet-in sm:animate-none
+          max-h-[calc(100dvh-var(--gc-safe-top)-8px)] sm:max-h-[90vh] overflow-hidden flex flex-col`}
         style={{
           background: 'var(--gc-surface)',
           border: '1px solid var(--gc-border)',
@@ -85,7 +85,10 @@ export default function Modal({
         )}
 
         {/* Contenido con scroll */}
-        <div className="px-4 sm:px-6 py-4 sm:py-5 flex-1 overflow-y-auto overscroll-contain">
+        <div
+          className="px-4 sm:px-6 pt-4 sm:py-5 flex-1 overflow-y-auto overscroll-contain"
+          style={{ paddingBottom: 'max(16px, calc(var(--gc-safe-bottom) + 12px))' }}
+        >
           {children}
         </div>
       </div>
