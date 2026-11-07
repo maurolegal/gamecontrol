@@ -20,7 +20,11 @@ import { onTenantChange, subscribe as realtimeSubscribe } from '../lib/realtimeS
 import { cargarSalas as managerCargarSalas, cargarSesionesActivas as managerCargarSesiones } from '../lib/salasManager';
 
 // ── Helpers de fecha ────────────────────────────────────────────────
-const HOY_DATE = () => new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
+// IMPORTANTE: las fechas 'YYYY-MM-DD' se calculan en hora LOCAL.
+// toISOString() devuelve la fecha UTC: en Colombia (UTC-5), desde las
+// 7:00 p.m. eso ya es "mañana" y los KPIs del día quedaban en $0.
+const fechaLocal = (d) => d.toLocaleDateString('en-CA'); // 'YYYY-MM-DD' local
+const HOY_DATE = () => fechaLocal(new Date());
 
 /** Inicio del día actual en ISO timestamp */
 const HOY_START = () => {
@@ -48,7 +52,7 @@ function inicioHaceDias(n) {
 function fechaHaceDias(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().split('T')[0];
+  return fechaLocal(d);
 }
 
 /** Array de los últimos N días con fecha y etiqueta legible */
@@ -57,13 +61,47 @@ function ultimosDias(n) {
     const d = new Date();
     d.setDate(d.getDate() - (n - 1 - i));
     return {
-      fecha: d.toISOString().split('T')[0],
+      fecha: fechaLocal(d),
       ts: (() => { const x = new Date(d); x.setHours(0,0,0,0); return x.toISOString(); })(),
       label: n === 1
         ? d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
         : d.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' }),
     };
   });
+}
+
+// ── Estados que NO cuentan como ingreso/gasto (igual que Reportes y Cierre de Turno) ──
+const ESTADOS_VENTA_EXCLUIDOS = new Set(['anulada', 'cancelada', 'devuelta']);
+const ESTADOS_GASTO_EXCLUIDOS = new Set(['anulado', 'anulada', 'cancelado', 'cancelada', 'rechazado']);
+const ventaValida = (v) => !ESTADOS_VENTA_EXCLUIDOS.has(String(v.estado ?? '').toLowerCase());
+const gastoValido = (g) => !ESTADOS_GASTO_EXCLUIDOS.has(String(g.estado ?? '').toLowerCase());
+
+/**
+ * Reparte el total de una venta por método de pago.
+ * Usa monto_efectivo/transferencia/tarjeta/digital (pagos divididos);
+ * si no existen, asigna todo al metodo_pago ('qr' cuenta como digital).
+ */
+function repartirPago(v) {
+  const total = Number(v.total) || 0;
+  const montos = {
+    efectivo: Number(v.monto_efectivo) || 0,
+    transferencia: Number(v.monto_transferencia) || 0,
+    tarjeta: Number(v.monto_tarjeta) || 0,
+    digital: Number(v.monto_digital) || 0,
+  };
+  const suma = montos.efectivo + montos.transferencia + montos.tarjeta + montos.digital;
+  if (suma > 0) {
+    const factor = total > 0 ? total / suma : 0; // normaliza a total (descuentos/redondeos)
+    for (const k of Object.keys(montos)) montos[k] *= factor;
+    return montos;
+  }
+  const mp = String(v.metodo_pago || 'efectivo').toLowerCase();
+  const res = { efectivo: 0, transferencia: 0, tarjeta: 0, digital: 0 };
+  if (mp.includes('trans')) res.transferencia = total;
+  else if (mp.includes('tarjeta')) res.tarjeta = total;
+  else if (mp.includes('digital') || mp.includes('qr')) res.digital = total;
+  else res.efectivo = total;
+  return res;
 }
 
 export function useDashboard() {
@@ -163,7 +201,7 @@ export function useDashboard() {
         // Ventas de hoy: tabla ventas, campo fecha_cierre (TIMESTAMP)
         supabase
           .from('ventas')
-          .select('total, metodo_pago, fecha_cierre')
+          .select('total, estado, metodo_pago, monto_efectivo, monto_transferencia, monto_tarjeta, monto_digital, fecha_cierre')
           .gte('fecha_cierre', hoyStart)
           .lte('fecha_cierre', hoyEnd)
           .then(r => r.data),
@@ -171,7 +209,7 @@ export function useDashboard() {
         // Ventas de ayer: rango amplio, filtro por fecha local en cliente
         supabase
           .from('ventas')
-          .select('total, fecha_cierre')
+          .select('total, estado, fecha_cierre')
           .gte('fecha_cierre', ayerStart)
           .lt('fecha_cierre', hoyEnd)
           .then(r => r.data),
@@ -185,7 +223,7 @@ export function useDashboard() {
         // Gastos de hoy (fecha_gasto es tipo DATE)
         supabase
           .from('gastos')
-          .select('monto')
+          .select('monto, estado')
           .eq('fecha_gasto', HOY_DATE())
           .then(r => r.data),
 
@@ -221,15 +259,16 @@ export function useDashboard() {
       setSalasMap(mapa);
 
       // Ingresos: filtrar por fecha local (Colombia) para evitar desfase UTC
-      const ingresosHoy  = (ventasHoyRaw  ?? []).filter(v => {
-        if (!v.fecha_cierre) return false;
-        return new Date(v.fecha_cierre).toLocaleDateString('en-CA') === hoyStr;
-      }).reduce((s, v) => s + (Number(v.total) || 0), 0);
-      const ingresosAyer = (ventasAyerRaw ?? []).filter(v => {
-        if (!v.fecha_cierre) return false;
-        return new Date(v.fecha_cierre).toLocaleDateString('en-CA') === ayerStr;
-      }).reduce((s, v) => s + (Number(v.total) || 0), 0);
-      const gastosHoy    = (gastosRaw     ?? []).reduce((s, g) => s + (Number(g.monto)  || 0), 0);
+      // Se excluyen ventas anuladas/devueltas y gastos anulados/rechazados.
+      const ventasHoy = (ventasHoyRaw ?? []).filter(v =>
+        v.fecha_cierre && ventaValida(v) && fechaLocal(new Date(v.fecha_cierre)) === hoyStr
+      );
+      const ingresosHoy  = ventasHoy.reduce((s, v) => s + (Number(v.total) || 0), 0);
+      const ingresosAyer = (ventasAyerRaw ?? []).filter(v =>
+        v.fecha_cierre && ventaValida(v) && fechaLocal(new Date(v.fecha_cierre)) === ayerStr
+      ).reduce((s, v) => s + (Number(v.total) || 0), 0);
+      const gastosHoy    = (gastosRaw ?? []).filter(gastoValido)
+        .reduce((s, g) => s + Math.abs(Number(g.monto) || 0), 0);
 
       // Salas y estaciones ocupadas
       // Cada sesión ocupa 1 estación dentro de su sala
@@ -279,15 +318,12 @@ export function useDashboard() {
       setDispositivos(dispositivosRaw ?? []);
 
       // ── Métodos de pago de hoy ──
-      const ventasHoyFiltradas = (ventasHoyRaw ?? []).filter(v => {
-        if (!v.fecha_cierre && !v.total) return true; // si no hay fecha, contar
-        return true;
-      });
+      // Antes los pagos 'parcial' y 'qr' se descartaban y el donut no cuadraba
+      // con los ingresos del día. Ahora se reparte con los montos divididos.
       const metodos = { efectivo: 0, transferencia: 0, tarjeta: 0, digital: 0 };
-      (ventasHoyRaw ?? []).forEach(v => {
-        const total = Number(v.total) || 0;
-        const mp = v.metodo_pago || 'efectivo';
-        if (metodos[mp] !== undefined) metodos[mp] += total;
+      ventasHoy.forEach(v => {
+        const r = repartirPago(v);
+        for (const k of Object.keys(metodos)) metodos[k] += r[k];
       });
       setMetodosPagoHoy(metodos);
 
@@ -340,14 +376,14 @@ export function useDashboard() {
       const [{ data: ventasData }, { data: gastosData }] = await Promise.all([
         supabase
           .from('ventas')
-          .select('total, fecha_cierre')
+          .select('total, estado, fecha_cierre')
           .gte('fecha_cierre', desde)
           .order('fecha_cierre', { ascending: true })
           .limit(1000),
 
         supabase
           .from('gastos')
-          .select('monto, fecha_gasto')
+          .select('monto, estado, fecha_gasto')
           .gte('fecha_gasto', desdeDate)
           .order('fecha_gasto', { ascending: true })
           .limit(1000),
@@ -360,16 +396,16 @@ export function useDashboard() {
       // Convertir a fecha local (Colombia) para agrupar correctamente
       // Los timestamps Supabase tienen offset -05:00; toLocaleDateString('en-CA') da YYYY-MM-DD en zona local
       (ventasData ?? []).forEach((v) => {
-        if (!v.fecha_cierre) return;
-        const f = new Date(v.fecha_cierre).toLocaleDateString('en-CA');
+        if (!v.fecha_cierre || !ventaValida(v)) return;
+        const f = fechaLocal(new Date(v.fecha_cierre));
         if (ventasPorDia[f] !== undefined) ventasPorDia[f] += Number(v.total) || 0;
       });
 
       (gastosData ?? []).forEach((g) => {
-        if (!g.fecha_gasto) return;
+        if (!g.fecha_gasto || !gastoValido(g)) return;
         // fecha_gasto es DATE (sin hora) — el string directo es siempre YYYY-MM-DD
         const f = String(g.fecha_gasto).substring(0, 10);
-        if (gastosPorDia[f] !== undefined) gastosPorDia[f] += Number(g.monto) || 0;
+        if (gastosPorDia[f] !== undefined) gastosPorDia[f] += Math.abs(Number(g.monto) || 0);
       });
 
       setGrafico({
@@ -434,9 +470,23 @@ export function useDashboard() {
     // ventas nuevas via HTTP → el dashboard se actualiza igual.
     const unsubSesiones = realtimeSubscribe('sesiones', () => {
       debouncedFetchKPIs();
+      debouncedFetchGrafico(); // antes el gráfico nunca se actualizaba en vivo
     });
 
+    // Ventas POS y gastos no están en realtime: refrescar al volver a la
+    // pestaña/ventana para que el dashboard no muestre datos viejos.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        debouncedFetchKPIs();
+        debouncedFetchGrafico();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+
     return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
       if (debounceKPIs) clearTimeout(debounceKPIs);
       if (debounceGrafico) clearTimeout(debounceGrafico);
       unsubSesiones();
