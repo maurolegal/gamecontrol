@@ -4,7 +4,7 @@
 // ===================================================================
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Filter, RefreshCw, ChevronDown, Gamepad2, Monitor, Smartphone, ShoppingBag, Plus, Minus } from 'lucide-react';
+import { Filter, RefreshCw, ChevronDown, Gamepad2, Monitor, Smartphone, ShoppingBag, Plus, Minus, CalendarDays, CalendarPlus } from 'lucide-react';
 import useGlobalTick from '../../hooks/useGlobalTick';
 import { formatCOP } from '../../lib/formatCurrency';
 
@@ -37,6 +37,9 @@ export default function CommandCenterHeader({
   onNuevaSala,
   onAnadirEstacion,
   onEliminarEstacion,
+  onNuevaReserva,
+  onVerAgenda,
+  reservasHoy = 0,
 }) {
   const now = useGlobalTick(); // para timestamp "actualizado hace Xs"
   const [dropdownOpen, setDropdownOpen] = useState(null); // 'filtro' | 'vista' | 'user' | null
@@ -288,6 +291,33 @@ export default function CommandCenterHeader({
                 </div>
               }
             />
+          )}
+
+          {/* ── Reservas ── */}
+          {onVerAgenda && (
+            <button
+              onClick={onVerAgenda}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-bold transition-all"
+              title="Agenda de reservas"
+            >
+              <CalendarDays size={12} />
+              <span className="hidden sm:inline">Reservas</span>
+              {reservasHoy > 0 && (
+                <span className="min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-black text-[9px] font-bold flex items-center justify-center">
+                  {reservasHoy}
+                </span>
+              )}
+            </button>
+          )}
+          {onNuevaReserva && (
+            <button
+              onClick={onNuevaReserva}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-500/50 text-amber-400 text-xs font-bold transition-all"
+              title="Nueva reserva"
+            >
+              <CalendarPlus size={12} />
+              <span className="hidden sm:inline">Reservar</span>
+            </button>
           )}
 
           {/* ── Tienda POS — venta directa sin sesión ── */}

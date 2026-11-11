@@ -27,6 +27,9 @@ import ModalAnadirEstacion from '../salas/ModalAnadirEstacion';
 import ModalEliminarEstacion from '../salas/ModalEliminarEstacion';
 import ModalTiempoCumplido from '../salas/ModalTiempoCumplido';
 import MovimientoDeHoyCC from './MovimientoDeHoyCC';
+import { useReservasProximas } from '../../hooks/useReservas';
+import { useAccionesReserva } from '../reservas/useAccionesReserva';
+import { reservaVisible } from '../reservas/ReservaBadge';
 
 // ── formatCOP inline ────────────────────────────────────────────────
 
@@ -132,6 +135,22 @@ export default function CommandCenter() {
     const sala = encontrarSala(salaId);
     if (sala) setIniciarSesionData({ sala, estacion });
   }, [encontrarSala]);
+
+  // ── Reservas ──────────────────────────────────────────────────────
+  const { porEstacion: reservasPorEstacion, ahora: ahoraReservas } = useReservasProximas();
+  const accionesReserva = useAccionesReserva(salas);
+  const { reservarEn: handleReservar, noLlego: handleNoLlegoReserva } = accionesReserva;
+  const handleLlegoReserva = useCallback((reserva, sala, estacion) => {
+    setIniciarSesionData({ sala, estacion, reserva });
+  }, []);
+  const reservasHoy = useMemo(() => {
+    const hoy = new Date(ahoraReservas).toDateString();
+    let n = 0;
+    for (const lista of reservasPorEstacion.values()) {
+      for (const r of lista) if (new Date(r.fechaHora).toDateString() === hoy) n += 1;
+    }
+    return n;
+  }, [reservasPorEstacion, ahoraReservas]);
 
   const handleAgregarTiempo = useCallback((sesion) => {
     const sala = encontrarSala(sesion.salaId);
@@ -400,6 +419,9 @@ export default function CommandCenter() {
         onNuevaSala={() => setNuevaSalaAbierto(true)}
         onAnadirEstacion={() => setAnadirEstacionAbierto(true)}
         onEliminarEstacion={() => setEliminarEstacionAbierto(true)}
+        onNuevaReserva={() => accionesReserva.nuevaReserva()}
+        onVerAgenda={() => navigate('/reservas')}
+        reservasHoy={reservasHoy}
       />
 
       {/* ── CONTENIDO (sin scroll anidado — el Layout maneja el scroll) ── */}
@@ -542,6 +564,10 @@ export default function CommandCenter() {
                       puedeEditar={puedeEditar}
                       puedeAnular={esAdmin}
                       focused={focusedEstacion === estacionId}
+                      reserva={reservaVisible(reservasPorEstacion.get(`${sala.id}:${estacionId}`), ahoraReservas)}
+                      onReservar={handleReservar}
+                      onLlegoReserva={handleLlegoReserva}
+                      onNoLlegoReserva={handleNoLlegoReserva}
                     />
                   ))}
                 </div>
@@ -566,8 +592,12 @@ export default function CommandCenter() {
       <ModalSesion
         sala={iniciarSesionData?.sala ?? null}
         estacion={iniciarSesionData?.estacion ?? null}
+        reserva={iniciarSesionData?.reserva ?? null}
         onCerrar={() => setIniciarSesionData(null)}
       />
+
+      {/* ── RESERVAS ── */}
+      {accionesReserva.modales}
 
       <ModalAgregarTiempo
         sesion={agregarTiempoData?.sesion ?? null}

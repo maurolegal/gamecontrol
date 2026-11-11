@@ -4,7 +4,8 @@
 // ===================================================================
 
 import { useRef, useEffect, useCallback, memo, useState } from 'react';
-import { Plus, ShoppingCart, MoreHorizontal, Truck, RotateCcw, ClockPlus, AlertTriangle, CircleCheckBig, Gamepad2, X, Loader2 } from 'lucide-react';
+import { Plus, ShoppingCart, MoreHorizontal, Truck, RotateCcw, ClockPlus, AlertTriangle, CircleCheckBig, Gamepad2, X, Loader2, CalendarPlus } from 'lucide-react';
+import ReservaBadge from '../reservas/ReservaBadge';
 import useGlobalTick from '../../hooks/useGlobalTick';
 import { usePermisos } from '../../hooks/usePermisos';
 import { supabase } from '../../lib/supabaseClient';
@@ -81,6 +82,13 @@ function arePropsEqualStationCard(prev, next) {
   if (prev.onFocusEstacion !== next.onFocusEstacion) return false;
   if (prev.onOpenDetail !== next.onOpenDetail) return false;
   if (prev.focused !== next.focused) return false;
+  if (prev.onReservar !== next.onReservar) return false;
+  if (prev.onLlegoReserva !== next.onLlegoReserva) return false;
+  if (prev.onNoLlegoReserva !== next.onNoLlegoReserva) return false;
+  if (prev.reserva?.id !== next.reserva?.id) return false;
+  if (prev.reserva?.fechaHora !== next.reserva?.fechaHora) return false;
+  if (prev.reserva?.cliente !== next.reserva?.cliente) return false;
+  if (prev.reserva?.anticipo !== next.reserva?.anticipo) return false;
 
   if (prev.sala?.id !== next.sala?.id) return false;
   if (prev.sala?.nombre !== next.sala?.nombre) return false;
@@ -126,6 +134,10 @@ const StationCardInner = memo(function StationCardInner({
   puedeEditar,
   puedeAnular,
   focused = false,
+  reserva = null,
+  onReservar,
+  onLlegoReserva,
+  onNoLlegoReserva,
 }) {
   const now = useGlobalTick();
   const { esAdmin } = usePermisos();
@@ -486,6 +498,16 @@ const StationCardInner = memo(function StationCardInner({
         </div>
         )}
 
+        {/* ── RESERVA PRÓXIMA ── */}
+        {reserva && (
+          <ReservaBadge
+            reserva={reserva}
+            ahora={now}
+            onLlego={esEstacionLibre && onLlegoReserva ? (r) => onLlegoReserva(r, sala, estacionId) : undefined}
+            onNoLlego={onNoLlegoReserva}
+          />
+        )}
+
         {/* ── QUICK ACTIONS — solo iconos, centrados ── */}
         <div className="flex items-center justify-center gap-1 pt-1">
           {esEstacionLibre ? (
@@ -499,6 +521,18 @@ const StationCardInner = memo(function StationCardInner({
                 <Plus size={16} />
                 <span className="hidden sm:inline">INICIAR</span>
               </button>
+
+              {/* Reservar — ámbar ── */}
+              {onReservar && (
+                <button
+                  onClick={(e) => { e?.preventDefault(); e?.stopPropagation(); onReservar(sala.id, estacionId); }}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-amber-500/25 text-amber-400 transition-all hover:bg-amber-500/10 hover:border-amber-500/40 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                  aria-label={`Reservar ${estacionId}`}
+                  title="Reservar"
+                >
+                  <CalendarPlus size={16} />
+                </button>
+              )}
 
               {/* Juegos — púrpura ── */}
               <button

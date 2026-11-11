@@ -138,14 +138,15 @@ export function useSalas() {
         const res = await db.insert('sesiones', payload);
         // Backup: refresh explícito (realtime puede fallar si auth lock no está listo)
         cargarSesionesActivas();
-        return res?.data;
+        // db.insert devuelve la fila creada (no { data })
+        return res?.data ?? res;
       } catch (e) {
         // Reintento sin usuario_id si FK falla
         if (e.message?.includes('sesiones_usuario_id_fkey')) {
           delete payload.usuario_id;
           const res = await db.insert('sesiones', payload);
           cargarSesionesActivas();
-          return res?.data;
+          return res?.data ?? res;
         }
         throw e;
       }

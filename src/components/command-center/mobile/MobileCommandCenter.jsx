@@ -13,7 +13,8 @@ import { useState, useMemo, useCallback, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Menu, Bell, RefreshCw, MoreHorizontal, Store, Pencil, ChevronDown,
-  Plus, Tv2, Radio, DollarSign, Trash2, AlertTriangle,
+  Plus, Tv2, Radio, DollarSign, Trash2, AlertTriangle, CalendarDays, CalendarPlus,
+  UserCheck, UserX,
 } from 'lucide-react';
 
 import { useSalas } from '../../../hooks/useSalas';
@@ -41,6 +42,12 @@ import ModalAnadirEstacion from '../../salas/ModalAnadirEstacion';
 import ModalEliminarEstacion from '../../salas/ModalEliminarEstacion';
 import ModalTiempoCumplido from '../../salas/ModalTiempoCumplido';
 import MovimientoDeHoyCC from '../MovimientoDeHoyCC';
+import { useReservasProximas } from '../../../hooks/useReservas';
+import { useAccionesReserva } from '../../reservas/useAccionesReserva';
+import { reservaVisible } from '../../reservas/ReservaBadge';
+import {
+  estaEnVentana, minutosParaReserva, formatHora, claveEstacion, textoFaltante, TOLERANCIA_MIN,
+} from '../../../lib/reservasService';
 
 import { ICONOS_TIPO, COLORES_SALA, TIPOS_SALA } from '../constants';
 
@@ -172,8 +179,77 @@ function VigilanteVencidas({ activas, onVencida }) {
   return null;
 }
 
+// ── Reservas de las próximas 3 horas ────────────────────────────────
+const ReservasProximas = memo(function ReservasProximas({ reservas, ahora, salasMap, estacionOcupada, onLlego, onNoLlego, onNueva, onAgenda }) {
+  const items = reservas
+    .filter((r) => {
+      const m = minutosParaReserva(r, ahora);
+      return m >= -TOLERANCIA_MIN && m <= 180;
+    })
+    .slice(0, 6);
+  if (items.length === 0) return null;
+
+  return (
+    <section className="px-4 pt-4" aria-label="Reservas próximas">
+      <div className="flex items-center justify-between px-1 mb-2">
+        <h3 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-400">
+          <CalendarDays size={13} /> Reservas próximas · {items.length}
+        </h3>
+        <div className="flex gap-3">
+          <button type="button" onClick={onAgenda} className="text-[11px] font-semibold text-gray-400">Agenda</button>
+          <button type="button" onClick={onNueva} className="text-[11px] font-semibold text-amber-400">+ Reservar</button>
+        </div>
+      </div>
+      <div className="rounded-2xl overflow-hidden divide-y divide-white/[0.06]" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.22)' }}>
+        {items.map((r) => {
+          const enVentana = estaEnVentana(r, ahora);
+          const m = minutosParaReserva(r, ahora);
+          const ocupada = estacionOcupada(r.salaId, r.estacion);
+          return (
+            <div key={r.id} className="px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white truncate">{r.estacion} · {r.cliente}</p>
+                  <p className="text-[11px] text-gray-500 truncate">
+                    {salasMap.get(r.salaId)?.nombre ?? ''}{ocupada ? ' · ocupada' : ''}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold tabular-nums text-amber-400">{formatHora(r.fechaHora)}</p>
+                  <p className="text-[10px] text-gray-500">
+                    {textoFaltante(m)}
+                  </p>
+                </div>
+              </div>
+              {enVentana && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    disabled={ocupada}
+                    onClick={() => { haptic(); onLlego(r); }}
+                    className="gc-pressable flex-1 h-9 rounded-xl bg-amber-500 text-black text-xs font-bold flex items-center justify-center gap-1.5 disabled:opacity-40"
+                  >
+                    <UserCheck size={14} /> Llegó
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { haptic(); onNoLlego(r); }}
+                    className="gc-pressable flex-1 h-9 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    <UserX size={14} /> No llegó
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+});
+
 // ── Sección de sala ─────────────────────────────────────────────────
-const SalaSection = memo(function SalaSection({ sala, sesionesSala, puedeEditar, onIniciar, onAbrir, onEditarSala }) {
+const SalaSection = memo(function SalaSection({ sala, sesionesSala, puedeEditar, onIniciar, onAbrir, onEditarSala, reservasPorEstacion, ahoraReservas }) {
   const [abierta, setAbierta] = useState(true);
   const color = COLORES_SALA[sala.tipo] || '#00D656';
   const num = sala.numEstaciones || 0;
@@ -233,6 +309,7 @@ const SalaSection = memo(function SalaSection({ sala, sesionesSala, puedeEditar,
                 sesion={sesionesSala.get(estacionId) || null}
                 onIniciar={onIniciar}
                 onAbrir={onAbrir}
+                reserva={reservaVisible(reservasPorEstacion?.get(claveEstacion(sala.id, estacionId)), ahoraReservas)}
               />
             );
           })}
@@ -245,6 +322,8 @@ const SalaSection = memo(function SalaSection({ sala, sesionesSala, puedeEditar,
 // ── Hoja de opciones (⋯) ────────────────────────────────────────────
 function OpcionesSheet({ puedeEditar, onCerrar, onAccion }) {
   const opciones = [
+    { key: 'reservar', label: 'Nueva reserva', icon: CalendarPlus, color: '#F59E0B' },
+    { key: 'agenda', label: 'Agenda reservas', icon: CalendarDays, color: '#F59E0B' },
     puedeEditar && { key: 'nueva', label: 'Nueva sala', icon: Plus, color: '#00D656' },
     puedeEditar && { key: 'anadir', label: 'Añadir estación', icon: Plus, color: '#4D8DFF' },
     puedeEditar && { key: 'eliminar', label: 'Eliminar estación', icon: Trash2, color: '#EF4B5F' },
@@ -354,6 +433,19 @@ export default function MobileCommandCenter() {
   }, [salasMap]);
 
   const handleAbrir = useCallback((salaId, estacionId) => setEstacionAbierta({ salaId, estacionId }), []);
+
+  // ── Reservas ──
+  const { reservas, porEstacion: reservasPorEstacion, ahora: ahoraReservas } = useReservasProximas();
+  const accionesReserva = useAccionesReserva(salas);
+  const estacionOcupada = useCallback(
+    (salaId, estacion) => !!sesionesPorSala.get(salaId)?.get(estacion),
+    [sesionesPorSala],
+  );
+  const handleLlegoReserva = useCallback((r) => {
+    const sala = salasMap.get(r.salaId);
+    if (sala) setIniciarData({ sala, estacion: r.estacion, reserva: r });
+  }, [salasMap]);
+  const irAgenda = useCallback(() => navigate('/reservas'), [navigate]);
   const handleEditarSala = useCallback((sala) => setEditarSala(sala), []);
   const handleVencida = useCallback((s) => {
     setColaVencidas((prev) => (prev.some((x) => x.id === s.id) ? prev : [...prev, s]));
@@ -375,7 +467,9 @@ export default function MobileCommandCenter() {
 
   const accionOpcion = (key) => {
     setOpcionesAbiertas(false);
-    if (key === 'nueva') setNuevaSala(true);
+    if (key === 'reservar') accionesReserva.nuevaReserva();
+    else if (key === 'agenda') navigate('/reservas');
+    else if (key === 'nueva') setNuevaSala(true);
     else if (key === 'anadir') setAnadirEstacion(true);
     else if (key === 'eliminar') setEliminarEstacion(true);
     else if (key === 'tarifas') navigate('/ajustes', { state: { seccion: 'tarifas' } });
@@ -441,6 +535,9 @@ export default function MobileCommandCenter() {
             <h1 className="text-[17px] font-bold text-white leading-tight">Salas</h1>
             <p className="text-[11px] text-gray-500 leading-tight truncate">{subtitulo}</p>
           </div>
+          <button type="button" onClick={irAgenda} className="gc-pressable w-11 h-11 rounded-full flex items-center justify-center text-amber-400" aria-label="Reservas">
+            <CalendarDays size={20} />
+          </button>
           <button type="button" onClick={verAlertas} className="gc-pressable relative w-11 h-11 rounded-full flex items-center justify-center text-gray-300" aria-label="Alertas">
             <Bell size={20} />
             <AlertBadge activas={activas} />
@@ -508,6 +605,16 @@ export default function MobileCommandCenter() {
           <>
             <ResumenVivo activas={activas} totalEstaciones={totalEstaciones} onVerAlertas={verAlertas} />
             <Atencion activas={activas} salasMap={salasMap} onAbrir={handleAbrir} />
+            <ReservasProximas
+              reservas={reservas}
+              ahora={ahoraReservas}
+              salasMap={salasMap}
+              estacionOcupada={estacionOcupada}
+              onLlego={handleLlegoReserva}
+              onNoLlego={accionesReserva.noLlego}
+              onNueva={() => accionesReserva.nuevaReserva()}
+              onAgenda={irAgenda}
+            />
 
             {salasVisibles.length === 0 ? (
               <div className="px-6 py-16 text-center">
@@ -529,6 +636,8 @@ export default function MobileCommandCenter() {
                   onIniciar={handleIniciar}
                   onAbrir={handleAbrir}
                   onEditarSala={handleEditarSala}
+                  reservasPorEstacion={reservasPorEstacion}
+                  ahoraReservas={ahoraReservas}
                 />
               ))
             )}
@@ -578,7 +687,13 @@ export default function MobileCommandCenter() {
       )}
 
       {/* ── MODALES (una sola instancia de cada uno) ── */}
-      <ModalSesion sala={iniciarData?.sala ?? null} estacion={iniciarData?.estacion ?? null} onCerrar={() => setIniciarData(null)} />
+      <ModalSesion
+        sala={iniciarData?.sala ?? null}
+        estacion={iniciarData?.estacion ?? null}
+        reserva={iniciarData?.reserva ?? null}
+        onCerrar={() => setIniciarData(null)}
+      />
+      {accionesReserva.modales}
       <ModalAgregarTiempo sesion={tiempoData?.sesion ?? null} sala={tiempoData?.sala ?? null} onCerrar={() => setTiempoData(null)} />
       <ModalTienda
         abierto={tiendaPOS || !!productosData}

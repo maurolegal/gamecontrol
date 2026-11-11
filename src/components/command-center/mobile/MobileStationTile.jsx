@@ -10,8 +10,9 @@ import useGlobalTick from '../../../hooks/useGlobalTick';
 import { haptic } from '../../../hooks/useIsMobile';
 import { formatCOP } from '../../../lib/formatCurrency';
 import { estadoTiempo, totalSesion } from './tiempo';
+import ReservaBadge from '../../reservas/ReservaBadge';
 
-const TileLibre = memo(function TileLibre({ salaId, estacionId, onIniciar }) {
+const TileLibre = memo(function TileLibre({ salaId, estacionId, onIniciar, reserva }) {
   return (
     <button
       type="button"
@@ -27,6 +28,7 @@ const TileLibre = memo(function TileLibre({ salaId, estacionId, onIniciar }) {
         <span className="text-[13px] font-bold text-white/90 tabular-nums">{estacionId}</span>
         <span className="text-[10px] font-bold tracking-wider text-[#00D656]/80">LIBRE</span>
       </div>
+      {reserva && <div className="min-w-0"><ReservaBadge reserva={reserva} compacto /></div>}
       <div className="flex items-center gap-2">
         <span className="flex items-center justify-center w-9 h-9 rounded-full bg-[#00D656] text-black shadow-[0_4px_14px_rgba(0,214,86,0.35)]">
           <Play size={16} fill="currentColor" className="ml-0.5" />
@@ -37,7 +39,7 @@ const TileLibre = memo(function TileLibre({ salaId, estacionId, onIniciar }) {
   );
 });
 
-const TileOcupada = memo(function TileOcupada({ salaId, estacionId, sesion, onAbrir }) {
+const TileOcupada = memo(function TileOcupada({ salaId, estacionId, sesion, onAbrir, reserva }) {
   const now = useGlobalTick();
   const t = estadoTiempo(sesion, now);
   const alerta = t.estado !== 'normal' && t.estado !== 'libre_tiempo';
@@ -70,6 +72,7 @@ const TileOcupada = memo(function TileOcupada({ salaId, estacionId, sesion, onAb
           {t.display}
         </p>
         <p className="mt-1 text-[11px] text-gray-400 truncate">{sesion.cliente || 'Cliente'}</p>
+        {reserva && <div className="mt-1 min-w-0"><ReservaBadge reserva={reserva} ahora={now} compacto /></div>}
       </div>
 
       <div className="mt-2">
@@ -94,10 +97,10 @@ const TileOcupada = memo(function TileOcupada({ salaId, estacionId, sesion, onAb
   );
 });
 
-function MobileStationTile({ sala, estacionId, sesion, onIniciar, onAbrir }) {
+function MobileStationTile({ sala, estacionId, sesion, onIniciar, onAbrir, reserva = null }) {
   return sesion
-    ? <TileOcupada salaId={sala.id} estacionId={estacionId} sesion={sesion} onAbrir={onAbrir} />
-    : <TileLibre salaId={sala.id} estacionId={estacionId} onIniciar={onIniciar} />;
+    ? <TileOcupada salaId={sala.id} estacionId={estacionId} sesion={sesion} onAbrir={onAbrir} reserva={reserva} />
+    : <TileLibre salaId={sala.id} estacionId={estacionId} onIniciar={onIniciar} reserva={reserva} />;
 }
 
 export default memo(MobileStationTile);

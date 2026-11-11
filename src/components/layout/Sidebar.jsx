@@ -17,6 +17,7 @@ import {
   Cpu,
   Building2,
   MessageCircle,
+  CalendarDays,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePermisos } from '../../hooks/usePermisos';
@@ -36,6 +37,7 @@ import useUIStore from '../../store/useUIStore';
 const COLOR_MODULO = {
   dashboard:        '#8B7CFF', // violeta
   salas:            '#22C55E', // verde
+  reservas:         '#F59E0B', // ámbar
   ventas:           '#22B8CF', // cyan
   gastos:           '#F59E0B', // naranja
   stock:            '#4D8DFF', // azul
@@ -58,6 +60,7 @@ const GRUPOS = [
     items: [
       { to: '/',             label: 'Dashboard',      Icon: LayoutDashboard, modulo: 'dashboard', nucleo: true },
       { to: '/salas',        label: 'Salas',          Icon: DoorOpen,        modulo: 'salas',     nucleo: true },
+      { to: '/reservas',     label: 'Reservas',       Icon: CalendarDays,    modulo: 'reservas' },
       { to: '/ventas',       label: 'Ventas',         Icon: Receipt,         modulo: 'ventas' },
       { to: '/gastos',       label: 'Gastos',         Icon: FileText,        modulo: 'gastos' },
       { to: '/stock',        label: 'Stock',          Icon: Package,         modulo: 'stock' },

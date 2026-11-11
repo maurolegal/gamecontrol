@@ -74,7 +74,7 @@ export const PaymentMethodSelector = memo(function PaymentMethodSelector({
 // ── CostBreakdown ───────────────────────────────────────────────────
 // Solo re-renderiza cuando cambian los totales
 export const CostBreakdown = memo(function CostBreakdown({
-  tarifaTiempo, totalProductos, totalGeneral, productos, esLibre,
+  tarifaTiempo, totalProductos, totalGeneral, productos, esLibre, anticipo = 0,
 }) {
   return (
     <div className="space-y-1.5">
@@ -101,6 +101,12 @@ export const CostBreakdown = memo(function CostBreakdown({
             </div>
           )}
         </>
+      )}
+      {anticipo > 0 && (
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-amber-300">Anticipo de reserva</span>
+          <span className="font-mono font-semibold text-amber-300">−{formatCOP(anticipo)}</span>
+        </div>
       )}
       <div className="flex items-center justify-between pt-1.5 border-t border-white/10">
         <span className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total</span>

@@ -5,7 +5,7 @@
 // ===================================================================
 
 import { useState, useEffect, useRef } from 'react';
-import { Infinity, Clock, Zap, User, Play, X, Timer, Star, Award, UserPlus, Search, Phone } from 'lucide-react';
+import { Infinity, Clock, Zap, User, Play, X, Timer, Star, Award, UserPlus, Search, Phone, CalendarClock, AlertTriangle } from 'lucide-react';
 // Iconos usados: Play, X, Search, User, UserPlus, Phone, Infinity, Clock, Zap, Timer, Star, Award
 // (mantenidos por compatibilidad con OPCIONES_TIEMPO que referencia algunos)
 import Modal from '../ui/Modal';
@@ -13,6 +13,14 @@ import { useSalas } from '../../hooks/useSalas';
 import { useNotifications } from '../../hooks/useNotifications';
 import * as db from '../../lib/databaseService';
 import { formatCOP } from '../../lib/formatCurrency';
+import { useReservasProximas } from '../../hooks/useReservas';
+import {
+  vincularReservaSesion,
+  claveEstacion,
+  estaEnVentana,
+  minutosParaReserva,
+  formatHora,
+} from '../../lib/reservasService';
 
 const OPCIONES_TIEMPO = [
   { 
@@ -34,12 +42,15 @@ const OPCIONES_TIEMPO = [
  * @param {{
  *   sala: object|null,
  *   estacion: string|null,
+ *   reserva?: object|null,  // reserva del cliente que llegó (prellena y vincula)
  *   onCerrar: () => void,
  * }} props
  */
-export default function ModalSesion({ sala, estacion, onCerrar }) {
+export default function ModalSesion({ sala, estacion, reserva = null, onCerrar }) {
   const { abrirSesion } = useSalas();
-  const { exito, error: notifError } = useNotifications();
+  const { exito, error: notifError, advertencia } = useNotifications();
+  const { porEstacion, ahora, recargar: recargarReservas } = useReservasProximas();
+  const [reservaSel, setReservaSel] = useState(null);
 
   const [cliente, setCliente] = useState('');
   const [tiempoSeleccionado, setTiempoSeleccionado] = useState(60);
@@ -72,9 +83,23 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
       setMostrarDropdown(false);
       setTiempoSeleccionado(60);
       setTiempoPersonalizado('');
+      setReservaSel(null);
       enviandoRef.current = false;
     }
   }, [sala, estacion]);
+
+  // Reserva que llega desde "Llegó" → prellenar nombre
+  useEffect(() => {
+    if (sala && estacion && reserva) usarReserva(reserva);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sala, estacion, reserva?.id]);
+
+  function usarReserva(r) {
+    setReservaSel(r);
+    setCliente(r.cliente || '');
+    setClienteSeleccionado(r.clienteId ? { id: r.clienteId, nombre: r.cliente } : null);
+    setMostrarDropdown(false);
+  }
 
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
@@ -135,6 +160,14 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
   }
 
   if (!sala) return null;
+
+  // Reservas de esta estación: la que está "esperando" y la próxima en la próxima hora
+  const reservasEstacion = estacion ? (porEstacion.get(claveEstacion(sala.id, estacion)) || []) : [];
+  const reservaEnVentana = reservasEstacion.find((r) => estaEnVentana(r, ahora)) || null;
+  const reservaProxima = reservasEstacion.find((r) => {
+    const m = minutosParaReserva(r, ahora);
+    return m > 0 && m <= 60 && r.id !== reservaEnVentana?.id;
+  }) || null;
 
   const tarifas = sala.tarifas || {};
   const usandoPersonalizado = tiempoPersonalizado.trim() !== '';
@@ -234,8 +267,20 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
         datosNuevaSesion.cliente_id = clienteSeleccionado.id;
       }
       
-      await abrirSesion(datosNuevaSesion);
-      exito(`Sesión iniciada en ${sala.nombre} – ${estacion}`);
+      const nueva = await abrirSesion(datosNuevaSesion);
+      if (reservaSel) {
+        try {
+          if (!nueva?.id) throw new Error('no se obtuvo la sesión creada');
+          await vincularReservaSesion(reservaSel.id, nueva.id);
+          recargarReservas();
+        } catch (errReserva) {
+          (advertencia || notifError)(`Sesión iniciada, pero no se pudo marcar la reserva: ${errReserva.message}`);
+        }
+      }
+      exito(
+        `Sesión iniciada en ${sala.nombre} – ${estacion}` +
+        (reservaSel?.anticipo > 0 ? ` · anticipo ${formatCOP(reservaSel.anticipo)} se descuenta al cobrar` : '')
+      );
       onCerrar();
     } catch (err) {
       notifError(err.message);
@@ -278,6 +323,47 @@ export default function ModalSesion({ sala, estacion, onCerrar }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-0">
+          {/* ── RESERVA ── */}
+          {reservaSel ? (
+            <div className="mt-3 rounded-lg px-3 py-2 flex items-center gap-2"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <CalendarClock size={14} className="text-amber-400 flex-shrink-0" />
+              <p className="text-[11px] text-amber-200 flex-1 min-w-0">
+                Reserva de <b>{reservaSel.cliente}</b> · {formatHora(reservaSel.fechaHora)}
+                {reservaSel.anticipo > 0 && <> · anticipo <b>{formatCOP(reservaSel.anticipo)}</b> (se descuenta al cobrar)</>}
+              </p>
+              {!reserva && (
+                <button type="button" onClick={() => setReservaSel(null)} className="text-[10px] text-gray-400 hover:text-white">
+                  Quitar
+                </button>
+              )}
+            </div>
+          ) : reservaEnVentana ? (
+            <div className="mt-3 rounded-lg px-3 py-2 flex items-center gap-2"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <CalendarClock size={14} className="text-amber-400 flex-shrink-0" />
+              <p className="text-[11px] text-amber-200 flex-1 min-w-0">
+                Reservada para <b>{reservaEnVentana.cliente}</b> a las {formatHora(reservaEnVentana.fechaHora)}
+              </p>
+              <button
+                type="button"
+                onClick={() => usarReserva(reservaEnVentana)}
+                className="px-2 py-1 rounded-md bg-amber-500 text-black text-[10px] font-bold flex-shrink-0"
+              >
+                Es este cliente
+              </button>
+            </div>
+          ) : reservaProxima ? (
+            <div className="mt-3 rounded-lg px-3 py-2 flex items-center gap-2"
+              style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}>
+              <AlertTriangle size={14} className="text-amber-400 flex-shrink-0" />
+              <p className="text-[11px] text-amber-200">
+                Ojo: reservada a las <b>{formatHora(reservaProxima.fechaHora)}</b> para {reservaProxima.cliente}
+                {' '}(en {minutosParaReserva(reservaProxima, ahora)} min)
+              </p>
+            </div>
+          ) : null}
+
           {/* ── CLIENTE ── */}
           <div className="py-3 border-b border-white/5">
             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">

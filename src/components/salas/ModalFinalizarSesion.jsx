@@ -18,6 +18,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { finalizarSesion as finalizarSesionRPC, USE_FINALIZAR_SESION_RPC } from '../../lib/sessionService';
 import { formatCOP } from '../../lib/formatCurrency';
 import sessionContext from '../../lib/sessionContext';
+import { obtenerReservaDeSesion } from '../../lib/reservasService';
 
 // Sub-componentes memoizados (Sprint 0.4-D)
 import {
@@ -77,6 +78,19 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
   const [copiado, setCopiado] = useState(null);
   const [montoRecibido, setMontoRecibido] = useState('');
   const [qrImagenUrl, setQrImagenUrl] = useState(null);
+  // Anticipo pagado al reservar (se descuenta del total; finalizar_sesion lo aplica en el servidor)
+  const [anticipoReserva, setAnticipoReserva] = useState(0);
+
+  useEffect(() => {
+    let vivo = true;
+    setAnticipoReserva(0);
+    if (sesion?.id) {
+      obtenerReservaDeSesion(sesion.id).then((r) => {
+        if (vivo && r?.anticipoEstado === 'aplicado') setAnticipoReserva(r.anticipo || 0);
+      });
+    }
+    return () => { vivo = false; };
+  }, [sesion?.id]);
 
   // ── Cargar medios de pago + QR ────────────────────────────────────
   useEffect(() => {
@@ -148,7 +162,7 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
   const totalProductos = (sesion.productos || []).reduce(
     (s, p) => s + (p.subtotal || p.cantidad * p.precio), 0
   );
-  const totalGeneral = tarifaTiempo + totalProductos;
+  const totalGeneral = Math.max(0, tarifaTiempo + totalProductos - anticipoReserva);
 
   // Validación pago parcial (idéntica)
   const efectivoParcial = Math.max(0, Number(montoEfectivoParcial) || 0);
@@ -369,6 +383,7 @@ export default function ModalFinalizarSesion({ sesion, sala, onCerrar }) {
               totalGeneral={totalGeneral}
               productos={sesion.productos}
               esLibre={esLibre}
+              anticipo={anticipoReserva}
             />
           </div>
 

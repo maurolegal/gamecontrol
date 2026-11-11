@@ -25,6 +25,7 @@ const Recetas = lazy(() => import('./pages/Recetas'));
 const Ajustes = lazy(() => import('./pages/Ajustes'));
 const Clientes = lazy(() => import('./pages/Clientes'));
 const Chats = lazy(() => import('./pages/Chats'));
+const Reservas = lazy(() => import('./pages/Reservas'));
 const CierreTurno = lazy(() => import('./pages/CierreTurno'));
 const AuditoriaCierres = lazy(() => import('./pages/AuditoriaCierres'));
 
@@ -106,6 +107,7 @@ export default function App() {
                 <Routes>
                   <Route path="/"          element={<Dashboard />} />
                   <Route path="/salas"     element={<ProtectedRoute modulo="salas"><CommandCenter /></ProtectedRoute>} />
+                  <Route path="/reservas"  element={<ProtectedRoute modulo="reservas"><Reservas /></ProtectedRoute>} />
                   <Route path="/ventas"    element={<ProtectedRoute modulo="ventas"><Ventas /></ProtectedRoute>} />
                   <Route path="/gastos"    element={<ProtectedRoute modulo="gastos"><Gastos /></ProtectedRoute>} />
                   <Route path="/stock"     element={<ProtectedRoute modulo="stock"><Stock /></ProtectedRoute>} />
