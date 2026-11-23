@@ -13,6 +13,7 @@ import { useSalas } from '../../hooks/useSalas';
 import { useNotifications } from '../../hooks/useNotifications';
 import * as db from '../../lib/databaseService';
 import { formatCOP } from '../../lib/formatCurrency';
+import { crearCliente, mensajeErrorCliente } from '../../lib/clientesService';
 import { useReservasProximas } from '../../hooks/useReservas';
 import {
   vincularReservaSesion,
@@ -70,10 +71,11 @@ export default function ModalSesion({ sala, estacion, reserva = null, onCerrar }
   const dropdownRef = useRef(null);
   const inputRef = useRef(null);
 
-  // Cargar clientes al montar
+  // Cargar clientes cada vez que se abre (incluye los creados en /clientes)
   useEffect(() => {
-    cargarClientes();
-  }, []);
+    if (sala && estacion) cargarClientes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sala, estacion]);
 
   // Resetear formulario al abrir
   useEffect(() => {
@@ -116,7 +118,6 @@ export default function ModalSesion({ sala, estacion, reserva = null, onCerrar }
   async function cargarClientes() {
     try {
       const data = await db.select('clientes');
-      console.log('Clientes cargados:', data?.length || 0);
       setClientes(data || []);
     } catch (err) {
       console.error('Error al cargar clientes:', err);
@@ -136,15 +137,6 @@ export default function ModalSesion({ sala, estacion, reserva = null, onCerrar }
         return coincide;
       }).slice(0, 8); // Máximo 8 sugerencias
   
-  // Debug: ver resultados de búsqueda
-  useEffect(() => {
-    if (cliente.trim() !== '') {
-      console.log('Búsqueda:', cliente);
-      console.log('Total clientes:', clientes.length);
-      console.log('Clientes filtrados:', clientesFiltrados.length);
-      console.log('Mostrar dropdown:', mostrarDropdown);
-    }
-  }, [cliente, clientesFiltrados.length, clientes.length, mostrarDropdown]);
 
   function seleccionarCliente(clienteData) {
     setClienteSeleccionado(clienteData);
@@ -206,19 +198,13 @@ export default function ModalSesion({ sala, estacion, reserva = null, onCerrar }
 
     setGuardandoCliente(true);
     try {
-      const clienteData = {
+      const insertado = await crearCliente({
         nombre: nuevoCliente.nombre.trim(),
         telefono: nuevoCliente.whatsapp.trim() || null,
-        categoria: 'nuevo',
-        estado: 'activo',
-        fecha_registro: new Date().toISOString(),
-        ultima_visita: new Date().toISOString(),
         acepta_promociones: true,
-        acepta_emails: false
-      };
+        acepta_emails: false,
+      });
 
-      const insertado = await db.insert('clientes', clienteData);
-      
       exito('Cliente agregado correctamente');
       setModalAgregarCliente(false);
       setNuevoCliente({ nombre: '', whatsapp: '' });
@@ -230,7 +216,7 @@ export default function ModalSesion({ sala, estacion, reserva = null, onCerrar }
         setClienteSeleccionado(insertado);
       }
     } catch (err) {
-      notifError('Error al agregar cliente: ' + err.message);
+      notifError('Error al agregar cliente: ' + mensajeErrorCliente(err));
     } finally {
       setGuardandoCliente(false);
     }

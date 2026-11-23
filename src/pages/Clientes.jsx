@@ -41,6 +41,8 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useConfirm } from '../components/ui/ConfirmProvider';
 import { getUsuarioIdSimple } from '../lib/authHelpers';
 import { formatCOP } from '../lib/formatCurrency';
+import { crearCliente, mensajeErrorCliente } from '../lib/clientesService';
+import { usePermisos } from '../hooks/usePermisos';
 
 function formatearFecha(fecha) {
   if (!fecha) return '—';
@@ -88,6 +90,11 @@ function getEstadoInfo(estado) {
 export default function Clientes() {
   const { exito, error: notifError } = useNotifications();
   const { confirm, alert: alertMsg } = useConfirm();
+  // Igual que la RLS de clientes (010): crear = cualquier rol con acceso,
+  // editar = administrador/supervisor, eliminar = administrador.
+  const { esAdmin, esSupervisor } = usePermisos();
+  const puedeEditar = esAdmin || esSupervisor;
+  const puedeEliminar = esAdmin;
 
   const [clientes, setClientes] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -133,7 +140,7 @@ export default function Clientes() {
       });
       setClientes(data || []);
     } catch (err) {
-      notifError('Error al cargar clientes: ' + err.message);
+      notifError('Error al cargar clientes: ' + mensajeErrorCliente(err));
     } finally {
       setCargando(false);
     }
@@ -203,7 +210,7 @@ export default function Clientes() {
 
     try {
       const created_by = await getUsuarioIdSimple();
-      const nuevoCliente = {
+      const datosCliente = {
         nombre: form.nombre.trim(),
         email: form.email.trim() || null,
         telefono: form.telefono.trim() || null,
@@ -216,20 +223,20 @@ export default function Clientes() {
         saldo_cuenta: form.saldo_cuenta ? Number(form.saldo_cuenta) : 0,
         acepta_promociones: form.acepta_promociones,
         acepta_emails: form.acepta_emails,
-        estado: 'activo',
-        fecha_registro: new Date().toISOString(),
-        ultima_visita: new Date().toISOString(),
-        created_by,
+        created_by: created_by || null,
       };
 
-      const insertado = await db.insert('clientes', nuevoCliente);
-      setClientes([{ ...nuevoCliente, id: insertado.id }, ...clientes]);
+      const insertado = await crearCliente(datosCliente);
+      setClientes((prev) => [insertado, ...prev]);
+      // Si había filtros que lo ocultarían, limpiarlos para que se vea
+      if (filtroEstado !== 'todos' && filtroEstado !== 'activo') setFiltroEstado('activo');
+      if (filtroCategoria !== 'todos' && filtroCategoria !== insertado.categoria) setFiltroCategoria('todos');
       
       exito('Cliente creado correctamente');
       setModalNuevo(false);
       resetForm();
     } catch (err) {
-      notifError('Error al crear cliente: ' + err.message);
+      notifError('Error al crear cliente: ' + mensajeErrorCliente(err));
     }
   }
 
@@ -270,7 +277,7 @@ export default function Clientes() {
       setClienteSeleccionado(null);
       resetForm();
     } catch (err) {
-      notifError('Error al actualizar: ' + err.message);
+      notifError('Error al actualizar: ' + mensajeErrorCliente(err));
     }
   }
 
@@ -286,7 +293,7 @@ export default function Clientes() {
       exito('Cliente eliminado');
       if (modalDetalle) setModalDetalle(false);
     } catch (err) {
-      notifError('Error al eliminar: ' + err.message);
+      notifError('Error al eliminar: ' + mensajeErrorCliente(err));
     }
   }
 
@@ -472,6 +479,13 @@ export default function Clientes() {
 
             {/* Resultados + Limpiar */}
             <div className="flex items-center gap-2 ml-auto">
+              <button
+                onClick={() => { resetForm(); setModalNuevo(true); }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                style={{ background: 'rgba(0,214,86,0.12)', border: '1px solid rgba(0,214,86,0.30)', color: '#00D656' }}
+              >
+                <UserPlus size={14} /> Nuevo cliente
+              </button>
               <span className="text-xs text-gray-500 whitespace-nowrap">
                 <span className="font-semibold text-gray-200 tabular-nums">{clientesFiltrados.length}</span>{' '}
                 cliente{clientesFiltrados.length !== 1 ? 's' : ''}
@@ -649,6 +663,7 @@ export default function Clientes() {
                   >
                     <Eye size={15} />
                   </button>
+                  {puedeEditar && (
                   <button
                     onClick={() => abrirModalEditar(cliente)}
                     className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all"
@@ -657,6 +672,8 @@ export default function Clientes() {
                   >
                     <Edit size={15} />
                   </button>
+                  )}
+                  {puedeEliminar && (
                   <button
                     onClick={() => handleEliminar(cliente.id)}
                     className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
@@ -665,6 +682,7 @@ export default function Clientes() {
                   >
                     <Trash2 size={15} />
                   </button>
+                  )}
                 </div>
               </div>
             );
@@ -811,6 +829,7 @@ export default function Clientes() {
                           >
                             <Eye size={15} />
                           </button>
+                          {puedeEditar && (
                           <button
                             onClick={() => abrirModalEditar(cliente)}
                             className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all"
@@ -819,6 +838,8 @@ export default function Clientes() {
                           >
                             <Edit size={15} />
                           </button>
+                          )}
+                          {puedeEliminar && (
                           <button
                             onClick={() => handleEliminar(cliente.id)}
                             className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
@@ -827,6 +848,7 @@ export default function Clientes() {
                           >
                             <Trash2 size={15} />
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -908,6 +930,7 @@ export default function Clientes() {
                       >
                         <Eye size={17} />
                       </button>
+                      {puedeEditar && (
                       <button
                         onClick={() => abrirModalEditar(cliente)}
                         className="flex items-center justify-center w-11 h-11 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-amber-500/10 transition-all"
@@ -916,6 +939,8 @@ export default function Clientes() {
                       >
                         <Edit size={17} />
                       </button>
+                      )}
+                      {puedeEliminar && (
                       <button
                         onClick={() => handleEliminar(cliente.id)}
                         className="flex items-center justify-center w-11 h-11 rounded-lg text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
@@ -924,6 +949,7 @@ export default function Clientes() {
                       >
                         <Trash2 size={17} />
                       </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -1330,8 +1356,8 @@ export default function Clientes() {
           cliente={clienteSeleccionado}
           abierto={modalDetalle}
           onCerrar={() => { setModalDetalle(false); setClienteSeleccionado(null); }}
-          onEditar={() => { setModalDetalle(false); abrirModalEditar(clienteSeleccionado); }}
-          onEliminar={handleEliminar}
+          onEditar={puedeEditar ? () => { setModalDetalle(false); abrirModalEditar(clienteSeleccionado); } : null}
+          onEliminar={puedeEliminar ? handleEliminar : null}
         />
       )}
   </>);
@@ -1351,12 +1377,12 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
   async function cargarHistorial() {
     setCargandoHistorial(true);
     try {
-      const sesiones = await db.select('sesiones', {
-        where: { cliente: cliente.nombre },
-        orderBy: 'fecha_inicio',
-        orden: 'DESC',
-        limite: 10
-      });
+      const opciones = { ordenPor: { campo: 'fecha_inicio', direccion: 'desc' }, limite: 10 };
+      // Primero por cliente_id (sesiones vinculadas); si no hay, por nombre (sesiones antiguas)
+      let sesiones = await db.select('sesiones', { ...opciones, filtros: { cliente_id: cliente.id } });
+      if (!sesiones?.length && cliente.nombre) {
+        sesiones = await db.select('sesiones', { ...opciones, filtros: { cliente: cliente.nombre } });
+      }
       setHistorial(sesiones || []);
     } catch (err) {
       console.error('Error cargando historial:', err);
@@ -1402,6 +1428,7 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
           </div>
 
           <div className="flex gap-2">
+            {onEditar && (
             <button
               onClick={onEditar}
               className="p-3 rounded-xl bg-white/5 hover:bg-amber-500/10 text-gray-400 hover:text-amber-400 transition-all"
@@ -1410,6 +1437,8 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
             >
               <Edit size={20} />
             </button>
+            )}
+            {onEliminar && (
             <button
               onClick={() => onEliminar(cliente.id)}
               className="p-3 rounded-xl bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all"
@@ -1418,6 +1447,7 @@ function ModalDetalle({ cliente, abierto, onCerrar, onEditar, onEliminar }) {
             >
               <Trash2 size={20} />
             </button>
+            )}
           </div>
         </div>
 

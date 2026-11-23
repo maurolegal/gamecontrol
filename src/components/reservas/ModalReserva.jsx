@@ -100,10 +100,11 @@ export default function ModalReserva({ abierto, onCerrar, salas = [], inicial = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abierto, reserva?.id]);
 
+  // Recargar clientes en cada apertura (incluye los creados en /clientes)
   useEffect(() => {
-    if (!abierto || clientes.length) return;
+    if (!abierto) return;
     db.select('clientes').then((d) => setClientes(d || [])).catch(() => {});
-  }, [abierto, clientes.length]);
+  }, [abierto]);
 
   const salaSel = salas.find((s) => s.id === salaId) || null;
   const estaciones = estacionesDeSala(salaSel);
