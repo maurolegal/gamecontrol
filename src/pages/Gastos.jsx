@@ -2,7 +2,7 @@
 // PÁGINA: Gastos – Migración completa desde gastos.html + gastos.js
 // ✅ KPI cards | Filtros avanzados | Formulario create/edit
 // ✅ Resumen por categoría | Historial completo | Gestión de categorías
-// ✅ Zona horaria America/Bogota (UTC-5)
+// ✅ Zona horaria del negocio (Ajustes → Regional; por defecto America/Bogota)
 // ===================================================================
 
 import { useEffect, useState, useCallback, useMemo } from 'react';
@@ -20,65 +20,59 @@ import ResumenCategorias from '../components/gastos/ResumenCategorias';
 import TablaGastos      from '../components/gastos/TablaGastos';
 import ModalCategorias  from '../components/gastos/ModalCategorias';
 import { formatCOP } from '../lib/formatCurrency';
+import { hoyNegocio, zonaNegocio, sumarDiasISO, diaSemanaISO } from '../lib/fechas';
 
 // ── Utilidades exportadas (usadas también por sub-componentes) ───────
 
-/** Fecha de hoy en zona horaria Colombia (YYYY-MM-DD) */
+/**
+ * Fecha de hoy (YYYY-MM-DD) en la zona horaria del negocio
+ * (Ajustes → Regional; por defecto America/Bogota).
+ * Se mantiene el nombre por compatibilidad con FormGasto.
+ */
 export function hoyBogota() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Bogota',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(new Date());
+  return hoyNegocio();
 }
 
 /**
- * Formatea una fecha (string YYYY-MM-DD o ISO) en formato dd/mm/yyyy
- * usando la zona horaria de Colombia para evitar desfases UTC.
+ * Formatea una fecha (string YYYY-MM-DD o ISO) en formato dd/mm/yyyy.
+ * Un DATE (YYYY-MM-DD) se muestra tal cual, sin conversión de zona;
+ * un timestamp se muestra en la zona del negocio.
  */
 export function formatFecha(fecha) {
   if (!fecha) return '—';
-  const str  = fecha.toString();
-  const base = str.match(/^\d{4}-\d{2}-\d{2}$/) ? `${str}T12:00:00` : str;
-  return new Date(base).toLocaleDateString('es-CO', {
+  const str = fecha.toString();
+  const soloFecha = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (soloFecha) return `${soloFecha[3]}/${soloFecha[2]}/${soloFecha[1]}`;
+  return new Date(str).toLocaleDateString('es-CO', {
     day: '2-digit', month: '2-digit', year: 'numeric',
-    timeZone: 'America/Bogota',
+    timeZone: zonaNegocio(),
   });
 }
 
 // ── Lógica de filtros ────────────────────────────────────────────────
+// Los rangos son fechas de calendario 'YYYY-MM-DD' en la zona del
+// negocio y se comparan como texto con fecha_gasto (columna DATE).
 
 function calcRango(periodo, desde, hasta) {
-  const ahora = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' })
-  );
-  const sod = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0);        return x; };
-  const eod = (d) => { const x = new Date(d); x.setHours(23, 59, 59, 999);   return x; };
+  const hoy = hoyNegocio();
+  const [anio, mes] = hoy.split('-');
 
   switch (periodo) {
     case 'hoy':
-      return { desde: sod(ahora), hasta: eod(ahora) };
+      return { desde: hoy, hasta: hoy };
     case 'ayer': {
-      const a = new Date(ahora); a.setDate(a.getDate() - 1);
-      return { desde: sod(a), hasta: eod(a) };
+      const ayer = sumarDiasISO(hoy, -1);
+      return { desde: ayer, hasta: ayer };
     }
-    case 'semana': {
-      const s = new Date(ahora); s.setDate(s.getDate() - s.getDay());
-      return { desde: sod(s), hasta: eod(ahora) };
-    }
-    case 'mes': {
-      const s = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-      return { desde: s, hasta: eod(ahora) };
-    }
-    case 'año': {
-      const s = new Date(ahora.getFullYear(), 0, 1);
-      return { desde: s, hasta: eod(ahora) };
-    }
+    case 'semana':
+      return { desde: sumarDiasISO(hoy, -diaSemanaISO(hoy)), hasta: hoy };
+    case 'mes':
+      return { desde: `${anio}-${mes}-01`, hasta: hoy };
+    case 'año':
+      return { desde: `${anio}-01-01`, hasta: hoy };
     case 'rango': {
       if (!desde || !hasta) return null;
-      return {
-        desde: sod(new Date(`${desde}T00:00:00`)),
-        hasta: eod(new Date(`${hasta}T00:00:00`)),
-      };
+      return desde <= hasta ? { desde, hasta } : { desde: hasta, hasta: desde };
     }
     default:
       return null;
@@ -92,7 +86,7 @@ function aplicarFiltros(gastos, filtros) {
   const rango = calcRango(filtros.periodo, filtros.desde, filtros.hasta);
   if (rango) {
     resultado = resultado.filter((g) => {
-      const f = new Date(`${g.fecha_gasto}T12:00:00`);
+      const f = (g.fecha_gasto || '').toString().slice(0, 10);
       return f >= rango.desde && f <= rango.hasta;
     });
   }
@@ -115,8 +109,10 @@ function aplicarFiltros(gastos, filtros) {
     resultado = resultado.filter((g) => g.metodo_pago === filtros.metodoPago);
   }
 
+  // Más reciente primero: por fecha y, dentro del día, por hora de registro
   return resultado.sort((a, b) =>
-    new Date(b.fecha_gasto) - new Date(a.fecha_gasto)
+    (b.fecha_gasto || '').localeCompare(a.fecha_gasto || '') ||
+    new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0)
   );
 }
 
@@ -153,16 +149,10 @@ export default function Gastos() {
     try {
       // Calcular rango desde el filtro de período del cliente
       const rango = calcRango(filtros.periodo, filtros.desde, filtros.hasta);
-      // Usar el rango del filtro, o fallback a 90 días si no hay rango
-      let desdeStr;
-      if (rango) {
-        desdeStr = rango.desde.toISOString().split('T')[0];
-      } else {
-        // Fallback: 90 días hacia atrás
-        const hace90dias = new Date();
-        hace90dias.setDate(hace90dias.getDate() - 90);
-        desdeStr = hace90dias.toISOString().split('T')[0];
-      }
+      // Usar el rango del filtro, o fallback a 90 días si no hay rango.
+      // Solo límite inferior: así también se ven gastos con fecha futura
+      // (p. ej. compras guardadas con fecha UTC antes de esta corrección).
+      const desdeStr = rango ? rango.desde : sumarDiasISO(hoyNegocio(), -90);
 
       const data = await db.select('gastos', {
         select: 'id, fecha_gasto, monto, categoria, proveedor, descripcion, concepto, metodo_pago, usuario_id, fecha_creacion, usuario:usuarios!usuario_id(nombre,rol)',

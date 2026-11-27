@@ -11,6 +11,7 @@ import * as db from '../../lib/databaseService';
 import { useNotifications } from '../../hooks/useNotifications';
 import { getUsuarioIdSimple } from '../../lib/authHelpers';
 import { formatCOP } from '../../lib/formatCurrency';
+import { hoyNegocio } from '../../lib/fechas';
 
 const METODOS_PAGO_BASE = [
   { value: 'efectivo',      label: 'Efectivo (Caja Menor)' },
@@ -171,7 +172,8 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
       // 1. Registrar gasto
       const conceptoProductos = items.map(i => `${i.nombre} x${i.cantidad}`).join(', ');
       await db.insert('gastos', {
-        fecha_gasto: new Date().toISOString().split('T')[0],
+        // Día del negocio, no UTC (desde las 7 p. m. en Colombia UTC ya es mañana)
+        fecha_gasto: hoyNegocio(),
         categoria: 'Mercancía',
         concepto: `Compra mercancía${proveedor ? ` - ${proveedor}` : ''}`,
         descripcion: `Ingreso de mercancía: ${conceptoProductos}${numFactura ? ` | Factura: ${numFactura}` : ''}${observaciones ? ` | Obs: ${observaciones}` : ''}`,
