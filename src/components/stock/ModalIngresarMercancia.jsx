@@ -12,6 +12,7 @@ import { useNotifications } from '../../hooks/useNotifications';
 import { getUsuarioIdSimple } from '../../lib/authHelpers';
 import { formatCOP } from '../../lib/formatCurrency';
 import { hoyNegocio } from '../../lib/fechas';
+import { useConfirm } from '../ui/ConfirmProvider';
 
 const METODOS_PAGO_BASE = [
   { value: 'efectivo',      label: 'Efectivo (Caja Menor)' },
@@ -22,6 +23,7 @@ const METODOS_PAGO_BASE = [
 
 export default function ModalIngresarMercancia({ abierto, productos = [], onCerrar, onGuardado }) {
   const { exito, error: notifError } = useNotifications();
+  const { confirm } = useConfirm();
 
   // ── Factura ──
   const [importe, setImporte] = useState('');
@@ -29,6 +31,8 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
   const [metodoPago, setMetodoPago] = useState('efectivo');
   const [proveedor, setProveedor] = useState('');
   const [observaciones, setObservaciones] = useState('');
+  // Costos de la factura que no son inventario (domicilio, IVA aparte, bolsas…)
+  const [otrosCostos, setOtrosCostos] = useState('');
   const [proveedoresHist, setProveedoresHist] = useState([]);
   const [mediosPago, setMediosPago] = useState([]);
 
@@ -48,7 +52,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
   useEffect(() => {
     if (!abierto) return;
     setImporte(''); setNumFactura(''); setMetodoPago('efectivo');
-    setProveedor(''); setObservaciones(''); setItems([]); setBusqueda('');
+    setProveedor(''); setObservaciones(''); setOtrosCostos(''); setItems([]); setBusqueda('');
     setCalcValorTotal(''); setCalcCantidad('');
 
     (async () => {
@@ -140,6 +144,10 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
 
   const totalItems = items.reduce((s, i) => s + (i.subtotal || 0), 0);
   const importeNum = parseFloat(importe) || 0;
+  const otrosNum = Math.max(0, parseFloat(otrosCostos) || 0);
+  const totalDetalle = totalItems + otrosNum;
+  const diferencia = importeNum - totalDetalle; // > 0: falta detallar; < 0: el detalle supera la factura
+  const cuadra = Math.abs(diferencia) < 1;
   const totalUnidades = items.reduce((s, i) => s + (parseInt(i.cantidad, 10) || 0), 0);
 
   // ── Cálculo automático de costo ──
@@ -166,6 +174,23 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
     if (!importeNum || importeNum <= 0) return notifError('Ingresa el importe de la factura');
     if (items.length === 0) return notifError('Agrega al menos un producto');
 
+    // La factura debe cuadrar con productos + otros costos; si no, confirmar.
+    if (!cuadra) {
+      const detalle =
+        `Productos: ${formatCOP(totalItems)}` +
+        (otrosNum > 0 ? `\nOtros costos: ${formatCOP(otrosNum)}` : '') +
+        `\nFactura: ${formatCOP(importeNum)}\n\n` +
+        (diferencia > 0
+          ? `Faltan ${formatCOP(diferencia)} por detallar. ¿Falta algún producto o un costo unitario está mal?`
+          : `El detalle supera la factura por ${formatCOP(-diferencia)}. Revisa cantidades y costos.`);
+      const ok = await confirm(`La factura no cuadra.\n\n${detalle}\n\n¿Guardar igual?`, {
+        tipo: 'warning',
+        confirmText: 'Guardar igual',
+        cancelText: 'Revisar',
+      });
+      if (!ok) return;
+    }
+
     setCargando(true);
     try {
       const usuarioId = await getUsuarioIdSimple();
@@ -176,7 +201,7 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
         fecha_gasto: hoyNegocio(),
         categoria: 'Mercancía',
         concepto: `Compra mercancía${proveedor ? ` - ${proveedor}` : ''}`,
-        descripcion: `Ingreso de mercancía: ${conceptoProductos}${numFactura ? ` | Factura: ${numFactura}` : ''}${observaciones ? ` | Obs: ${observaciones}` : ''}`,
+        descripcion: `Ingreso de mercancía: ${conceptoProductos}${otrosNum > 0 ? ` | Otros costos: ${formatCOP(otrosNum)}` : ''}${!cuadra ? ` | Sin detallar: ${formatCOP(diferencia)}` : ''}${numFactura ? ` | Factura: ${numFactura}` : ''}${observaciones ? ` | Obs: ${observaciones}` : ''}`,
         monto: importeNum,
         metodo_pago: metodoPago,
         proveedor: proveedor || null,
@@ -313,6 +338,22 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                   placeholder="FAC-2026-001"
                   className={inputCls}
                 />
+              </div>
+
+              {/* Otros costos (no inventario) */}
+              <div>
+                <label className={labelCls}>Otros costos <span className="normal-case text-gray-600">(domicilio, IVA aparte…)</span></label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={otrosCostos}
+                    onChange={(e) => setOtrosCostos(e.target.value)}
+                    placeholder="0"
+                    className={`${inputCls} pl-7 tabular-nums`}
+                  />
+                </div>
               </div>
 
               {/* Medio de pago */}
@@ -605,23 +646,30 @@ export default function ModalIngresarMercancia({ abierto, productos = [], onCerr
                     {/* Comparativa importe vs detalle */}
                     {items.length > 0 && importeNum > 0 && (
                       <div
-                        className="flex items-center justify-between px-3 py-2 rounded-lg"
+                        className="px-3 py-2 rounded-lg space-y-0.5"
                         style={{
-                          background: Math.abs(totalItems - importeNum) < 1
-                            ? 'rgba(0,214,86,0.06)'
-                            : 'rgba(245,158,11,0.06)',
-                          border: Math.abs(totalItems - importeNum) < 1
-                            ? '1px solid rgba(0,214,86,0.15)'
-                            : '1px solid rgba(245,158,11,0.15)',
+                          background: cuadra ? 'rgba(0,214,86,0.06)' : 'rgba(245,158,11,0.06)',
+                          border: cuadra ? '1px solid rgba(0,214,86,0.15)' : '1px solid rgba(245,158,11,0.15)',
                         }}
                       >
-                        <span className="text-[10px] text-gray-500">Suma detalle vs importe factura</span>
-                        <span
-                          className="text-xs font-bold tabular-nums"
-                          style={{ color: Math.abs(totalItems - importeNum) < 1 ? '#00D656' : '#F59E0B' }}
-                        >
-                          {formatCOP(totalItems)} / {formatCOP(importeNum)}
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-gray-500">
+                            Productos{otrosNum > 0 ? ' + otros costos' : ''} vs importe factura
+                          </span>
+                          <span
+                            className="text-xs font-bold tabular-nums"
+                            style={{ color: cuadra ? '#00D656' : '#F59E0B' }}
+                          >
+                            {formatCOP(totalDetalle)} / {formatCOP(importeNum)}
+                          </span>
+                        </div>
+                        {!cuadra && (
+                          <p className="text-[10px] font-semibold text-amber-400">
+                            {diferencia > 0
+                              ? `Faltan ${formatCOP(diferencia)} por detallar`
+                              : `El detalle supera la factura por ${formatCOP(-diferencia)}`}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
